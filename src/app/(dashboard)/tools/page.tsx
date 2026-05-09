@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { parseDateRange } from "@/lib/date-range";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -18,7 +19,11 @@ function formatMs(ms: number | null): string {
   return `${(ms / 1000).toFixed(1)}s`;
 }
 
-export default async function ToolsPage() {
+export default async function ToolsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ from?: string; to?: string }>;
+}) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -28,11 +33,8 @@ export default async function ToolsPage() {
     redirect("/login");
   }
 
-  const now = new Date();
-  const thirtyDaysAgo = new Date(now);
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-  const p_from = thirtyDaysAgo.toISOString().substring(0, 10);
-  const p_to = now.toISOString().substring(0, 10);
+  const { from, to } = await searchParams;
+  const { p_from, p_to } = parseDateRange(from, to);
 
   const { data } = await supabase.rpc("get_top_tools", {
     p_user_id: user.id,
@@ -44,10 +46,10 @@ export default async function ToolsPage() {
   const tools: ToolUsageStat[] = ((data as Record<string, unknown>[]) ?? []).map((row) => ({
     tool_name: row.tool_name as string,
     count: row.count as number,
-    avg_duration_ms: (row.avg_duration_ms as number) ?? null,
-    p50_duration_ms: (row.p50_duration_ms as number) ?? null,
-    p99_duration_ms: (row.p99_duration_ms as number) ?? null,
-    trend: (row.trend as number) ?? 0,
+    avg_duration_ms: (row.avg_duration_ms as number | null) ?? null,
+    p50_duration_ms: (row.p50_duration_ms as number | null) ?? null,
+    p99_duration_ms: (row.p99_duration_ms as number | null) ?? null,
+    trend: (row.trend as number | null) ?? null,
   }));
 
   return (
@@ -106,7 +108,7 @@ export default async function ToolsPage() {
                       {formatMs(tool.p99_duration_ms)}
                     </TableCell>
                     <TableCell className="text-right">
-                      {tool.trend !== 0 ? (
+                      {tool.trend !== null ? (
                         <span
                           className={
                             tool.trend > 0 ? "text-emerald-600" : "text-red-500"

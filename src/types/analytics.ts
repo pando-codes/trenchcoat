@@ -21,7 +21,7 @@ export interface ToolUsageStat {
   avg_duration_ms: number | null;
   p50_duration_ms: number | null;
   p99_duration_ms: number | null;
-  trend: number; // % change vs previous period
+  trend: number | null; // % change vs previous period, null when no prior data
 }
 
 export interface HourlyHeatmapEntry {
