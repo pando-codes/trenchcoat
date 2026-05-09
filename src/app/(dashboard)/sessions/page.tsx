@@ -1,6 +1,9 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { parseDateRange } from "@/lib/date-range";
+import { SessionFilters } from "@/components/dashboard/session-filters";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -14,7 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import type { SessionSummary } from "@/types/analytics";
 
 interface SessionsPageProps {
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string; branch?: string; from?: string; to?: string }>;
 }
 
 const PAGE_SIZE = 20;
@@ -50,17 +53,55 @@ export default async function SessionsPage({ searchParams }: SessionsPageProps) 
   }
 
   const page = Math.max(1, parseInt(params.page ?? "1", 10));
+  const branch = params.branch ?? undefined;
+  const from = params.from ?? undefined;
+  const to = params.to ?? undefined;
   const offset = (page - 1) * PAGE_SIZE;
 
-  const { data, count } = await supabase
-    .from("sessions")
-    .select("*", { count: "exact" })
-    .eq("user_id", user.id)
-    .order("started_at", { ascending: false })
-    .range(offset, offset + PAGE_SIZE - 1);
+  const { p_from, p_to } = parseDateRange(from, to);
 
-  const sessions: SessionSummary[] = data ?? [];
-  const totalPages = Math.ceil((count ?? 0) / PAGE_SIZE);
+  const [branchesResult, sessionsResult] = await Promise.all([
+    supabase
+      .from("sessions")
+      .select("git_branch")
+      .eq("user_id", user.id)
+      .not("git_branch", "is", null)
+      .order("git_branch", { ascending: true }),
+    (() => {
+      let query = supabase
+        .from("sessions")
+        .select("*", { count: "exact" })
+        .eq("user_id", user.id)
+        .gte("started_at", p_from)
+        .lte("started_at", p_to + "T23:59:59.999Z")
+        .order("started_at", { ascending: false })
+        .range(offset, offset + PAGE_SIZE - 1);
+
+      if (branch) {
+        query = query.eq("git_branch", branch);
+      }
+
+      return query;
+    })(),
+  ]);
+
+  const branches: string[] = [
+    ...new Set(
+      (branchesResult.data ?? []).map((r) => r.git_branch as string)
+    ),
+  ].sort();
+
+  const sessions: SessionSummary[] = sessionsResult.data ?? [];
+  const totalPages = Math.ceil((sessionsResult.count ?? 0) / PAGE_SIZE);
+
+  function buildPageUrl(p: number): string {
+    const pageParams = new URLSearchParams();
+    if (from) pageParams.set("from", from);
+    if (to) pageParams.set("to", to);
+    if (branch) pageParams.set("branch", branch);
+    pageParams.set("page", String(p));
+    return `/sessions?${pageParams.toString()}`;
+  }
 
   return (
     <div className="flex flex-col gap-6 p-6">
@@ -72,8 +113,11 @@ export default async function SessionsPage({ searchParams }: SessionsPageProps) 
       </div>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>All Sessions</CardTitle>
+          <Suspense fallback={null}>
+            <SessionFilters branches={branches} currentBranch={branch ?? null} />
+          </Suspense>
         </CardHeader>
         <CardContent>
           <Table>
@@ -124,7 +168,7 @@ export default async function SessionsPage({ searchParams }: SessionsPageProps) 
             <div className="mt-4 flex items-center justify-center gap-2">
               {page > 1 && (
                 <Link
-                  href={`/sessions?page=${page - 1}`}
+                  href={buildPageUrl(page - 1)}
                   className="text-sm text-primary underline-offset-4 hover:underline"
                 >
                   Previous
@@ -135,7 +179,7 @@ export default async function SessionsPage({ searchParams }: SessionsPageProps) 
               </span>
               {page < totalPages && (
                 <Link
-                  href={`/sessions?page=${page + 1}`}
+                  href={buildPageUrl(page + 1)}
                   className="text-sm text-primary underline-offset-4 hover:underline"
                 >
                   Next
