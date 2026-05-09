@@ -1,12 +1,17 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { parseDateRange } from "@/lib/date-range";
 import { OverviewCards } from "@/components/dashboard/overview-cards";
 import { DailyActivityChart } from "@/components/charts/daily-activity-chart";
 import { ToolUsageChart } from "@/components/charts/tool-usage-chart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { OverviewStats, DailyActivity, ToolUsageStat } from "@/types/analytics";
 
-export default async function OverviewPage() {
+export default async function OverviewPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ from?: string; to?: string }>;
+}) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -16,11 +21,8 @@ export default async function OverviewPage() {
     redirect("/login");
   }
 
-  const now = new Date();
-  const thirtyDaysAgo = new Date(now);
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-  const p_from = thirtyDaysAgo.toISOString().substring(0, 10);
-  const p_to = now.toISOString().substring(0, 10);
+  const { from, to } = await searchParams;
+  const { p_from, p_to } = parseDateRange(from, to);
 
   const [statsResult, dailyResult, toolsResult] = await Promise.all([
     supabase.rpc("get_overview_stats", { p_user_id: user.id, p_from, p_to }),
