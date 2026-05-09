@@ -1,11 +1,16 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { parseDateRange } from "@/lib/date-range";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { HourlyHeatmap } from "@/components/charts/hourly-heatmap";
 import { DailyActivityChart } from "@/components/charts/daily-activity-chart";
 import type { HourlyHeatmapEntry, DailyActivity } from "@/types/analytics";
 
-export default async function ActivityPage() {
+export default async function ActivityPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ from?: string; to?: string }>;
+}) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -15,11 +20,8 @@ export default async function ActivityPage() {
     redirect("/login");
   }
 
-  const now = new Date();
-  const ninetyDaysAgo = new Date(now);
-  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
-  const p_from = ninetyDaysAgo.toISOString().substring(0, 10);
-  const p_to = now.toISOString().substring(0, 10);
+  const { from, to } = await searchParams;
+  const { p_from, p_to } = parseDateRange(from, to);
 
   const [aggregatesResult] = await Promise.all([
     supabase

@@ -21,7 +21,7 @@ export interface ToolUsageStat {
   avg_duration_ms: number | null;
   p50_duration_ms: number | null;
   p99_duration_ms: number | null;
-  trend: number; // % change vs previous period
+  trend: number | null; // % change vs previous period, null when no prior data
 }
 
 export interface HourlyHeatmapEntry {
@@ -42,6 +42,14 @@ export interface SessionSummary {
   stop_reason: string | null;
   git_branch: string | null;
   working_directory: string | null;
+}
+
+export interface AgentStat {
+  agent_type: string;
+  count: number;
+  avg_tool_count: number | null;
+  avg_turns: number | null;
+  trend: number | null;
 }
 
 export interface DateRange {

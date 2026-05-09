@@ -1,53 +1,49 @@
 "use client";
 
 import { useState } from "react";
-import { format, subDays } from "date-fns";
+import { useRouter, useSearchParams } from "next/navigation";
+import { format, subDays, parseISO } from "date-fns";
 import { CalendarIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import type { DateRange } from "@/types/analytics";
 
-interface DateRangePickerProps {
-  value?: DateRange;
-  onRangeChange: (range: DateRange) => void;
+function defaultRange() {
+  const to = new Date();
+  const from = subDays(to, 30);
+  return { from, to };
 }
 
-function defaultRange(): DateRange {
-  return {
-    from: subDays(new Date(), 30),
-    to: new Date(),
-  };
-}
-
-export function DateRangePicker({ value, onRangeChange }: DateRangePickerProps) {
+export function DateRangePicker() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [open, setOpen] = useState(false);
-  const range = value ?? defaultRange();
+
+  const fromParam = searchParams.get("from");
+  const toParam = searchParams.get("to");
+  const defaults = defaultRange();
+
+  const range = {
+    from: fromParam ? parseISO(fromParam) : defaults.from,
+    to: toParam ? parseISO(toParam) : defaults.to,
+  };
+
+  function handleSelect(selected: { from?: Date; to?: Date } | undefined) {
+    if (!selected?.from || !selected?.to) return;
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("from", format(selected.from, "yyyy-MM-dd"));
+    params.set("to", format(selected.to, "yyyy-MM-dd"));
+    params.delete("page");
+    router.replace(`?${params.toString()}`);
+    setOpen(false);
+  }
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          className={cn(
-            "justify-start text-left font-normal",
-            !value && "text-muted-foreground"
-          )}
-        >
+        <Button variant="outline" className="justify-start text-left font-normal">
           <CalendarIcon className="size-4" />
-          {range.from ? (
-            range.to ? (
-              <>
-                {format(range.from, "MMM d, yyyy")} -{" "}
-                {format(range.to, "MMM d, yyyy")}
-              </>
-            ) : (
-              format(range.from, "MMM d, yyyy")
-            )
-          ) : (
-            <span>Pick a date range</span>
-          )}
+          {format(range.from, "MMM d, yyyy")} – {format(range.to, "MMM d, yyyy")}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="start">
@@ -55,12 +51,7 @@ export function DateRangePicker({ value, onRangeChange }: DateRangePickerProps) 
           mode="range"
           defaultMonth={range.from}
           selected={{ from: range.from, to: range.to }}
-          onSelect={(selected) => {
-            if (selected?.from && selected?.to) {
-              onRangeChange({ from: selected.from, to: selected.to });
-              setOpen(false);
-            }
-          }}
+          onSelect={handleSelect}
           numberOfMonths={2}
         />
       </PopoverContent>

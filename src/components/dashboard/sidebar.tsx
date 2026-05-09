@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   Terminal,
   Wrench,
+  Bot,
   Activity,
   Users,
   Settings,
@@ -24,6 +25,7 @@ const navItems = [
   { href: "/", label: "Overview", icon: LayoutDashboard },
   { href: "/sessions", label: "Sessions", icon: Terminal },
   { href: "/tools", label: "Tools", icon: Wrench },
+  { href: "/agents", label: "Agents", icon: Bot },
   { href: "/activity", label: "Activity", icon: Activity },
   { href: "/teams", label: "Teams", icon: Users },
 ];

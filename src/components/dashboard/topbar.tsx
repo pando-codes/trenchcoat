@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { useRouter } from "next/navigation";
 import { LogOut, User } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -14,14 +15,10 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DateRangePicker } from "@/components/dashboard/date-range-picker";
 import { MobileSidebar } from "@/components/dashboard/mobile-sidebar";
-import type { DateRange } from "@/types/analytics";
-
 interface TopbarProps {
   userName: string;
   avatarUrl: string | null;
   userEmail: string;
-  dateRange?: DateRange;
-  onDateRangeChange?: (range: DateRange) => void;
 }
 
 function getInitials(name: string): string {
@@ -38,8 +35,6 @@ export function Topbar({
   userName,
   avatarUrl,
   userEmail,
-  dateRange,
-  onDateRangeChange,
 }: TopbarProps) {
   const router = useRouter();
 
@@ -58,12 +53,9 @@ export function Topbar({
           avatarUrl={avatarUrl}
           userEmail={userEmail}
         />
-        {onDateRangeChange && (
-          <DateRangePicker
-            value={dateRange}
-            onRangeChange={onDateRangeChange}
-          />
-        )}
+        <Suspense fallback={<div className="h-9 w-[240px] rounded-md bg-muted animate-pulse" />}>
+          <DateRangePicker />
+        </Suspense>
       </div>
 
       <DropdownMenu>
