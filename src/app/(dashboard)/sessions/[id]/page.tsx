@@ -139,6 +139,52 @@ export default async function SessionDetailPage({ params }: SessionDetailPagePro
         </Card>
       </div>
 
+      {(() => {
+        const agentEvents = typedEvents.filter((e) => e.event_type === "subagent_stop");
+        if (agentEvents.length === 0) return null;
+        return (
+          <Card>
+            <CardHeader>
+              <CardTitle>Agents</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {agentEvents.map((event) => {
+                  const d = event.data;
+                  const agentType = (d.agent_type as string | null) ?? "subagent";
+                  const toolCountTotal = (d.tool_count_total as number | null) ?? 0;
+                  const turns = (d.turns as number | null) ?? 0;
+                  const toolCounts = (d.tool_counts as Record<string, number> | null) ?? {};
+                  const topTools = Object.entries(toolCounts)
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 3);
+                  return (
+                    <div key={event.id} className="rounded-lg border p-4">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium">{agentType}</span>
+                        <div className="flex gap-4 text-sm text-muted-foreground">
+                          <span>{toolCountTotal} tools</span>
+                          <span>{turns} turns</span>
+                        </div>
+                      </div>
+                      {topTools.length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {topTools.map(([tool, count]) => (
+                            <Badge key={tool} variant="secondary">
+                              {tool} × {count}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })()}
+
       <Card>
         <CardHeader>
           <CardTitle>Event Timeline</CardTitle>
