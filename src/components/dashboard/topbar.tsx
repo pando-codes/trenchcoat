@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { useRouter } from "next/navigation";
 import { LogOut, User } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -52,7 +53,9 @@ export function Topbar({
           avatarUrl={avatarUrl}
           userEmail={userEmail}
         />
-        <DateRangePicker />
+        <Suspense fallback={<div className="h-9 w-[240px] rounded-md bg-muted animate-pulse" />}>
+          <DateRangePicker />
+        </Suspense>
       </div>
 
       <DropdownMenu>
