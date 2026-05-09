@@ -44,6 +44,14 @@ export interface SessionSummary {
   working_directory: string | null;
 }
 
+export interface AgentStat {
+  agent_type: string;
+  count: number;
+  avg_tool_count: number | null;
+  avg_turns: number | null;
+  trend: number | null;
+}
+
 export interface DateRange {
   from: Date;
   to: Date;
