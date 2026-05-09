@@ -18,7 +18,6 @@ interface TopbarProps {
   userName: string;
   avatarUrl: string | null;
   userEmail: string;
-  showDatePicker?: boolean;
 }
 
 function getInitials(name: string): string {
@@ -35,7 +34,6 @@ export function Topbar({
   userName,
   avatarUrl,
   userEmail,
-  showDatePicker = true,
 }: TopbarProps) {
   const router = useRouter();
 
@@ -54,7 +52,7 @@ export function Topbar({
           avatarUrl={avatarUrl}
           userEmail={userEmail}
         />
-        {showDatePicker && <DateRangePicker />}
+        <DateRangePicker />
       </div>
 
       <DropdownMenu>
