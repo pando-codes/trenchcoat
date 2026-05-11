@@ -7,6 +7,7 @@ import {
   Terminal,
   Wrench,
   Bot,
+  DollarSign,
   Activity,
   Users,
   Settings,
@@ -26,6 +27,7 @@ const navItems = [
   { href: "/sessions", label: "Sessions", icon: Terminal },
   { href: "/tools", label: "Tools", icon: Wrench },
   { href: "/agents", label: "Agents", icon: Bot },
+  { href: "/cost", label: "Cost", icon: DollarSign },
   { href: "/activity", label: "Activity", icon: Activity },
   { href: "/teams", label: "Teams", icon: Users },
 ];
