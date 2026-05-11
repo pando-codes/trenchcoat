@@ -4,8 +4,9 @@ import { parseDateRange } from "@/lib/date-range";
 import { OverviewCards } from "@/components/dashboard/overview-cards";
 import { DailyActivityChart } from "@/components/charts/daily-activity-chart";
 import { ToolUsageChart } from "@/components/charts/tool-usage-chart";
+import { DailyCostChart } from "@/components/charts/daily-cost-chart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { OverviewStats, DailyActivity, ToolUsageStat } from "@/types/analytics";
+import type { OverviewStats, DailyActivity, ToolUsageStat, DailyCost } from "@/types/analytics";
 
 export default async function OverviewPage({
   searchParams,
@@ -24,7 +25,7 @@ export default async function OverviewPage({
   const { from, to } = await searchParams;
   const { p_from, p_to } = parseDateRange(from, to);
 
-  const [statsResult, dailyResult, toolsResult] = await Promise.all([
+  const [statsResult, dailyResult, toolsResult, costResult] = await Promise.all([
     supabase.rpc("get_overview_stats", { p_user_id: user.id, p_from, p_to }),
     supabase
       .from("daily_aggregates")
@@ -35,6 +36,7 @@ export default async function OverviewPage({
       .order("date", { ascending: true })
       .limit(30),
     supabase.rpc("get_top_tools", { p_user_id: user.id, p_from, p_to, p_limit: 10 }),
+    supabase.rpc("get_daily_cost", { p_user_id: user.id, p_from, p_to }),
   ]);
 
   const stats: OverviewStats = statsResult.data ?? {
@@ -49,6 +51,7 @@ export default async function OverviewPage({
 
   const dailyActivity: DailyActivity[] = dailyResult.data ?? [];
   const topTools: ToolUsageStat[] = toolsResult.data ?? [];
+  const dailyCost: DailyCost[] = costResult.data ?? [];
 
   return (
     <div className="flex flex-col gap-6 p-6">
@@ -80,6 +83,15 @@ export default async function OverviewPage({
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Daily Cost</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <DailyCostChart data={dailyCost} />
+        </CardContent>
+      </Card>
     </div>
   );
 }
