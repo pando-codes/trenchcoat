@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
-"""Stop hook — log stop reason."""
+"""Stop hook — log stop reason with session-level token totals."""
 
-import json
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "lib"))
 
-from telemetry import read_hook_input, is_enabled, write_event
+from telemetry import read_hook_input, is_enabled, write_event, parse_agent_transcript
 
 
 def main():
@@ -17,9 +16,17 @@ def main():
 
     session_id = hook_input.get("session_id", "unknown")
     reason = hook_input.get("stop_hook_reason", "unknown")
+    transcript_path = hook_input.get("transcript_path")
+
+    transcript = {}
+    if transcript_path:
+        transcript = parse_agent_transcript(transcript_path)
 
     write_event("stop", session_id, {
         "reason": reason,
+        "input_tokens": transcript.get("input_tokens", 0),
+        "output_tokens": transcript.get("output_tokens", 0),
+        "model": transcript.get("model"),
     })
 
 

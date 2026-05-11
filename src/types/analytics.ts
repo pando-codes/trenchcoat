@@ -21,12 +21,12 @@ export interface ToolUsageStat {
   avg_duration_ms: number | null;
   p50_duration_ms: number | null;
   p99_duration_ms: number | null;
-  trend: number | null; // % change vs previous period, null when no prior data
+  trend: number | null;
 }
 
 export interface HourlyHeatmapEntry {
-  day_of_week: number; // 0 = Sun
-  hour: number; // 0-23
+  day_of_week: number;
+  hour: number;
   count: number;
 }
 
@@ -42,6 +42,9 @@ export interface SessionSummary {
   stop_reason: string | null;
   git_branch: string | null;
   working_directory: string | null;
+  model: string | null;
+  input_tokens: number | null;
+  output_tokens: number | null;
 }
 
 export interface AgentStat {
@@ -50,6 +53,24 @@ export interface AgentStat {
   avg_tool_count: number | null;
   avg_turns: number | null;
   trend: number | null;
+  total_input_tokens: number | null;
+  total_output_tokens: number | null;
+  total_cost_usd: number | null;
+}
+
+export interface DailyCost {
+  date: string;
+  total_cost_usd: number;
+  input_tokens: number;
+  output_tokens: number;
+}
+
+export interface ModelCost {
+  model: string;
+  session_count: number;
+  input_tokens: number;
+  output_tokens: number;
+  total_cost_usd: number;
 }
 
 export interface DateRange {

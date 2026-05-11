@@ -14,6 +14,7 @@ import os
 import sys
 import time
 import uuid
+from collections import Counter
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
@@ -375,18 +376,16 @@ def cleanup_old_events(retention_days: int = 30) -> int:
 # --- Agent transcript parsing ---
 
 def parse_agent_transcript(transcript_path: str) -> dict:
-    """Parse a subagent's transcript JSONL to extract tool usage stats.
-
-    Returns dict with tool_counts, total_tools, and turns.
-    """
-    from collections import Counter
-
+    """Parse transcript JSONL for tool usage, token counts, and model."""
     path = Path(transcript_path)
     if not path.exists():
         return {}
 
     tool_counts = Counter()
     turns = 0
+    input_tokens = 0
+    output_tokens = 0
+    model = None
 
     try:
         for line in path.read_text().splitlines():
@@ -403,6 +402,14 @@ def parse_agent_transcript(transcript_path: str) -> dict:
 
             turns += 1
             msg = entry.get("message", {})
+
+            if msg.get("model"):
+                model = msg["model"]
+
+            usage = msg.get("usage", {})
+            input_tokens += int(usage.get("input_tokens") or 0)
+            output_tokens += int(usage.get("output_tokens") or 0)
+
             for block in msg.get("content", []):
                 if isinstance(block, dict) and block.get("type") == "tool_use":
                     tool_counts[block.get("name", "unknown")] += 1
@@ -413,6 +420,9 @@ def parse_agent_transcript(transcript_path: str) -> dict:
         "tool_counts": dict(tool_counts.most_common()),
         "total_tools": sum(tool_counts.values()),
         "turns": turns,
+        "input_tokens": input_tokens,
+        "output_tokens": output_tokens,
+        "model": model,
     }
 
 

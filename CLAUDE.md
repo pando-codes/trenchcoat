@@ -18,6 +18,7 @@ Copy `.env.local.example` to `.env.local` and fill in:
 - `NEXT_PUBLIC_SUPABASE_URL` — Supabase project URL
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Supabase anon/public key
 - `SUPABASE_SERVICE_ROLE_KEY` — Supabase service role key (server-side only, used by admin client for event ingestion)
+- `CRON_SECRET` — Secret for Vercel Cron job authentication (used by `/api/v1/admin/sync-pricing` to validate the `Authorization: Bearer <secret>` header)
 
 ## Architecture
 

@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """SubagentStop hook — log agent completion with tool attribution from transcript."""
 
-import json
 import sys
 from pathlib import Path
 
@@ -31,6 +30,9 @@ def main():
         "tool_counts": tool_summary.get("tool_counts", {}),
         "tool_count_total": tool_summary.get("total_tools", 0),
         "turns": tool_summary.get("turns", 0),
+        "input_tokens": tool_summary.get("input_tokens", 0),
+        "output_tokens": tool_summary.get("output_tokens", 0),
+        "model": tool_summary.get("model"),
     })
 
 
