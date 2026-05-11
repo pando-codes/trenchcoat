@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { parseDateRange } from "@/lib/date-range";
+import { computeCost, formatCost, type RateMap } from "@/lib/cost";
 import { SessionFilters } from "@/components/dashboard/session-filters";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -60,7 +61,7 @@ export default async function SessionsPage({ searchParams }: SessionsPageProps) 
 
   const { p_from, p_to } = parseDateRange(from, to);
 
-  const [branchesResult, sessionsResult] = await Promise.all([
+  const [branchesResult, sessionsResult, pricingResult] = await Promise.all([
     supabase
       .from("sessions")
       .select("git_branch")
@@ -83,6 +84,7 @@ export default async function SessionsPage({ searchParams }: SessionsPageProps) 
 
       return query;
     })(),
+    supabase.from("model_pricing").select("model_id, input_cost_per_1m, output_cost_per_1m"),
   ]);
 
   const branches: string[] = [
@@ -93,6 +95,12 @@ export default async function SessionsPage({ searchParams }: SessionsPageProps) 
 
   const sessions: SessionSummary[] = sessionsResult.data ?? [];
   const totalPages = Math.ceil((sessionsResult.count ?? 0) / PAGE_SIZE);
+
+  const rates: RateMap = Object.fromEntries(
+    ((pricingResult.data ?? []) as { model_id: string; input_cost_per_1m: number; output_cost_per_1m: number }[]).map(
+      (r) => [r.model_id, { input_cost_per_1m: r.input_cost_per_1m, output_cost_per_1m: r.output_cost_per_1m }]
+    )
+  );
 
   function buildPageUrl(p: number): string {
     const pageParams = new URLSearchParams();
@@ -128,12 +136,13 @@ export default async function SessionsPage({ searchParams }: SessionsPageProps) 
                 <TableHead className="text-right">Events</TableHead>
                 <TableHead className="text-right">Tools</TableHead>
                 <TableHead>Branch</TableHead>
+                <TableHead className="text-right">Cost</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {sessions.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground">
+                  <TableCell colSpan={6} className="text-center text-muted-foreground">
                     No sessions found.
                   </TableCell>
                 </TableRow>
@@ -157,6 +166,9 @@ export default async function SessionsPage({ searchParams }: SessionsPageProps) 
                       ) : (
                         <span className="text-muted-foreground">--</span>
                       )}
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-sm">
+                      {formatCost(computeCost(session.input_tokens ?? null, session.output_tokens ?? null, session.model ?? null, rates))}
                     </TableCell>
                   </TableRow>
                 ))
