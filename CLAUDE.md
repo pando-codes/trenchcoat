@@ -19,9 +19,11 @@ The companion plugin lives in `plugin-example/` and collects local session data 
 
 ## Commands
 
-- `npm run dev` — start Next.js dev server (port 3000)
-- `npm run build` — production build
-- `npm run lint` — ESLint (flat config, Next.js core-web-vitals + typescript presets)
+- `bun run dev` — start Next.js dev server (port 3000)
+- `bun run build` — production build
+- `bun run lint` — ESLint (flat config, Next.js core-web-vitals + typescript presets)
+
+**Package manager:** bun (primary). Use `bun install`, `bun add`, `bun remove` instead of npm equivalents.
 
 ## Environment Variables
 

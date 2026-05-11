@@ -1,0 +1,294 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 940 700" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif">
+
+  <!-- Background -->
+  <rect width="940" height="700" fill="#0f172a"/>
+
+  <!-- ── TITLE ── -->
+  <text x="470" y="32" text-anchor="middle" font-size="17" font-weight="700" fill="#f1f5f9">Trenchcoat Plugin — Transmission Matrix</text>
+  <text x="470" y="50" text-anchor="middle" font-size="11" fill="#475569">Each data field: whether it is stored on-device and/or transmitted to the SaaS</text>
+
+  <!-- ══ TABLE OUTER BORDER ══ -->
+  <rect x="20" y="62" width="900" height="588" rx="6" fill="none" stroke="#1e293b" stroke-width="1.5"/>
+
+  <!-- ── TABLE HEADER ROW ── -->
+  <rect x="20" y="62" width="900" height="30" rx="6" fill="#1e293b"/>
+  <rect x="20" y="80"  width="900" height="12" fill="#1e293b"/>
+
+  <!-- Vertical column dividers (full height) -->
+  <line x1="295" y1="62" x2="295" y2="650" stroke="#1e293b" stroke-width="1"/>
+  <line x1="425" y1="62" x2="425" y2="650" stroke="#1e293b" stroke-width="1"/>
+  <line x1="555" y1="62" x2="555" y2="650" stroke="#1e293b" stroke-width="1"/>
+
+  <!-- Header labels -->
+  <text x="157" y="81" text-anchor="middle" font-size="9.5" font-weight="700" fill="#64748b" letter-spacing="0.07em">DATA FIELD</text>
+  <text x="360" y="81" text-anchor="middle" font-size="9.5" font-weight="700" fill="#64748b" letter-spacing="0.07em">STORED ON DEVICE</text>
+  <text x="490" y="81" text-anchor="middle" font-size="9.5" font-weight="700" fill="#64748b" letter-spacing="0.07em">TRANSMITTED</text>
+  <text x="747" y="81" text-anchor="middle" font-size="9.5" font-weight="700" fill="#64748b" letter-spacing="0.07em">NOTES</text>
+
+  <!-- ══════════════════════════════════
+       CATEGORY: SESSION
+  ══════════════════════════════════ -->
+  <rect x="21" y="92" width="898" height="18" fill="#0c1f3a"/>
+  <text x="30" y="105" font-size="9" font-weight="700" fill="#3b82f6" letter-spacing="0.09em">SESSION</text>
+
+  <!-- R1: session_id  y=110 center=118 -->
+  <rect x="21" y="110" width="898" height="16" fill="#111827"/>
+  <text x="30" y="121" font-size="10" fill="#cbd5e1" font-family="'SF Mono', Menlo, 'Courier New', monospace">session_id</text>
+  <!-- YES col2 --> <rect x="337" y="111" width="46" height="14" rx="7" fill="#052e16" stroke="#16a34a" stroke-width="1"/><text x="360" y="121" text-anchor="middle" font-size="9" font-weight="700" fill="#4ade80">YES</text>
+  <!-- YES col3 --> <rect x="467" y="111" width="46" height="14" rx="7" fill="#052e16" stroke="#16a34a" stroke-width="1"/><text x="490" y="121" text-anchor="middle" font-size="9" font-weight="700" fill="#4ade80">YES</text>
+  <text x="563" y="121" font-size="9.5" fill="#475569">Opaque UUID per Claude Code session</text>
+
+  <!-- R2: timestamp  y=126 center=134 -->
+  <text x="30" y="137" font-size="10" fill="#cbd5e1" font-family="'SF Mono', Menlo, 'Courier New', monospace">ts</text>
+  <text x="64" y="137" font-size="9" fill="#475569">  (timestamp)</text>
+  <!-- YES col2 --> <rect x="337" y="127" width="46" height="14" rx="7" fill="#052e16" stroke="#16a34a" stroke-width="1"/><text x="360" y="137" text-anchor="middle" font-size="9" font-weight="700" fill="#4ade80">YES</text>
+  <!-- YES col3 --> <rect x="467" y="127" width="46" height="14" rx="7" fill="#052e16" stroke="#16a34a" stroke-width="1"/><text x="490" y="137" text-anchor="middle" font-size="9" font-weight="700" fill="#4ade80">YES</text>
+  <text x="563" y="137" font-size="9.5" fill="#475569">UTC ISO-8601, millisecond precision</text>
+
+  <!-- R3: cwd  y=142 -->
+  <rect x="21" y="142" width="898" height="16" fill="#111827"/>
+  <text x="30" y="153" font-size="10" fill="#cbd5e1" font-family="'SF Mono', Menlo, 'Courier New', monospace">cwd</text>
+  <text x="60" y="153" font-size="9" fill="#475569">  (working directory)</text>
+  <!-- YES col2 --> <rect x="337" y="143" width="46" height="14" rx="7" fill="#052e16" stroke="#16a34a" stroke-width="1"/><text x="360" y="153" text-anchor="middle" font-size="9" font-weight="700" fill="#4ade80">YES</text>
+  <!-- YES col3 --> <rect x="467" y="143" width="46" height="14" rx="7" fill="#052e16" stroke="#16a34a" stroke-width="1"/><text x="490" y="153" text-anchor="middle" font-size="9" font-weight="700" fill="#4ade80">YES</text>
+  <text x="563" y="153" font-size="9.5" fill="#475569">Absolute path of active project root</text>
+
+  <!-- R4: duration_ms  y=158 -->
+  <text x="30" y="169" font-size="10" fill="#cbd5e1" font-family="'SF Mono', Menlo, 'Courier New', monospace">duration_ms</text>
+  <text x="115" y="169" font-size="9" fill="#475569">  (session length)</text>
+  <!-- YES col2 --> <rect x="337" y="159" width="46" height="14" rx="7" fill="#052e16" stroke="#16a34a" stroke-width="1"/><text x="360" y="169" text-anchor="middle" font-size="9" font-weight="700" fill="#4ade80">YES</text>
+  <!-- YES col3 --> <rect x="467" y="159" width="46" height="14" rx="7" fill="#052e16" stroke="#16a34a" stroke-width="1"/><text x="490" y="169" text-anchor="middle" font-size="9" font-weight="700" fill="#4ade80">YES</text>
+  <text x="563" y="169" font-size="9.5" fill="#475569">Emitted on session_end event</text>
+
+  <!-- R5: seq  y=174 -->
+  <rect x="21" y="174" width="898" height="16" fill="#111827"/>
+  <text x="30" y="185" font-size="10" fill="#cbd5e1" font-family="'SF Mono', Menlo, 'Courier New', monospace">seq</text>
+  <text x="55" y="185" font-size="9" fill="#475569">  (sequence number)</text>
+  <!-- YES col2 --> <rect x="337" y="175" width="46" height="14" rx="7" fill="#052e16" stroke="#16a34a" stroke-width="1"/><text x="360" y="185" text-anchor="middle" font-size="9" font-weight="700" fill="#4ade80">YES</text>
+  <!-- YES col3 --> <rect x="467" y="175" width="46" height="14" rx="7" fill="#052e16" stroke="#16a34a" stroke-width="1"/><text x="490" y="185" text-anchor="middle" font-size="9" font-weight="700" fill="#4ade80">YES</text>
+  <text x="563" y="185" font-size="9.5" fill="#475569">Per-process monotonic event counter</text>
+
+  <!-- ══════════════════════════════════
+       CATEGORY: TOOL CALLS  (y=190)
+  ══════════════════════════════════ -->
+  <rect x="21" y="190" width="898" height="18" fill="#0c1f3a"/>
+  <line x1="21" y1="190" x2="919" y2="190" stroke="#1e293b" stroke-width="1"/>
+  <text x="30" y="203" font-size="9" font-weight="700" fill="#3b82f6" letter-spacing="0.09em">TOOL CALLS</text>
+
+  <!-- R6: tool_name  y=208 -->
+  <rect x="21" y="208" width="898" height="16" fill="#111827"/>
+  <text x="30" y="219" font-size="10" fill="#cbd5e1" font-family="'SF Mono', Menlo, 'Courier New', monospace">tool_name</text>
+  <!-- YES col2 --> <rect x="337" y="209" width="46" height="14" rx="7" fill="#052e16" stroke="#16a34a" stroke-width="1"/><text x="360" y="219" text-anchor="middle" font-size="9" font-weight="700" fill="#4ade80">YES</text>
+  <!-- YES col3 --> <rect x="467" y="209" width="46" height="14" rx="7" fill="#052e16" stroke="#16a34a" stroke-width="1"/><text x="490" y="219" text-anchor="middle" font-size="9" font-weight="700" fill="#4ade80">YES</text>
+  <text x="563" y="219" font-size="9.5" fill="#475569">e.g. Bash, Read, Edit, Write, Agent</text>
+
+  <!-- R7: input_preview  y=224 -->
+  <text x="30" y="235" font-size="10" fill="#cbd5e1" font-family="'SF Mono', Menlo, 'Courier New', monospace">input_preview</text>
+  <!-- YES col2 --> <rect x="337" y="225" width="46" height="14" rx="7" fill="#052e16" stroke="#16a34a" stroke-width="1"/><text x="360" y="235" text-anchor="middle" font-size="9" font-weight="700" fill="#4ade80">YES</text>
+  <!-- YES col3 --> <rect x="467" y="225" width="46" height="14" rx="7" fill="#052e16" stroke="#16a34a" stroke-width="1"/><text x="490" y="235" text-anchor="middle" font-size="9" font-weight="700" fill="#4ade80">YES</text>
+  <text x="563" y="235" font-size="9.5" fill="#475569">First 100 chars only (configurable)</text>
+
+  <!-- R8: full tool input  y=240 -->
+  <rect x="21" y="240" width="898" height="16" fill="#111827"/>
+  <text x="30" y="251" font-size="10" fill="#94a3b8" font-family="'SF Mono', Menlo, 'Courier New', monospace">tool_input</text>
+  <text x="100" y="251" font-size="9" fill="#475569">  (full text)</text>
+  <!-- NO col2 --> <rect x="341" y="241" width="38" height="14" rx="7" fill="#450a0a" stroke="#dc2626" stroke-width="1"/><text x="360" y="251" text-anchor="middle" font-size="9" font-weight="700" fill="#fca5a5">NO</text>
+  <!-- NO col3 --> <rect x="471" y="241" width="38" height="14" rx="7" fill="#450a0a" stroke="#dc2626" stroke-width="1"/><text x="490" y="251" text-anchor="middle" font-size="9" font-weight="700" fill="#fca5a5">NO</text>
+  <text x="563" y="251" font-size="9.5" fill="#475569">Commands, paths, code — never logged</text>
+
+  <!-- R9: tool result content  y=256 -->
+  <text x="30" y="267" font-size="10" fill="#94a3b8" font-family="'SF Mono', Menlo, 'Courier New', monospace">tool_result</text>
+  <text x="107" y="267" font-size="9" fill="#475569">  (content)</text>
+  <!-- NO col2 --> <rect x="341" y="257" width="38" height="14" rx="7" fill="#450a0a" stroke="#dc2626" stroke-width="1"/><text x="360" y="267" text-anchor="middle" font-size="9" font-weight="700" fill="#fca5a5">NO</text>
+  <!-- NO col3 --> <rect x="471" y="257" width="38" height="14" rx="7" fill="#450a0a" stroke="#dc2626" stroke-width="1"/><text x="490" y="267" text-anchor="middle" font-size="9" font-weight="700" fill="#fca5a5">NO</text>
+  <text x="563" y="267" font-size="9.5" fill="#475569">File reads, bash output — never logged</text>
+
+  <!-- R10: result_size  y=272 -->
+  <rect x="21" y="272" width="898" height="16" fill="#111827"/>
+  <text x="30" y="283" font-size="10" fill="#cbd5e1" font-family="'SF Mono', Menlo, 'Courier New', monospace">result_size</text>
+  <text x="107" y="283" font-size="9" fill="#475569">  (bytes)</text>
+  <!-- YES col2 --> <rect x="337" y="273" width="46" height="14" rx="7" fill="#052e16" stroke="#16a34a" stroke-width="1"/><text x="360" y="283" text-anchor="middle" font-size="9" font-weight="700" fill="#4ade80">YES</text>
+  <!-- YES col3 --> <rect x="467" y="273" width="46" height="14" rx="7" fill="#052e16" stroke="#16a34a" stroke-width="1"/><text x="490" y="283" text-anchor="middle" font-size="9" font-weight="700" fill="#4ade80">YES</text>
+  <text x="563" y="283" font-size="9.5" fill="#475569">Byte length of result only — not content</text>
+
+  <!-- R11: duration_ms per call  y=288 -->
+  <text x="30" y="299" font-size="10" fill="#cbd5e1" font-family="'SF Mono', Menlo, 'Courier New', monospace">duration_ms</text>
+  <text x="115" y="299" font-size="9" fill="#475569">  (per call)</text>
+  <!-- YES col2 --> <rect x="337" y="289" width="46" height="14" rx="7" fill="#052e16" stroke="#16a34a" stroke-width="1"/><text x="360" y="299" text-anchor="middle" font-size="9" font-weight="700" fill="#4ade80">YES</text>
+  <!-- YES col3 --> <rect x="467" y="289" width="46" height="14" rx="7" fill="#052e16" stroke="#16a34a" stroke-width="1"/><text x="490" y="299" text-anchor="middle" font-size="9" font-weight="700" fill="#4ade80">YES</text>
+  <text x="563" y="299" font-size="9.5" fill="#475569">Wall-clock ms from PreToolUse→PostToolUse</text>
+
+  <!-- R12: correlation_id  y=304 -->
+  <rect x="21" y="304" width="898" height="16" fill="#111827"/>
+  <text x="30" y="315" font-size="10" fill="#cbd5e1" font-family="'SF Mono', Menlo, 'Courier New', monospace">correlation_id</text>
+  <!-- YES col2 --> <rect x="337" y="305" width="46" height="14" rx="7" fill="#052e16" stroke="#16a34a" stroke-width="1"/><text x="360" y="315" text-anchor="middle" font-size="9" font-weight="700" fill="#4ade80">YES</text>
+  <!-- YES col3 --> <rect x="467" y="305" width="46" height="14" rx="7" fill="#052e16" stroke="#16a34a" stroke-width="1"/><text x="490" y="315" text-anchor="middle" font-size="9" font-weight="700" fill="#4ade80">YES</text>
+  <text x="563" y="315" font-size="9.5" fill="#475569">12-char hex linking tool_start → tool_end</text>
+
+  <!-- ══════════════════════════════════
+       CATEGORY: PROMPTS  (y=320)
+  ══════════════════════════════════ -->
+  <rect x="21" y="320" width="898" height="18" fill="#0c1f3a"/>
+  <line x1="21" y1="320" x2="919" y2="320" stroke="#1e293b" stroke-width="1"/>
+  <text x="30" y="333" font-size="9" font-weight="700" fill="#3b82f6" letter-spacing="0.09em">PROMPTS</text>
+
+  <!-- R13: prompt_length  y=338 -->
+  <rect x="21" y="338" width="898" height="16" fill="#111827"/>
+  <text x="30" y="349" font-size="10" fill="#cbd5e1" font-family="'SF Mono', Menlo, 'Courier New', monospace">prompt_length</text>
+  <!-- YES col2 --> <rect x="337" y="339" width="46" height="14" rx="7" fill="#052e16" stroke="#16a34a" stroke-width="1"/><text x="360" y="349" text-anchor="middle" font-size="9" font-weight="700" fill="#4ade80">YES</text>
+  <!-- YES col3 --> <rect x="467" y="339" width="46" height="14" rx="7" fill="#052e16" stroke="#16a34a" stroke-width="1"/><text x="490" y="349" text-anchor="middle" font-size="9" font-weight="700" fill="#4ade80">YES</text>
+  <text x="563" y="349" font-size="9.5" fill="#475569">Character count of user prompt</text>
+
+  <!-- R14: word_count  y=354 -->
+  <text x="30" y="365" font-size="10" fill="#cbd5e1" font-family="'SF Mono', Menlo, 'Courier New', monospace">word_count</text>
+  <!-- YES col2 --> <rect x="337" y="355" width="46" height="14" rx="7" fill="#052e16" stroke="#16a34a" stroke-width="1"/><text x="360" y="365" text-anchor="middle" font-size="9" font-weight="700" fill="#4ade80">YES</text>
+  <!-- YES col3 --> <rect x="467" y="355" width="46" height="14" rx="7" fill="#052e16" stroke="#16a34a" stroke-width="1"/><text x="490" y="365" text-anchor="middle" font-size="9" font-weight="700" fill="#4ade80">YES</text>
+  <text x="563" y="365" font-size="9.5" fill="#475569">Word count of user prompt</text>
+
+  <!-- R15: prompt content  y=370 -->
+  <rect x="21" y="370" width="898" height="16" fill="#111827"/>
+  <text x="30" y="381" font-size="10" fill="#94a3b8" font-family="'SF Mono', Menlo, 'Courier New', monospace">prompt_content</text>
+  <text x="148" y="381" font-size="9" fill="#475569">  (full text)</text>
+  <!-- OPT-IN col2 --> <rect x="333" y="371" width="54" height="14" rx="7" fill="#431407" stroke="#ea580c" stroke-width="1"/><text x="360" y="381" text-anchor="middle" font-size="9" font-weight="700" fill="#fdba74">OPT-IN</text>
+  <!-- OPT-IN col3 --> <rect x="463" y="371" width="54" height="14" rx="7" fill="#431407" stroke="#ea580c" stroke-width="1"/><text x="490" y="381" text-anchor="middle" font-size="9" font-weight="700" fill="#fdba74">OPT-IN</text>
+  <text x="563" y="381" font-size="9.5" fill="#475569">Set log_prompt_content: true in config.json</text>
+
+  <!-- ══════════════════════════════════
+       CATEGORY: TOKENS &amp; MODEL  (y=386)
+  ══════════════════════════════════ -->
+  <rect x="21" y="386" width="898" height="18" fill="#0c1f3a"/>
+  <line x1="21" y1="386" x2="919" y2="386" stroke="#1e293b" stroke-width="1"/>
+  <text x="30" y="399" font-size="9" font-weight="700" fill="#3b82f6" letter-spacing="0.09em">TOKENS &amp; MODEL</text>
+
+  <!-- R16: input_tokens  y=404 -->
+  <rect x="21" y="404" width="898" height="16" fill="#111827"/>
+  <text x="30" y="415" font-size="10" fill="#cbd5e1" font-family="'SF Mono', Menlo, 'Courier New', monospace">input_tokens</text>
+  <!-- YES col2 --> <rect x="337" y="405" width="46" height="14" rx="7" fill="#052e16" stroke="#16a34a" stroke-width="1"/><text x="360" y="415" text-anchor="middle" font-size="9" font-weight="700" fill="#4ade80">YES</text>
+  <!-- YES col3 --> <rect x="467" y="405" width="46" height="14" rx="7" fill="#052e16" stroke="#16a34a" stroke-width="1"/><text x="490" y="415" text-anchor="middle" font-size="9" font-weight="700" fill="#4ade80">YES</text>
+  <text x="563" y="415" font-size="9.5" fill="#475569">Parsed from agent/session transcript</text>
+
+  <!-- R17: output_tokens  y=420 -->
+  <text x="30" y="431" font-size="10" fill="#cbd5e1" font-family="'SF Mono', Menlo, 'Courier New', monospace">output_tokens</text>
+  <!-- YES col2 --> <rect x="337" y="421" width="46" height="14" rx="7" fill="#052e16" stroke="#16a34a" stroke-width="1"/><text x="360" y="431" text-anchor="middle" font-size="9" font-weight="700" fill="#4ade80">YES</text>
+  <!-- YES col3 --> <rect x="467" y="421" width="46" height="14" rx="7" fill="#052e16" stroke="#16a34a" stroke-width="1"/><text x="490" y="431" text-anchor="middle" font-size="9" font-weight="700" fill="#4ade80">YES</text>
+  <text x="563" y="431" font-size="9.5" fill="#475569">Parsed from agent/session transcript</text>
+
+  <!-- R18: model  y=436 -->
+  <rect x="21" y="436" width="898" height="16" fill="#111827"/>
+  <text x="30" y="447" font-size="10" fill="#cbd5e1" font-family="'SF Mono', Menlo, 'Courier New', monospace">model</text>
+  <!-- YES col2 --> <rect x="337" y="437" width="46" height="14" rx="7" fill="#052e16" stroke="#16a34a" stroke-width="1"/><text x="360" y="447" text-anchor="middle" font-size="9" font-weight="700" fill="#4ade80">YES</text>
+  <!-- YES col3 --> <rect x="467" y="437" width="46" height="14" rx="7" fill="#052e16" stroke="#16a34a" stroke-width="1"/><text x="490" y="447" text-anchor="middle" font-size="9" font-weight="700" fill="#4ade80">YES</text>
+  <text x="563" y="447" font-size="9.5" fill="#475569">e.g. claude-sonnet-4-6, claude-opus-4-7</text>
+
+  <!-- ══════════════════════════════════
+       CATEGORY: SUBAGENTS  (y=452)
+  ══════════════════════════════════ -->
+  <rect x="21" y="452" width="898" height="18" fill="#0c1f3a"/>
+  <line x1="21" y1="452" x2="919" y2="452" stroke="#1e293b" stroke-width="1"/>
+  <text x="30" y="465" font-size="9" font-weight="700" fill="#3b82f6" letter-spacing="0.09em">SUBAGENTS</text>
+
+  <!-- R19: agent_type  y=470 -->
+  <rect x="21" y="470" width="898" height="16" fill="#111827"/>
+  <text x="30" y="481" font-size="10" fill="#cbd5e1" font-family="'SF Mono', Menlo, 'Courier New', monospace">agent_type</text>
+  <!-- YES col2 --> <rect x="337" y="471" width="46" height="14" rx="7" fill="#052e16" stroke="#16a34a" stroke-width="1"/><text x="360" y="481" text-anchor="middle" font-size="9" font-weight="700" fill="#4ade80">YES</text>
+  <!-- YES col3 --> <rect x="467" y="471" width="46" height="14" rx="7" fill="#052e16" stroke="#16a34a" stroke-width="1"/><text x="490" y="481" text-anchor="middle" font-size="9" font-weight="700" fill="#4ade80">YES</text>
+  <text x="563" y="481" font-size="9.5" fill="#475569">Subagent type string from hook input</text>
+
+  <!-- R20: stop_reason  y=486 -->
+  <text x="30" y="497" font-size="10" fill="#cbd5e1" font-family="'SF Mono', Menlo, 'Courier New', monospace">stop_reason</text>
+  <!-- YES col2 --> <rect x="337" y="487" width="46" height="14" rx="7" fill="#052e16" stroke="#16a34a" stroke-width="1"/><text x="360" y="497" text-anchor="middle" font-size="9" font-weight="700" fill="#4ade80">YES</text>
+  <!-- YES col3 --> <rect x="467" y="487" width="46" height="14" rx="7" fill="#052e16" stroke="#16a34a" stroke-width="1"/><text x="490" y="497" text-anchor="middle" font-size="9" font-weight="700" fill="#4ade80">YES</text>
+  <text x="563" y="497" font-size="9.5" fill="#475569">Why the agent stopped (from hook)</text>
+
+  <!-- R21: tool_counts  y=502 -->
+  <rect x="21" y="502" width="898" height="16" fill="#111827"/>
+  <text x="30" y="513" font-size="10" fill="#cbd5e1" font-family="'SF Mono', Menlo, 'Courier New', monospace">tool_counts{}</text>
+  <!-- YES col2 --> <rect x="337" y="503" width="46" height="14" rx="7" fill="#052e16" stroke="#16a34a" stroke-width="1"/><text x="360" y="513" text-anchor="middle" font-size="9" font-weight="700" fill="#4ade80">YES</text>
+  <!-- YES col3 --> <rect x="467" y="503" width="46" height="14" rx="7" fill="#052e16" stroke="#16a34a" stroke-width="1"/><text x="490" y="513" text-anchor="middle" font-size="9" font-weight="700" fill="#4ade80">YES</text>
+  <text x="563" y="513" font-size="9.5" fill="#475569">Per-tool call count map from transcript</text>
+
+  <!-- R22: turns  y=518 -->
+  <text x="30" y="529" font-size="10" fill="#cbd5e1" font-family="'SF Mono', Menlo, 'Courier New', monospace">turns</text>
+  <!-- YES col2 --> <rect x="337" y="519" width="46" height="14" rx="7" fill="#052e16" stroke="#16a34a" stroke-width="1"/><text x="360" y="529" text-anchor="middle" font-size="9" font-weight="700" fill="#4ade80">YES</text>
+  <!-- YES col3 --> <rect x="467" y="519" width="46" height="14" rx="7" fill="#052e16" stroke="#16a34a" stroke-width="1"/><text x="490" y="529" text-anchor="middle" font-size="9" font-weight="700" fill="#4ade80">YES</text>
+  <text x="563" y="529" font-size="9.5" fill="#475569">Conversation turn count in subagent</text>
+
+  <!-- ══════════════════════════════════
+       CATEGORY: NEVER COLLECTED  (y=534)
+  ══════════════════════════════════ -->
+  <rect x="21" y="534" width="898" height="18" fill="#2d0a0a"/>
+  <line x1="21" y1="534" x2="919" y2="534" stroke="#1e293b" stroke-width="1"/>
+  <text x="30" y="547" font-size="9" font-weight="700" fill="#ef4444" letter-spacing="0.09em">NEVER COLLECTED</text>
+
+  <!-- R23: file contents  y=552 -->
+  <rect x="21" y="552" width="898" height="16" fill="#1c0808"/>
+  <text x="30" y="563" font-size="10" fill="#94a3b8" font-family="'SF Mono', Menlo, 'Courier New', monospace">file_contents</text>
+  <text x="130" y="563" font-size="9" fill="#475569">  (Read / Edit results)</text>
+  <!-- NO col2 --> <rect x="341" y="553" width="38" height="14" rx="7" fill="#450a0a" stroke="#dc2626" stroke-width="1"/><text x="360" y="563" text-anchor="middle" font-size="9" font-weight="700" fill="#fca5a5">NO</text>
+  <!-- NO col3 --> <rect x="471" y="553" width="38" height="14" rx="7" fill="#450a0a" stroke="#dc2626" stroke-width="1"/><text x="490" y="563" text-anchor="middle" font-size="9" font-weight="700" fill="#fca5a5">NO</text>
+  <text x="563" y="563" font-size="9.5" fill="#475569">Content of files read by tools — never logged</text>
+
+  <!-- R24: terminal output  y=568 -->
+  <text x="30" y="579" font-size="10" fill="#94a3b8" font-family="'SF Mono', Menlo, 'Courier New', monospace">bash_output</text>
+  <text x="116" y="579" font-size="9" fill="#475569">  (terminal stdout/stderr)</text>
+  <!-- NO col2 --> <rect x="341" y="569" width="38" height="14" rx="7" fill="#450a0a" stroke="#dc2626" stroke-width="1"/><text x="360" y="579" text-anchor="middle" font-size="9" font-weight="700" fill="#fca5a5">NO</text>
+  <!-- NO col3 --> <rect x="471" y="569" width="38" height="14" rx="7" fill="#450a0a" stroke="#dc2626" stroke-width="1"/><text x="490" y="579" text-anchor="middle" font-size="9" font-weight="700" fill="#fca5a5">NO</text>
+  <text x="563" y="579" font-size="9.5" fill="#475569">Bash command output — never logged</text>
+
+  <!-- R25: git diff content  y=584 -->
+  <rect x="21" y="584" width="898" height="16" fill="#1c0808"/>
+  <text x="30" y="595" font-size="10" fill="#94a3b8" font-family="'SF Mono', Menlo, 'Courier New', monospace">git_content</text>
+  <text x="113" y="595" font-size="9" fill="#475569">  (diffs, commits, messages)</text>
+  <!-- NO col2 --> <rect x="341" y="585" width="38" height="14" rx="7" fill="#450a0a" stroke="#dc2626" stroke-width="1"/><text x="360" y="595" text-anchor="middle" font-size="9" font-weight="700" fill="#fca5a5">NO</text>
+  <!-- NO col3 --> <rect x="471" y="585" width="38" height="14" rx="7" fill="#450a0a" stroke="#dc2626" stroke-width="1"/><text x="490" y="595" text-anchor="middle" font-size="9" font-weight="700" fill="#fca5a5">NO</text>
+  <text x="563" y="595" font-size="9.5" fill="#475569">Code changes and commit text — never logged</text>
+
+  <!-- R26: user identity  y=600 -->
+  <text x="30" y="611" font-size="10" fill="#94a3b8" font-family="'SF Mono', Menlo, 'Courier New', monospace">user_identity</text>
+  <text x="127" y="611" font-size="9" fill="#475569">  (name, email, PII)</text>
+  <!-- NO col2 --> <rect x="341" y="601" width="38" height="14" rx="7" fill="#450a0a" stroke="#dc2626" stroke-width="1"/><text x="360" y="611" text-anchor="middle" font-size="9" font-weight="700" fill="#fca5a5">NO</text>
+  <!-- NO col3 --> <rect x="471" y="601" width="38" height="14" rx="7" fill="#450a0a" stroke="#dc2626" stroke-width="1"/><text x="490" y="611" text-anchor="middle" font-size="9" font-weight="700" fill="#fca5a5">NO</text>
+  <text x="563" y="611" font-size="9.5" fill="#475569">No name, email, or PII exposed to hooks</text>
+
+  <!-- R27: hostname / env vars  y=616 -->
+  <rect x="21" y="616" width="898" height="16" fill="#1c0808"/>
+  <text x="30" y="627" font-size="10" fill="#94a3b8" font-family="'SF Mono', Menlo, 'Courier New', monospace">hostname</text>
+  <text x="93" y="627" font-size="9" fill="#475569">  / env vars / machine info</text>
+  <!-- NO col2 --> <rect x="341" y="617" width="38" height="14" rx="7" fill="#450a0a" stroke="#dc2626" stroke-width="1"/><text x="360" y="627" text-anchor="middle" font-size="9" font-weight="700" fill="#fca5a5">NO</text>
+  <!-- NO col3 --> <rect x="471" y="617" width="38" height="14" rx="7" fill="#450a0a" stroke="#dc2626" stroke-width="1"/><text x="490" y="627" text-anchor="middle" font-size="9" font-weight="700" fill="#fca5a5">NO</text>
+  <text x="563" y="627" font-size="9.5" fill="#475569">Machine info not accessible via hook API</text>
+
+  <!-- R28: clipboard  y=632 -->
+  <text x="30" y="643" font-size="10" fill="#94a3b8" font-family="'SF Mono', Menlo, 'Courier New', monospace">clipboard</text>
+  <text x="93" y="643" font-size="9" fill="#475569">  / secrets / credentials</text>
+  <!-- NO col2 --> <rect x="341" y="633" width="38" height="14" rx="7" fill="#450a0a" stroke="#dc2626" stroke-width="1"/><text x="360" y="643" text-anchor="middle" font-size="9" font-weight="700" fill="#fca5a5">NO</text>
+  <!-- NO col3 --> <rect x="471" y="633" width="38" height="14" rx="7" fill="#450a0a" stroke="#dc2626" stroke-width="1"/><text x="490" y="643" text-anchor="middle" font-size="9" font-weight="700" fill="#fca5a5">NO</text>
+  <text x="563" y="643" font-size="9.5" fill="#475569">Not accessible via Claude Code hook API</text>
+
+  <!-- Table bottom border -->
+  <line x1="20" y1="650" x2="920" y2="650" stroke="#1e293b" stroke-width="1"/>
+
+  <!-- ══ LEGEND ══ -->
+  <text x="30" y="670" font-size="9" font-weight="700" fill="#475569" letter-spacing="0.06em">LEGEND</text>
+
+  <!-- YES legend -->
+  <rect x="80" y="660" width="46" height="14" rx="7" fill="#052e16" stroke="#16a34a" stroke-width="1"/>
+  <text x="103" y="670" text-anchor="middle" font-size="9" font-weight="700" fill="#4ade80">YES</text>
+  <text x="133" y="670" font-size="9.5" fill="#475569">Captured and available</text>
+
+  <!-- NO legend -->
+  <rect x="300" y="660" width="38" height="14" rx="7" fill="#450a0a" stroke="#dc2626" stroke-width="1"/>
+  <text x="319" y="670" text-anchor="middle" font-size="9" font-weight="700" fill="#fca5a5">NO</text>
+  <text x="345" y="670" font-size="9.5" fill="#475569">Not captured — privacy boundary</text>
+
+  <!-- OPT-IN legend -->
+  <rect x="554" y="660" width="54" height="14" rx="7" fill="#431407" stroke="#ea580c" stroke-width="1"/>
+  <text x="581" y="670" text-anchor="middle" font-size="9" font-weight="700" fill="#fdba74">OPT-IN</text>
+  <text x="615" y="670" font-size="9.5" fill="#475569">Disabled by default — explicit config required</text>
+
+  <!-- ── FOOTER ── -->
+  <text x="470" y="692" text-anchor="middle" font-size="9" fill="#334155">
+    Transmission requires api_key set via /telemetry-connect. Disable all collection: set "enabled": false in ~/.claude/telemetry/config.json.
+  </text>
+
+</svg>

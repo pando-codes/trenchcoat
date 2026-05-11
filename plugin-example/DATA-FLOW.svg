@@ -1,0 +1,236 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 984 636" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif">
+
+  <!-- Background -->
+  <rect width="984" height="636" fill="#0f172a" rx="8"/>
+
+  <!-- ── HEADER ── -->
+  <text x="492" y="32" text-anchor="middle" font-size="17" font-weight="700" fill="#f1f5f9">Trenchcoat Plugin — Data Flow</text>
+  <text x="492" y="50" text-anchor="middle" font-size="11" fill="#475569">What stays on device vs. what is transmitted to the SaaS (transmission requires api_key to be configured)</text>
+
+  <!-- ══════════════════════════════════════════════════════
+       LEFT PANEL — Device
+  ══════════════════════════════════════════════════════ -->
+  <rect x="14" y="60" width="440" height="450" rx="8" fill="#111827" stroke="#2563eb" stroke-width="1.5"/>
+
+  <!-- Header bar -->
+  <rect x="14" y="60" width="440" height="34" rx="8" fill="#1e3a8a" opacity="0.75"/>
+  <rect x="14" y="80"  width="440" height="14" fill="#1e3a8a" opacity="0.75"/>
+  <!-- Lock icon (simple rect + arc) -->
+  <rect x="27" y="70" width="10" height="8" rx="1" fill="none" stroke="#93c5fd" stroke-width="1.2"/>
+  <path d="M29.5 70 Q32 66 34.5 70" fill="none" stroke="#93c5fd" stroke-width="1.2"/>
+  <text x="43" y="82" font-size="12" font-weight="700" fill="#93c5fd">Stays on Device</text>
+  <text x="446" y="82" text-anchor="end" font-size="9.5" fill="#3b82f6" font-family="'SF Mono', Menlo, 'Courier New', monospace">~/.claude/telemetry/</text>
+
+  <!-- ── LOCAL STORAGE section ── -->
+  <text x="28" y="111" font-size="8.5" font-weight="700" fill="#334155" letter-spacing="0.09em">LOCAL STORAGE FILES</text>
+
+  <!-- File rows -->
+  <circle cx="32" cy="122" r="2" fill="#10b981"/>
+  <text x="38" y="126" font-size="9.5" fill="#10b981" font-family="'SF Mono', Menlo, 'Courier New', monospace">events-YYYY-MM-DD.jsonl</text>
+  <text x="207" y="126" font-size="9" fill="#475569">all events, full fidelity, 30-day retention</text>
+
+  <circle cx="32" cy="139" r="2" fill="#10b981"/>
+  <text x="38" y="143" font-size="9.5" fill="#10b981" font-family="'SF Mono', Menlo, 'Courier New', monospace">sessions.json</text>
+  <text x="130" y="143" font-size="9" fill="#475569">session index — cwd, status, duration, timestamps</text>
+
+  <circle cx="32" cy="156" r="2" fill="#10b981"/>
+  <text x="38" y="160" font-size="9.5" fill="#10b981" font-family="'SF Mono', Menlo, 'Courier New', monospace">config.json</text>
+  <text x="120" y="160" font-size="9" fill="#475569">api_key, privacy flags, retention_days, push_batch_size</text>
+
+  <circle cx="32" cy="173" r="2" fill="#10b981"/>
+  <text x="38" y="177" font-size="9.5" fill="#10b981" font-family="'SF Mono', Menlo, 'Courier New', monospace">.push_queue.jsonl</text>
+  <text x="155" y="177" font-size="9" fill="#475569">staging buffer — cleared after successful send</text>
+
+  <circle cx="32" cy="190" r="2" fill="#10b981"/>
+  <text x="38" y="194" font-size="9.5" fill="#10b981" font-family="'SF Mono', Menlo, 'Courier New', monospace">.pending/*.json</text>
+  <text x="148" y="194" font-size="9" fill="#475569">in-flight tool correlation stack (per session)</text>
+
+  <!-- Divider -->
+  <line x1="28" y1="204" x2="444" y2="204" stroke="#1e293b" stroke-width="1"/>
+
+  <!-- ── EVENTS section ── -->
+  <text x="28" y="218" font-size="8.5" font-weight="700" fill="#334155" letter-spacing="0.09em">EVENTS CAPTURED LOCALLY (all sessions)</text>
+
+  <!-- session_start -->
+  <rect x="22" y="224" width="6" height="12" rx="1" fill="#3b82f6"/>
+  <text x="33" y="234" font-size="10" font-weight="700" fill="#60a5fa" font-family="'SF Mono', Menlo, 'Courier New', monospace">session_start</text>
+  <text x="117" y="234" font-size="9" fill="#475569" font-family="'SF Mono', Menlo, 'Courier New', monospace">   ts · session_id · cwd</text>
+
+  <!-- tool_start -->
+  <rect x="22" y="242" width="6" height="22" rx="1" fill="#3b82f6"/>
+  <text x="33" y="252" font-size="10" font-weight="700" fill="#60a5fa" font-family="'SF Mono', Menlo, 'Courier New', monospace">tool_start</text>
+  <text x="100" y="252" font-size="9" fill="#475569" font-family="'SF Mono', Menlo, 'Courier New', monospace">   ts · session_id · tool_name · correlation_id</text>
+  <text x="100" y="263" font-size="9" fill="#475569" font-family="'SF Mono', Menlo, 'Courier New', monospace">   input_preview (truncated to ≤100 chars)</text>
+
+  <!-- tool_end -->
+  <rect x="22" y="270" width="6" height="22" rx="1" fill="#3b82f6"/>
+  <text x="33" y="280" font-size="10" font-weight="700" fill="#60a5fa" font-family="'SF Mono', Menlo, 'Courier New', monospace">tool_end</text>
+  <text x="93" y="280" font-size="9" fill="#475569" font-family="'SF Mono', Menlo, 'Courier New', monospace">   ts · session_id · tool_name · correlation_id</text>
+  <text x="93" y="291" font-size="9" fill="#475569" font-family="'SF Mono', Menlo, 'Courier New', monospace">   duration_ms · result_size (bytes — never content)</text>
+
+  <!-- prompt -->
+  <rect x="22" y="298" width="6" height="22" rx="1" fill="#3b82f6"/>
+  <text x="33" y="308" font-size="10" font-weight="700" fill="#60a5fa" font-family="'SF Mono', Menlo, 'Courier New', monospace">prompt</text>
+  <text x="80" y="308" font-size="9" fill="#475569" font-family="'SF Mono', Menlo, 'Courier New', monospace">   ts · session_id · prompt_length · word_count</text>
+  <text x="80" y="319" font-size="9" fill="#f87171" font-family="'SF Mono', Menlo, 'Courier New', monospace">   prompt_content  only if log_prompt_content: true</text>
+
+  <!-- stop -->
+  <rect x="22" y="326" width="6" height="22" rx="1" fill="#3b82f6"/>
+  <text x="33" y="336" font-size="10" font-weight="700" fill="#60a5fa" font-family="'SF Mono', Menlo, 'Courier New', monospace">stop</text>
+  <text x="62" y="336" font-size="9" fill="#475569" font-family="'SF Mono', Menlo, 'Courier New', monospace">   ts · session_id · reason</text>
+  <text x="62" y="347" font-size="9" fill="#475569" font-family="'SF Mono', Menlo, 'Courier New', monospace">   input_tokens · output_tokens · model</text>
+
+  <!-- subagent_stop -->
+  <rect x="22" y="354" width="6" height="33" rx="1" fill="#3b82f6"/>
+  <text x="33" y="364" font-size="10" font-weight="700" fill="#60a5fa" font-family="'SF Mono', Menlo, 'Courier New', monospace">subagent_stop</text>
+  <text x="126" y="364" font-size="9" fill="#475569" font-family="'SF Mono', Menlo, 'Courier New', monospace">   ts · session_id · agent_type · reason</text>
+  <text x="126" y="375" font-size="9" fill="#475569" font-family="'SF Mono', Menlo, 'Courier New', monospace">   tool_counts{} · turns</text>
+  <text x="126" y="386" font-size="9" fill="#475569" font-family="'SF Mono', Menlo, 'Courier New', monospace">   input_tokens · output_tokens · model</text>
+
+  <!-- session_end -->
+  <rect x="22" y="393" width="6" height="12" rx="1" fill="#3b82f6"/>
+  <text x="33" y="403" font-size="10" font-weight="700" fill="#60a5fa" font-family="'SF Mono', Menlo, 'Courier New', monospace">session_end</text>
+  <text x="111" y="403" font-size="9" fill="#475569" font-family="'SF Mono', Menlo, 'Courier New', monospace">   ts · session_id · duration_ms</text>
+
+  <!-- pre_compact -->
+  <rect x="22" y="411" width="6" height="12" rx="1" fill="#3b82f6"/>
+  <text x="33" y="421" font-size="10" font-weight="700" fill="#60a5fa" font-family="'SF Mono', Menlo, 'Courier New', monospace">pre_compact</text>
+  <text x="113" y="421" font-size="9" fill="#475569" font-family="'SF Mono', Menlo, 'Courier New', monospace">   ts · session_id  (no payload)</text>
+
+  <!-- Privacy defaults box -->
+  <rect x="20" y="433" width="428" height="34" rx="4" fill="#0f172a" stroke="#1e293b" stroke-width="1"/>
+  <text x="28" y="446" font-size="9" font-weight="700" fill="#d97706">Privacy defaults (config.json):</text>
+  <text x="28" y="458" font-size="9" fill="#78716c" font-family="'SF Mono', Menlo, 'Courier New', monospace">log_prompt_content: false  ·  tool_input_preview_chars: 100  ·  log_tool_results: false</text>
+
+  <!-- ══════════════════════════════════════════════════════
+       CENTER — Arrow
+  ══════════════════════════════════════════════════════ -->
+
+  <!-- Vertical line + labels -->
+  <text x="492" y="238" text-anchor="middle" font-size="8.5" font-weight="700" fill="#d97706" letter-spacing="0.05em">TRIGGER</text>
+  <text x="492" y="251" text-anchor="middle" font-size="9" fill="#92400e">session_end</text>
+  <text x="492" y="263" text-anchor="middle" font-size="9" fill="#92400e">fork() child</text>
+
+  <!-- Dashed arrow -->
+  <line x1="456" y1="278" x2="524" y2="278" stroke="#d97706" stroke-width="2" stroke-dasharray="5,3"/>
+  <polygon points="524,274 532,278 524,282" fill="#d97706"/>
+
+  <text x="492" y="295" text-anchor="middle" font-size="9" fill="#92400e">100 evt / batch</text>
+  <text x="492" y="307" text-anchor="middle" font-size="9" fill="#92400e">HTTPS POST</text>
+  <text x="492" y="323" text-anchor="middle" font-size="8.5" font-weight="700" fill="#ef4444">api_key required</text>
+
+  <!-- ══════════════════════════════════════════════════════
+       RIGHT PANEL — SaaS
+  ══════════════════════════════════════════════════════ -->
+  <rect x="530" y="60" width="440" height="450" rx="8" fill="#111827" stroke="#7c3aed" stroke-width="1.5"/>
+
+  <!-- Header bar -->
+  <rect x="530" y="60" width="440" height="34" rx="8" fill="#4c1d95" opacity="0.75"/>
+  <rect x="530" y="80"  width="440" height="14" fill="#4c1d95" opacity="0.75"/>
+  <!-- Cloud icon (simple path) -->
+  <path d="M543 78 q0-5 5-5 q1-4 5-3 q4-3 7 1 q4-1 4 4 q3 1 2 4 z" fill="none" stroke="#c4b5fd" stroke-width="1.1"/>
+  <text x="558" y="82" font-size="12" font-weight="700" fill="#c4b5fd">Transmitted to Trenchcoat SaaS</text>
+  <text x="962" y="82" text-anchor="end" font-size="9.5" fill="#7c3aed" font-family="'SF Mono', Menlo, 'Courier New', monospace">POST /api/v1/events</text>
+
+  <!-- ── TRANSMISSION CONDITIONS ── -->
+  <text x="544" y="111" font-size="8.5" font-weight="700" fill="#334155" letter-spacing="0.09em">TRANSMISSION CONDITIONS</text>
+
+  <circle cx="548" cy="122" r="2.5" fill="#7c3aed"/>
+  <text x="556" y="126" font-size="9.5" fill="#6b7280">api_key set via</text>
+  <text x="625" y="126" font-size="9.5" fill="#a78bfa" font-family="'SF Mono', Menlo, 'Courier New', monospace">/telemetry-connect</text>
+  <text x="738" y="126" font-size="9.5" fill="#6b7280">(opt-in)</text>
+
+  <circle cx="548" cy="139" r="2.5" fill="#7c3aed"/>
+  <text x="556" y="143" font-size="9.5" fill="#6b7280">Queued during session → flushed at session_end via fork()</text>
+
+  <circle cx="548" cy="156" r="2.5" fill="#7c3aed"/>
+  <text x="556" y="160" font-size="9.5" fill="#6b7280">Up to 100 events per HTTP POST · 30s timeout per batch</text>
+
+  <circle cx="548" cy="173" r="2.5" fill="#7c3aed"/>
+  <text x="556" y="177" font-size="9.5" fill="#6b7280">Auth header:</text>
+  <text x="626" y="177" font-size="9.5" fill="#a78bfa" font-family="'SF Mono', Menlo, 'Courier New', monospace">X-API-Key: ct_live_...</text>
+
+  <!-- Divider -->
+  <line x1="544" y1="187" x2="962" y2="187" stroke="#1e293b" stroke-width="1"/>
+
+  <!-- ── EVENTS TRANSMITTED ── -->
+  <text x="544" y="201" font-size="8.5" font-weight="700" fill="#334155" letter-spacing="0.09em">EVENTS TRANSMITTED (type-remapped for SaaS schema)</text>
+
+  <!-- session_start -->
+  <rect x="536" y="207" width="6" height="12" rx="1" fill="#7c3aed"/>
+  <text x="547" y="217" font-size="10" font-weight="700" fill="#a78bfa" font-family="'SF Mono', Menlo, 'Courier New', monospace">session_start</text>
+  <text x="638" y="217" font-size="9" fill="#475569" font-family="'SF Mono', Menlo, 'Courier New', monospace">   ts · session_id · seq · cwd</text>
+
+  <!-- tool_use (was tool_start) -->
+  <rect x="536" y="225" width="6" height="22" rx="1" fill="#7c3aed"/>
+  <text x="547" y="235" font-size="10" font-weight="700" fill="#a78bfa" font-family="'SF Mono', Menlo, 'Courier New', monospace">tool_use</text>
+  <text x="612" y="235" font-size="9" fill="#52525b" font-style="italic">   (was tool_start)</text>
+  <text x="612" y="246" font-size="9" fill="#475569" font-family="'SF Mono', Menlo, 'Courier New', monospace">   tool_name · correlation_id · input_preview</text>
+
+  <!-- tool_result (was tool_end) -->
+  <rect x="536" y="253" width="6" height="22" rx="1" fill="#7c3aed"/>
+  <text x="547" y="263" font-size="10" font-weight="700" fill="#a78bfa" font-family="'SF Mono', Menlo, 'Courier New', monospace">tool_result</text>
+  <text x="625" y="263" font-size="9" fill="#52525b" font-style="italic">   (was tool_end)</text>
+  <text x="625" y="274" font-size="9" fill="#475569" font-family="'SF Mono', Menlo, 'Courier New', monospace">   tool_name · correlation_id · duration_ms · result_size</text>
+
+  <!-- prompt_submit (was prompt) -->
+  <rect x="536" y="281" width="6" height="33" rx="1" fill="#7c3aed"/>
+  <text x="547" y="291" font-size="10" font-weight="700" fill="#a78bfa" font-family="'SF Mono', Menlo, 'Courier New', monospace">prompt_submit</text>
+  <text x="644" y="291" font-size="9" fill="#52525b" font-style="italic">   (was prompt)</text>
+  <text x="644" y="302" font-size="9" fill="#475569" font-family="'SF Mono', Menlo, 'Courier New', monospace">   prompt_length · word_count</text>
+  <text x="644" y="313" font-size="9" fill="#f87171" font-family="'SF Mono', Menlo, 'Courier New', monospace">   ✕ no prompt text (unless opted in)</text>
+
+  <!-- assistant_stop (was stop) -->
+  <rect x="536" y="320" width="6" height="22" rx="1" fill="#7c3aed"/>
+  <text x="547" y="330" font-size="10" font-weight="700" fill="#a78bfa" font-family="'SF Mono', Menlo, 'Courier New', monospace">assistant_stop</text>
+  <text x="648" y="330" font-size="9" fill="#52525b" font-style="italic">   (was stop)</text>
+  <text x="648" y="341" font-size="9" fill="#475569" font-family="'SF Mono', Menlo, 'Courier New', monospace">   reason · input_tokens · output_tokens · model</text>
+
+  <!-- subagent_stop -->
+  <rect x="536" y="348" width="6" height="22" rx="1" fill="#7c3aed"/>
+  <text x="547" y="358" font-size="10" font-weight="700" fill="#a78bfa" font-family="'SF Mono', Menlo, 'Courier New', monospace">subagent_stop</text>
+  <text x="648" y="358" font-size="9" fill="#475569" font-family="'SF Mono', Menlo, 'Courier New', monospace">   agent_type · reason · tool_counts{} · turns</text>
+  <text x="648" y="369" font-size="9" fill="#475569" font-family="'SF Mono', Menlo, 'Courier New', monospace">   input_tokens · output_tokens · model</text>
+
+  <!-- session_end -->
+  <rect x="536" y="376" width="6" height="12" rx="1" fill="#7c3aed"/>
+  <text x="547" y="386" font-size="10" font-weight="700" fill="#a78bfa" font-family="'SF Mono', Menlo, 'Courier New', monospace">session_end</text>
+  <text x="628" y="386" font-size="9" fill="#475569" font-family="'SF Mono', Menlo, 'Courier New', monospace">   duration_ms</text>
+
+  <!-- pre_compact -->
+  <rect x="536" y="394" width="6" height="12" rx="1" fill="#7c3aed"/>
+  <text x="547" y="404" font-size="10" font-weight="700" fill="#a78bfa" font-family="'SF Mono', Menlo, 'Courier New', monospace">pre_compact</text>
+  <text x="630" y="404" font-size="9" fill="#475569" font-family="'SF Mono', Menlo, 'Courier New', monospace">   (empty data payload)</text>
+
+  <!-- Stripped box -->
+  <rect x="536" y="418" width="428" height="48" rx="4" fill="#0f172a" stroke="#1e293b" stroke-width="1"/>
+  <text x="544" y="431" font-size="9" font-weight="700" fill="#d97706">Stripped before transmission:</text>
+  <text x="544" y="443" font-size="9" fill="#78716c" font-family="'SF Mono', Menlo, 'Courier New', monospace">• Full tool input text → replaced by ≤100-char preview</text>
+  <text x="544" y="455" font-size="9" fill="#78716c" font-family="'SF Mono', Menlo, 'Courier New', monospace">• Tool result content → replaced by byte size (result_size)</text>
+
+  <!-- ══════════════════════════════════════════════════════
+       NEVER COLLECTED STRIP
+  ══════════════════════════════════════════════════════ -->
+  <rect x="14" y="520" width="956" height="82" rx="8" fill="#1c0707" stroke="#7f1d1d" stroke-width="1.5"/>
+
+  <!-- Label -->
+  <text x="492" y="538" text-anchor="middle" font-size="8.5" font-weight="700" fill="#ef4444" letter-spacing="0.1em">NEVER COLLECTED — NOT CAPTURED OR TRANSMITTED ANYWHERE</text>
+  <line x1="14" y1="544" x2="970" y2="544" stroke="#450a0a" stroke-width="1"/>
+
+  <!-- Items in 2 rows × 4 cols -->
+  <text x="80"  y="560" font-size="10" fill="#b91c1c" font-family="'SF Mono', Menlo, 'Courier New', monospace">Prompt text content</text>
+  <text x="280" y="560" font-size="10" fill="#b91c1c" font-family="'SF Mono', Menlo, 'Courier New', monospace">File contents / code text</text>
+  <text x="490" y="560" font-size="10" fill="#b91c1c" font-family="'SF Mono', Menlo, 'Courier New', monospace">Tool result content</text>
+  <text x="700" y="560" font-size="10" fill="#b91c1c" font-family="'SF Mono', Menlo, 'Courier New', monospace">Environment variables</text>
+
+  <text x="80"  y="577" font-size="10" fill="#b91c1c" font-family="'SF Mono', Menlo, 'Courier New', monospace">Terminal output text</text>
+  <text x="280" y="577" font-size="10" fill="#b91c1c" font-family="'SF Mono', Menlo, 'Courier New', monospace">Git diffs / commit content</text>
+  <text x="490" y="577" font-size="10" fill="#b91c1c" font-family="'SF Mono', Menlo, 'Courier New', monospace">User identity / hostname</text>
+  <text x="700" y="577" font-size="10" fill="#b91c1c" font-family="'SF Mono', Menlo, 'Courier New', monospace">Any content (only metadata)</text>
+
+  <!-- ── FOOTER ── -->
+  <text x="492" y="614" text-anchor="middle" font-size="9" fill="#1e293b">
+    Opt-in only: no data leaves the device until api_key is set via /telemetry-connect. Disable anytime: set "enabled": false in config.json. Local JSONL files are purged after retention_days (default 30).
+  </text>
+
+</svg>
