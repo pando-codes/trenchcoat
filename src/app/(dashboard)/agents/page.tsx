@@ -54,6 +54,9 @@ export default async function AgentsPage({
     avg_tool_count: (row.avg_tool_count as number | null) ?? null,
     avg_turns: (row.avg_turns as number | null) ?? null,
     trend: (row.trend as number | null) ?? null,
+    total_input_tokens: (row.total_input_tokens as number | null) ?? null,
+    total_output_tokens: (row.total_output_tokens as number | null) ?? null,
+    total_cost_usd: (row.total_cost_usd as number | null) ?? null,
   }));
 
   const dailyData: { date: string; agent_calls: number }[] = (
