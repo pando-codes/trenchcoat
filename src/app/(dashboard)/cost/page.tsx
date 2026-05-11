@@ -50,7 +50,7 @@ export default async function CostPage({
       session_count: row.session_count as number,
       input_tokens: row.input_tokens as number,
       output_tokens: row.output_tokens as number,
-      total_cost_usd: row.total_cost_usd as number,
+      total_cost_usd: (row.total_cost_usd as number | null) ?? 0,
     })
   );
   const agents: AgentStat[] = ((agentsResult.data as Record<string, unknown>[]) ?? []).map(
