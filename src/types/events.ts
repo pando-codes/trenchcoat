@@ -7,6 +7,7 @@ export type EventType =
   | "assistant_stop"
   | "subagent_stop"
   | "pre_compact"
+  | "stop"
   | "error";
 
 export interface TelemetryEvent {

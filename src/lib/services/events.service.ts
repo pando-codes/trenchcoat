@@ -122,6 +122,32 @@ export async function ingestEvents(
   }
 
   // -----------------------------------------------------------------------
+  // Write token data and model from stop events to the session row
+  // -----------------------------------------------------------------------
+  for (const e of events) {
+    if (e.event === "stop") {
+      const inputTokens = (e.data?.input_tokens as number | null) ?? null;
+      const outputTokens = (e.data?.output_tokens as number | null) ?? null;
+      const model = (e.data?.model as string | null) ?? null;
+      const reason = (e.data?.reason as string | null) ?? null;
+
+      const update: Record<string, unknown> = {};
+      if (inputTokens !== null) update.input_tokens = inputTokens;
+      if (outputTokens !== null) update.output_tokens = outputTokens;
+      if (model !== null) update.model = model;
+      if (reason !== null) update.stop_reason = reason;
+
+      if (Object.keys(update).length > 0) {
+        await adminClient
+          .from("sessions")
+          .update(update)
+          .eq("session_id", e.session_id)
+          .eq("user_id", userId);
+      }
+    }
+  }
+
+  // -----------------------------------------------------------------------
   // Update daily aggregates for each affected date
   // -----------------------------------------------------------------------
   const affectedDates = new Set<string>();
