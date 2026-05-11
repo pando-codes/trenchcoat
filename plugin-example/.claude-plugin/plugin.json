@@ -1,8 +1,8 @@
 {
-  "name": "claude-telemetry",
-  "description": "Observability layer for Claude Code — captures tool, agent, session, and prompt activity as JSONL for local-first analytics",
+  "name": "trenchcoat",
+  "description": "Observability layer for Claude Code Agents — captures tool, agent, session, and prompt activity as JSONL for local-first analytics and team analytics",
   "version": "1.0.0",
   "author": {
-    "name": "Alex"
+    "name": "Alex Noboa"
   }
 }

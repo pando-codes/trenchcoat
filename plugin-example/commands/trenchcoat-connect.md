@@ -1,23 +1,23 @@
 ---
-description: Connect the telemetry plugin to a Claude Telemetry SaaS instance for team analytics
+description: Connect the trenchcoat plugin to a Trenchcoat SaaS instance for team analytics
 allowed-tools: AskUserQuestion, Bash, Read, Edit
 ---
 
-# Connect to Claude Telemetry SaaS
+# Connect to Trenchcoat SaaS
 
-Help the user connect their local telemetry plugin to a Claude Telemetry SaaS instance for team analytics.
+Help the user connect their local trenchcoat plugin to a Trenchcoat SaaS instance for team analytics.
 
 ## Steps
 
 1. **Ask for the SaaS URL and API key:**
 
 Use AskUserQuestion to collect:
-- **API URL**: The SaaS instance URL (e.g., `https://telemetry.pando.codes`). Default: `https://telemetry.pando.codes`
+- **API URL**: The SaaS instance URL (e.g., `https://trenchcoat.io`). Default: `https://trenchcoat.io`
 - **API Key**: A `ct_live_...` API key generated from the SaaS dashboard (Settings → API Keys)
 
-2. **Update the telemetry config:**
+2. **Update the trenchcoat config:**
 
-Read the current config at `~/.claude/telemetry/config.json`, then update it with the new `api_url` and `api_key` values. Preserve all existing settings.
+Read the current config at `~/.claude/trenchcoat/config.json`, then update it with the new `api_url` and `api_key` values. Preserve all existing settings.
 
 3. **Test the connection:**
 

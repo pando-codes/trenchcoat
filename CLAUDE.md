@@ -4,7 +4,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Project Is
 
-A telemetry analytics SaaS for Claude Code sessions. It ingests telemetry events from a Claude Code plugin (via API keys), stores them in Supabase, and presents analytics through a Next.js dashboard. The companion plugin lives in `plugin-example/` and collects local session data via Claude Code hooks.
+Trenchcoat is a SaaS platform for monitoring, metering, and reporting on AI Agent usage. It ingests telemetry events from agent plugins (via API keys), stores them in Supabase, and presents analytics through a Next.js dashboard.
+
+**Supported platforms:** Claude Code (primary). Multi-platform expansion planned.
+
+**Core tracking goals:**
+1. Sessions — humans interacting with AI in a session
+2. Agents — which agents are invoked within a session
+3. Component usage — skills, commands, tools, MCPs, hooks, subagents
+4. Token attribution — tokens consumed by each component type (skills, commands, tools, MCPs, hooks, subagents)
+5. Cost — session cost derived from model token rates
+
+The companion plugin lives in `plugin-example/` and collects local session data via Claude Code hooks.
 
 ## Commands
 
@@ -16,8 +27,8 @@ A telemetry analytics SaaS for Claude Code sessions. It ingests telemetry events
 
 Copy `.env.local.example` to `.env.local` and fill in:
 - `NEXT_PUBLIC_SUPABASE_URL` — Supabase project URL
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Supabase anon/public key
-- `SUPABASE_SERVICE_ROLE_KEY` — Supabase service role key (server-side only, used by admin client for event ingestion)
+- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` — Supabase publishable key (formerly anon key)
+- `SUPABASE_SECRET_KEY` — Supabase secret key (server-side only, used by admin client for event ingestion; formerly service role key)
 - `CRON_SECRET` — Secret for Vercel Cron job authentication (used by `/api/v1/admin/sync-pricing` to validate the `Authorization: Bearer <secret>` header)
 
 ## Architecture
@@ -73,6 +84,10 @@ Migrations are in `supabase/migrations/` (001–008). Key tables:
 - Charts use Recharts (`src/components/charts/`)
 - Dashboard chrome in `src/components/dashboard/` (sidebar, topbar, date picker)
 - Server Actions for teams and API keys in `src/lib/actions/`
+
+### Event Types (Claude Code plugin)
+
+Known event types flowing through the `events` table: `session_start`, `session_end`, `tool_use`, `tool_result`, `subagent_stop`, `assistant_stop`. Event-specific payload stored in `data jsonb`. Token counts and model info expected in `data` once token attribution is implemented.
 
 ### Plugin Example (`plugin-example/`)
 

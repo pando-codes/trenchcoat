@@ -9,7 +9,7 @@ from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from string import Template
 
-TELEMETRY_DIR = Path.home() / ".claude" / "telemetry"
+TRENCHCOAT_DIR = Path.home() / ".claude" / "trenchcoat"
 TEMPLATE_DIR = Path(__file__).parent.parent / "templates"
 
 
@@ -19,7 +19,7 @@ def load_events(days: int = 7) -> list[dict]:
     cutoff_str = cutoff.strftime("%Y-%m-%d")
     events = []
 
-    for f in sorted(TELEMETRY_DIR.glob("events-*.jsonl")):
+    for f in sorted(TRENCHCOAT_DIR.glob("events-*.jsonl")):
         date_part = f.stem.replace("events-", "")
         if date_part < cutoff_str:
             continue
@@ -36,7 +36,7 @@ def load_events(days: int = 7) -> list[dict]:
 
 def load_sessions() -> dict:
     """Load session index."""
-    sessions_path = TELEMETRY_DIR / "sessions.json"
+    sessions_path = TRENCHCOAT_DIR / "sessions.json"
     if sessions_path.exists():
         try:
             return json.loads(sessions_path.read_text())

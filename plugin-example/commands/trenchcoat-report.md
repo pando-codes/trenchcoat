@@ -1,12 +1,12 @@
 ---
-description: Generate a text summary of Claude Code telemetry data
+description: Generate a text summary of Claude Code trenchcoat data
 allowed-tools: Bash, Read
 user-invocable: true
 ---
 
-# Telemetry Report
+# Trenchcoat Report
 
-Generate a text telemetry report by running the reporter:
+Generate a text trenchcoat report by running the reporter:
 
 ```bash
 python3 -c "
