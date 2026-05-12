@@ -1,11 +1,13 @@
 {
   "name": "trenchcoat-workspace",
   "private": true,
+  "packageManager": "bun@1.3.4",
   "workspaces": [
     "apps/*",
     "packages/*"
   ],
   "scripts": {
+    "dev": "bun run --filter '*' dev",
     "dev:app": "bun run --filter @trenchcoat/app dev",
     "dev:marketing": "bun run --filter @trenchcoat/marketing dev",
     "dev:docs": "bun run --filter @trenchcoat/docs dev",
