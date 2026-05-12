@@ -15,7 +15,7 @@ function cell(value: string | boolean): string {
 }
 ---
 <tr class="border-t border-slate-200">
-  <td class="py-4 pr-6 text-sm text-slate-700">{feature}</td>
+  <th scope="row" class="py-4 pr-6 text-left text-sm text-slate-700">{feature}</th>
   <td class="px-6 py-4 text-center text-sm text-slate-700">{cell(free)}</td>
   <td class="px-6 py-4 text-center text-sm font-medium text-indigo-700">{cell(pro)}</td>
   <td class="pl-6 py-4 text-center text-sm text-slate-700">{cell(enterprise)}</td>
