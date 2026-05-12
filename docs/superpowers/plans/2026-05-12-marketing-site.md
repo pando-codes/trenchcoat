@@ -4,9 +4,9 @@
 
 **Goal:** Scaffold `apps/marketing/` as the Trenchcoat public marketing site with a Homepage and Pricing page, deployable to Vercel at `trenchcoat.com`.
 
-**Architecture:** Astro 5 static site with Tailwind CSS v4 (via Vite plugin). Pure `.astro` components — no React, no islands, no JavaScript shipped to the browser. The stub `package.json` at `apps/marketing/` already exists; this plan fills it out. All CTAs are `<a>` links to `app.trenchcoat.com`.
+**Architecture:** Astro 6 static site with Tailwind CSS v4 (via Vite plugin). Pure `.astro` components — no React, no islands, no JavaScript shipped to the browser. The stub `package.json` at `apps/marketing/` already exists; this plan fills it out. All CTAs are `<a>` links to `app.trenchcoat.com`.
 
-**Tech Stack:** Astro 5, Tailwind CSS v4 (`@tailwindcss/vite`), bun workspaces, Vercel static hosting.
+**Tech Stack:** Astro 6, Tailwind CSS v4 (`@tailwindcss/vite`), bun workspaces, Vercel static hosting.
 
 ---
 
@@ -141,7 +141,7 @@ bun run dev:marketing
 
 Expected output:
 ```
- astro  v5.x.x ready in NNNms
+ astro  v6.x.x ready in NNNms
 
  ┃ Local    http://localhost:3001/
 ```
@@ -891,7 +891,7 @@ bun run --filter @trenchcoat/marketing build
 
 Expected output:
 ```
- astro  v5.x.x building for production...
+ astro  v6.x.x building for production...
  ✓ Completed in NNNms.
 
  dist/index.html      X.XX kB
