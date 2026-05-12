@@ -24,23 +24,26 @@ This is a bun workspaces monorepo. Three services live under `apps/`:
 | Directory | Framework | Domain |
 |---|---|---|
 | `apps/app/` | Next.js 16 | `app.trenchcoat.com` |
-| `apps/marketing/` | Astro (stub) | `trenchcoat.com` |
-| `apps/docs/` | Nextra or Fumadocs (stub) | `docs.trenchcoat.com` |
+| `apps/marketing/` | Astro (stub, not yet scaffolded) | `trenchcoat.com` |
+| `apps/docs/` | Nextra or Fumadocs (stub, not yet scaffolded) | `docs.trenchcoat.com` |
+| `packages/` | (empty, reserved for shared code) | — |
 
-Shared infrastructure (`supabase/`, `plugin-example/`) stays at the repo root. Run `bun install` from the repo root to install all workspace dependencies.
+Shared infrastructure (`supabase/`, `plugin-example/`) stays at the repo root. The `docs/` directory at the repo root contains internal developer documentation (setup guides, specs, plans) — it is separate from the `apps/docs/` service. Run `bun install` from the repo root to install all workspace dependencies.
 
 ## Commands
 
 - `bun run dev:app` — start the Next.js dashboard dev server (port 3000). Run from repo root.
 - `bun run --filter @trenchcoat/app build` — production build for the app service
 - `bun run --filter @trenchcoat/app lint` — ESLint for the app service
+- `bun run build` — production build for all services (workspace-wide)
+- `bun run lint` — ESLint for all services (workspace-wide)
 - `bun install` — install all workspace dependencies (run from repo root)
 
 **Package manager:** bun (primary). Use `bun install`, `bun add`, `bun remove` instead of npm equivalents.
 
 ## Environment Variables
 
-Copy `.env.local.example` to `.env.local` and fill in:
+Copy `.env.local.example` to `apps/app/.env.local` and fill in:
 - `NEXT_PUBLIC_SUPABASE_URL` — Supabase project URL
 - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` — Supabase publishable key (formerly anon key)
 - `SUPABASE_SECRET_KEY` — Supabase secret key (server-side only, used by admin client for event ingestion; formerly service role key)
@@ -86,7 +89,7 @@ Three client variants — use the correct one based on context:
 
 ### Database (Supabase/Postgres)
 
-Migrations are in `supabase/migrations/` (001–008). Key tables:
+Migrations are in `supabase/migrations/` (001–013). Key tables:
 - `events` — partitioned by month (`created_at`), high-volume telemetry events
 - `sessions` — one row per Claude Code session, upserted during event ingestion
 - `daily_aggregates` — pre-computed daily rollups (sessions, events, tool breakdown, hourly distribution). Updated via `update_daily_aggregate()` RPC.
