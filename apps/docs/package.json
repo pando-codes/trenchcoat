@@ -5,6 +5,6 @@
   "scripts": {
     "dev": "echo 'docs not scaffolded yet'",
     "build": "echo 'docs not scaffolded yet'",
-    "lint": "echo 'docs not scaffolded yet'"
+    "lint": "echo 'not scaffolded yet'"
   }
 }
