@@ -17,11 +17,24 @@ Trenchcoat is a SaaS platform for monitoring, metering, and reporting on AI Agen
 
 The companion plugin lives in `plugin-example/` and collects local session data via Claude Code hooks.
 
+## Workspace Structure
+
+This is a bun workspaces monorepo. Three services live under `apps/`:
+
+| Directory | Framework | Domain |
+|---|---|---|
+| `apps/app/` | Next.js 16 | `app.trenchcoat.com` |
+| `apps/marketing/` | Astro (stub) | `trenchcoat.com` |
+| `apps/docs/` | Nextra or Fumadocs (stub) | `docs.trenchcoat.com` |
+
+Shared infrastructure (`supabase/`, `plugin-example/`) stays at the repo root. Run `bun install` from the repo root to install all workspace dependencies.
+
 ## Commands
 
-- `bun run dev` — start Next.js dev server (port 3000)
-- `bun run build` — production build
-- `bun run lint` — ESLint (flat config, Next.js core-web-vitals + typescript presets)
+- `bun run dev:app` — start the Next.js dashboard dev server (port 3000). Run from repo root.
+- `bun run --filter @trenchcoat/app build` — production build for the app service
+- `bun run --filter @trenchcoat/app lint` — ESLint for the app service
+- `bun install` — install all workspace dependencies (run from repo root)
 
 **Package manager:** bun (primary). Use `bun install`, `bun add`, `bun remove` instead of npm equivalents.
 
@@ -40,16 +53,16 @@ Copy `.env.local.example` to `.env.local` and fill in:
 - **Route group `(dashboard)/`** — authenticated dashboard pages (overview, sessions, tools, activity, teams, settings). Layout redirects to `/login` if no session.
 - **`/login`, `/signup`** — public auth pages using Supabase Auth.
 - **`/auth/callback`** — OAuth callback route.
-- **Middleware** (`src/middleware.ts`) delegates to `src/lib/supabase/middleware.ts` for session refresh. API routes (`/api/v1/*`) and auth routes are excluded from middleware.
+- **Middleware** (`apps/app/src/middleware.ts`) delegates to `apps/app/src/lib/supabase/middleware.ts` for session refresh. API routes (`/api/v1/*`) and auth routes are excluded from middleware.
 
-### API Layer (`src/app/api/v1/`)
+### API Layer (`apps/app/src/app/api/v1/`)
 
-All API routes use `createApiHandler()` from `src/lib/api-middleware.ts`, which provides:
+All API routes use `createApiHandler()` from `apps/app/src/lib/api-middleware.ts`, which provides:
 - API key authentication via `X-API-Key` header (keys prefixed `ct_live_`, SHA-256 hashed in DB)
 - Scope-based authorization (e.g., `write:events`, `read:analytics`)
 - Rate limiting (standard/premium/ingestion tiers)
 - Zod body validation
-- Standardized JSON responses via `src/lib/api-response.ts` (`{ data }` or `{ error: { code, message } }`)
+- Standardized JSON responses via `apps/app/src/lib/api-response.ts` (`{ data }` or `{ error: { code, message } }`)
 
 Key endpoints:
 - `POST /api/v1/events` — bulk event ingestion (up to 1000 events per request)
@@ -57,14 +70,14 @@ Key endpoints:
 - `GET /api/v1/analytics/overview` — overview stats
 - `GET /api/v1/analytics/tools` — tool usage stats
 
-### Service Layer (`src/lib/services/`)
+### Service Layer (`apps/app/src/lib/services/`)
 
 Business logic separated from route handlers. Services accept a Supabase client and return `ServiceResult<T>` (discriminated union: `{ success: true, data }` or `{ success: false, error }`).
 
 - `events.service.ts` — event ingestion + session upsert + daily aggregate update
 - `sessions.service.ts`, `analytics.service.ts`, `teams.service.ts`, `api-keys.service.ts`
 
-### Supabase Clients (`src/lib/supabase/`)
+### Supabase Clients (`apps/app/src/lib/supabase/`)
 
 Three client variants — use the correct one based on context:
 - `server.ts` — cookie-based server client for RSC/Server Actions (uses `@supabase/ssr`)
@@ -83,9 +96,9 @@ Migrations are in `supabase/migrations/` (001–008). Key tables:
 ### UI Components
 
 - shadcn/ui (new-york style, Tailwind v4, CSS variables for theming)
-- Charts use Recharts (`src/components/charts/`)
-- Dashboard chrome in `src/components/dashboard/` (sidebar, topbar, date picker)
-- Server Actions for teams and API keys in `src/lib/actions/`
+- Charts use Recharts (`apps/app/src/components/charts/`)
+- Dashboard chrome in `apps/app/src/components/dashboard/` (sidebar, topbar, date picker)
+- Server Actions for teams and API keys in `apps/app/src/lib/actions/`
 
 ### Event Types (Claude Code plugin)
 
@@ -97,4 +110,4 @@ A Claude Code plugin that collects telemetry locally via hooks (session_start, s
 
 ## Path Aliases
 
-`@/*` maps to `./src/*` (configured in tsconfig.json and components.json).
+`@/*` maps to `./src/*` within `apps/app/` (configured in `apps/app/tsconfig.json` and `apps/app/components.json`).
