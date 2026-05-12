@@ -11,11 +11,11 @@
 !.yarn/versions
 
 # testing
-/coverage
+apps/app/coverage/
 
 # next.js
 apps/app/.next/
-/out/
+apps/app/out/
 
 # production
 /build
@@ -41,7 +41,7 @@ yarn-error.log*
 __pycache__/
 
 # test
-/test-results/
+apps/app/test-results/
 
 # typescript
 *.tsbuildinfo
