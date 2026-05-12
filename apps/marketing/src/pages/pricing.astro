@@ -1,0 +1,116 @@
+---
+import Base from '../layouts/Base.astro';
+import Nav from '../components/Nav.astro';
+import PricingCard from '../components/pricing/PricingCard.astro';
+import FeatureRow from '../components/pricing/FeatureRow.astro';
+import CtaBanner from '../components/CtaBanner.astro';
+import Footer from '../components/Footer.astro';
+
+const signupUrl = 'https://app.trenchcoat.com/signup';
+
+// Update these values with actual limits and prices before launch
+const tiers = [
+  {
+    name: 'Free',
+    price: '$0',
+    description: 'For individuals and small projects',
+    features: [
+      'Up to 50,000 events/month',
+      '1 team member',
+      '30-day data retention',
+      'Community support',
+    ],
+    ctaLabel: 'Get started',
+    ctaHref: signupUrl,
+    highlighted: false,
+  },
+  {
+    name: 'Pro',
+    price: '$49/mo',
+    description: 'For growing teams that need more',
+    features: [
+      'Up to 1,000,000 events/month',
+      'Up to 10 team members',
+      '90-day data retention',
+      'Email support',
+      'Cost analytics',
+    ],
+    ctaLabel: 'Start free trial',
+    ctaHref: signupUrl,
+    highlighted: true,
+  },
+  {
+    name: 'Enterprise',
+    price: 'Custom',
+    description: 'For organizations that need scale',
+    features: [
+      'Unlimited events',
+      'Unlimited team members',
+      'Custom data retention',
+      'SSO / custom auth',
+      'Priority support + SLA',
+    ],
+    ctaLabel: 'Contact us',
+    ctaHref: 'mailto:alex@pando.codes',
+    highlighted: false,
+  },
+];
+
+// Update these values to match actual tier capabilities before launch
+const featureRows = [
+  { feature: 'Events/month',    free: '50,000',  pro: '1,000,000', enterprise: 'Unlimited' },
+  { feature: 'Team members',    free: '1',        pro: '10',         enterprise: 'Unlimited' },
+  { feature: 'Data retention',  free: '30 days',  pro: '90 days',    enterprise: 'Custom'    },
+  { feature: 'Cost analytics',  free: false,       pro: true,         enterprise: true        },
+  { feature: 'Email support',   free: false,       pro: true,         enterprise: true        },
+  { feature: 'SSO',             free: false,       pro: false,        enterprise: true        },
+  { feature: 'SLA',             free: false,       pro: false,        enterprise: true        },
+];
+---
+<Base
+  title="Pricing"
+  description="Simple pricing that scales with your team. Start free, upgrade when you need more."
+>
+  <Nav />
+  <main>
+    <section class="py-20">
+      <div class="mx-auto max-w-6xl px-6">
+        <!-- Header -->
+        <div class="text-center">
+          <h1 class="text-4xl font-bold text-slate-900">
+            Simple pricing that scales with your team
+          </h1>
+          <p class="mt-4 text-xl text-slate-600">Start free, upgrade when you need more</p>
+        </div>
+
+        <!-- Tier cards -->
+        <div class="mt-16 grid grid-cols-1 gap-8 md:grid-cols-3">
+          {tiers.map(tier => <PricingCard {...tier} />)}
+        </div>
+
+        <!-- Feature comparison table -->
+        <div class="mt-20">
+          <h2 class="text-2xl font-bold text-slate-900">Feature comparison</h2>
+          <div class="mt-8 overflow-x-auto">
+            <table class="w-full">
+              <thead>
+                <tr>
+                  <th class="pb-4 pr-6 text-left text-sm font-medium text-slate-500">Feature</th>
+                  <th class="px-6 pb-4 text-center text-sm font-semibold text-slate-900">Free</th>
+                  <th class="px-6 pb-4 text-center text-sm font-semibold text-indigo-700">Pro</th>
+                  <th class="pl-6 pb-4 text-center text-sm font-semibold text-slate-900">Enterprise</th>
+                </tr>
+              </thead>
+              <tbody>
+                {featureRows.map(row => <FeatureRow {...row} />)}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <CtaBanner />
+  </main>
+  <Footer />
+</Base>
