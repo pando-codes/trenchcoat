@@ -1,0 +1,10 @@
+{
+  "name": "@trenchcoat/marketing",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "echo 'marketing not scaffolded yet'",
+    "build": "echo 'marketing not scaffolded yet'",
+    "lint": "echo 'marketing not scaffolded yet'"
+  }
+}

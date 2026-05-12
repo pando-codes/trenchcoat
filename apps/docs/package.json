@@ -1,0 +1,10 @@
+{
+  "name": "@trenchcoat/docs",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "echo 'docs not scaffolded yet'",
+    "build": "echo 'docs not scaffolded yet'",
+    "lint": "echo 'docs not scaffolded yet'"
+  }
+}
