@@ -1,0 +1,23 @@
+---
+const currentYear = new Date().getFullYear();
+const footerLinks = [
+  { href: '/pricing', label: 'Pricing' },
+  { href: 'https://docs.trenchcoat.com', label: 'Docs' },
+  { href: 'https://github.com/pando-codes/trenchcoat', label: 'GitHub' },
+];
+---
+<footer class="border-t border-slate-200 bg-white">
+  <div class="mx-auto flex max-w-6xl items-center justify-between px-6 py-8">
+    <p class="text-sm text-slate-500">© {currentYear} Trenchcoat. All rights reserved.</p>
+    <div class="flex gap-6">
+      {footerLinks.map(link => (
+        <a
+          href={link.href}
+          class="text-sm text-slate-500 transition-colors hover:text-slate-900"
+        >
+          {link.label}
+        </a>
+      ))}
+    </div>
+  </div>
+</footer>
