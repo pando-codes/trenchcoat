@@ -28,14 +28,13 @@ export default function Layout({ children }: { children: ReactNode }) {
       tree={source.pageTree}
       nav={{
         title: (
-          <span className="flex items-center gap-2">
+          <a href="https://trenchcoat.io" className="flex items-center gap-2">
             <TrenchcoatMark />
             <span className="font-semibold" style={{ letterSpacing: "-0.04em" }}>
               trenchcoat
             </span>
-          </span>
+          </a>
         ),
-        url: "https://trenchcoat.io",
       }}
       links={[
         {
