@@ -1,5 +1,0 @@
-{
-  "buildCommand": "bun run --filter @trenchcoat/docs build",
-  "outputDirectory": "apps/docs/.next",
-  "installCommand": "bun install"
-}
