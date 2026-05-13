@@ -89,8 +89,8 @@ class TrenchcoatHooks(RunHooks):
                 })
             )
             events_to_flush = list(self._events)
-            self._events.clear()
             await flush_events(events_to_flush, self._config)
+            self._events.clear()
         except Exception:
             pass
 

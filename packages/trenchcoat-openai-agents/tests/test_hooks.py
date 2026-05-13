@@ -80,6 +80,21 @@ async def test_on_agent_end_flushes_with_session_end_and_tokens():
 
 
 @pytest.mark.asyncio
+async def test_on_agent_end_flush_failure_retains_events():
+    hooks = TrenchcoatHooks(api_key=API_KEY, api_url=API_URL)
+    hooks._session_id = "sess-1"
+
+    import httpx
+    flush_mock = AsyncMock(side_effect=httpx.HTTPError("connection failed"))
+    with patch("trenchcoat_openai_agents.hooks.flush_events", flush_mock):
+        await hooks.on_agent_end(_ctx(), _agent(), "output")  # must not raise
+
+    # events are retained when flush fails (not lost)
+    assert len(hooks._events) > 0
+    assert hooks._events[-1]["event"] == "session_end"
+
+
+@pytest.mark.asyncio
 async def test_hook_errors_are_silent():
     hooks = TrenchcoatHooks(api_key=API_KEY)
     broken_agent = MagicMock()
