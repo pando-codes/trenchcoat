@@ -1,12 +1,13 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { parseDateRange } from "@/lib/date-range";
+import { mapDailyActivity, mapDailyCost, mapOverviewStats } from "@/lib/mappers";
 import { OverviewCards } from "@/components/dashboard/overview-cards";
 import { DailyActivityChart } from "@/components/charts/daily-activity-chart";
 import { ToolUsageChart } from "@/components/charts/tool-usage-chart";
 import { DailyCostChart } from "@/components/charts/daily-cost-chart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { OverviewStats, DailyActivity, ToolUsageStat, DailyCost } from "@/types/analytics";
+import type { ToolUsageStat } from "@/types/analytics";
 
 export default async function OverviewPage({
   searchParams,
@@ -39,31 +40,10 @@ export default async function OverviewPage({
     supabase.rpc("get_daily_cost", { p_user_id: user.id, p_from, p_to }),
   ]);
 
-  const stats: OverviewStats = (statsResult.data as unknown as OverviewStats) ?? {
-    total_sessions: 0,
-    total_events: 0,
-    total_tool_uses: 0,
-    total_agent_calls: 0,
-    active_days: 0,
-    avg_session_duration_min: 0,
-    avg_tools_per_session: 0,
-  };
-
-  const dailyActivity: DailyActivity[] = (dailyResult.data ?? []).map((row) => ({
-    date: row.date,
-    sessions: row.sessions ?? 0,
-    events: row.events ?? 0,
-    tool_uses: row.tool_uses ?? 0,
-  }));
+  const stats = mapOverviewStats(statsResult.data);
+  const dailyActivity = mapDailyActivity(dailyResult.data ?? []);
   const topTools: ToolUsageStat[] = ((toolsResult.data as unknown as ToolUsageStat[]) ?? []);
-  const dailyCost: DailyCost[] = ((costResult.data as Record<string, unknown>[]) ?? []).map(
-    (row) => ({
-      date: row.date as string,
-      total_cost_usd: (row.total_cost_usd as number | null) ?? 0,
-      input_tokens: (row.input_tokens as number | null) ?? 0,
-      output_tokens: (row.output_tokens as number | null) ?? 0,
-    })
-  );
+  const dailyCost = mapDailyCost((costResult.data as Record<string, unknown>[]) ?? []);
 
   return (
     <div className="flex flex-col gap-6 p-6">

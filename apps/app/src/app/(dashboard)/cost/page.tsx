@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { parseDateRange } from "@/lib/date-range";
 import { formatCost } from "@/lib/cost";
+import { mapDailyCost } from "@/lib/mappers";
 import { DailyCostChart } from "@/components/charts/daily-cost-chart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -12,7 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { DailyCost, ModelCost, AgentStat } from "@/types/analytics";
+import type { ModelCost, AgentStat } from "@/types/analytics";
 
 function formatTokens(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
@@ -43,14 +44,7 @@ export default async function CostPage({
     supabase.rpc("get_top_agents", { p_user_id: user.id, p_from, p_to, p_limit: 20 }),
   ]);
 
-  const dailyCost: DailyCost[] = ((dailyCostResult.data as Record<string, unknown>[]) ?? []).map(
-    (row) => ({
-      date: row.date as string,
-      total_cost_usd: (row.total_cost_usd as number | null) ?? 0,
-      input_tokens: (row.input_tokens as number | null) ?? 0,
-      output_tokens: (row.output_tokens as number | null) ?? 0,
-    })
-  );
+  const dailyCost = mapDailyCost((dailyCostResult.data as Record<string, unknown>[]) ?? []);
   const modelCost: ModelCost[] = ((modelCostResult.data as Record<string, unknown>[]) ?? []).map(
     (row) => ({
       model: row.model as string,

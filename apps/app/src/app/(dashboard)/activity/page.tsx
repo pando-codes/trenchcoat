@@ -1,10 +1,11 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { parseDateRange } from "@/lib/date-range";
+import { mapDailyActivity } from "@/lib/mappers";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { HourlyHeatmap } from "@/components/charts/hourly-heatmap";
 import { DailyActivityChart } from "@/components/charts/daily-activity-chart";
-import type { HourlyHeatmapEntry, DailyActivity } from "@/types/analytics";
+import type { HourlyHeatmapEntry } from "@/types/analytics";
 
 export default async function ActivityPage({
   searchParams,
@@ -36,12 +37,7 @@ export default async function ActivityPage({
   const rows = aggregatesResult.data ?? [];
 
   // Build daily activity
-  const dailyActivity: DailyActivity[] = rows.map((row) => ({
-    date: row.date,
-    sessions: row.sessions ?? 0,
-    events: row.events ?? 0,
-    tool_uses: row.tool_uses ?? 0,
-  }));
+  const dailyActivity = mapDailyActivity(rows);
 
   // Build heatmap from hourly_distribution (7x24 grid by day-of-week)
   const buckets = new Map<string, number>();
