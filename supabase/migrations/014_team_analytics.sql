@@ -67,7 +67,7 @@ as $$
     mtt.tool_name  as top_tool,
     ms.last_active
   from member_sessions ms
-  left join public.user_profiles up  on up.user_id  = ms.user_id
+  left join public.user_profiles up  on up.id = ms.user_id
   left join member_top_tools     mtt on mtt.user_id = ms.user_id and mtt.rn = 1
   order by ms.sessions desc;
 $$;
