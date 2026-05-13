@@ -1,0 +1,4 @@
+{
+  "title": "Plugin SDK & Hooks",
+  "pages": ["overview", "installation", "configuration", "event-schema", "hook-reference"]
+}
