@@ -38,9 +38,9 @@ export default async function ActivityPage({
   // Build daily activity
   const dailyActivity: DailyActivity[] = rows.map((row) => ({
     date: row.date,
-    sessions: row.sessions,
-    events: row.events,
-    tool_uses: row.tool_uses,
+    sessions: row.sessions ?? 0,
+    events: row.events ?? 0,
+    tool_uses: row.tool_uses ?? 0,
   }));
 
   // Build heatmap from hourly_distribution (7x24 grid by day-of-week)
