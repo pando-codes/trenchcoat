@@ -101,3 +101,29 @@ async def test_hook_errors_are_silent():
     broken_agent.name = MagicMock(side_effect=RuntimeError("boom"))
     await hooks.on_agent_start(_ctx(), broken_agent)   # must not raise
     await hooks.on_tool_start(_ctx(), broken_agent, _tool())  # must not raise
+
+
+# --- instrument() tests ---
+
+from trenchcoat_openai_agents import TrenchcoatHooks as _TH, TrenchcoatAgentHooks, instrument
+import trenchcoat_openai_agents.hooks as _hooks_mod
+
+
+def test_instrument_sets_default_config():
+    instrument(api_key="ct_live_x", api_url="https://example.com")
+    hooks = TrenchcoatHooks()  # no args
+    assert hooks._config.api_key == "ct_live_x"
+    assert hooks._config.api_url == "https://example.com"
+
+
+def test_hooks_without_args_raises_without_instrument():
+    # reset_default_config fixture already sets _default_config = None
+    with pytest.raises(ValueError, match="api_key required"):
+        TrenchcoatHooks()
+
+
+def test_public_api_exports():
+    from trenchcoat_openai_agents import TrenchcoatHooks, TrenchcoatAgentHooks, instrument
+    assert callable(TrenchcoatHooks)
+    assert callable(TrenchcoatAgentHooks)
+    assert callable(instrument)
