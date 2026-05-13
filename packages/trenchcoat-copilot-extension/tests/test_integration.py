@@ -5,7 +5,9 @@ import httpx
 from unittest.mock import AsyncMock, MagicMock
 from fastapi import FastAPI
 from httpx import AsyncClient, ASGITransport
-from trenchcoat_copilot_extension import create_app, TrenchcoatConfig
+from trenchcoat_copilot_extension import TrenchcoatConfig
+from trenchcoat_copilot_extension.copilot_router import make_copilot_router
+from trenchcoat_copilot_extension.bot_router import make_bot_router
 
 API_KEY = "ct_live_test"
 API_URL = "https://app.trenchcoat.io"
@@ -46,8 +48,6 @@ async def test_full_copilot_conversation_turn_sends_all_events():
     )
 
     mock_llm = _make_mock_openai_client()
-    from trenchcoat_copilot_extension.copilot_router import make_copilot_router
-    from trenchcoat_copilot_extension.bot_router import make_bot_router
     app = FastAPI()
     app.include_router(make_copilot_router(CONFIG, _make_client=lambda api_key: mock_llm))
     app.include_router(make_bot_router(CONFIG))
@@ -85,7 +85,7 @@ async def test_full_copilot_conversation_turn_sends_all_events():
     assert assistant_stop["data"]["input_tokens"] == 15
     assert assistant_stop["data"]["output_tokens"] == 7
 
-    # buffer is cleared after flush
+    # LLM was called exactly once for this single request
     assert mock_llm.chat.completions.stream.call_count == 1
 
 
@@ -98,8 +98,6 @@ async def test_telemetry_flush_failure_does_not_break_sse_stream():
     )
 
     mock_llm = _make_mock_openai_client()
-    from trenchcoat_copilot_extension.copilot_router import make_copilot_router
-    from trenchcoat_copilot_extension.bot_router import make_bot_router
     app = FastAPI()
     app.include_router(make_copilot_router(CONFIG, _make_client=lambda api_key: mock_llm))
     app.include_router(make_bot_router(CONFIG))
