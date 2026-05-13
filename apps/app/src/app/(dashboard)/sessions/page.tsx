@@ -97,7 +97,7 @@ export default async function SessionsPage({ searchParams }: SessionsPageProps) 
     ),
   ].sort();
 
-  const sessions:    SessionSummary[] = sessionsResult.data ?? [];
+  const sessions: SessionSummary[] = (sessionsResult.data ?? []) as unknown as SessionSummary[];
   const totalPages = Math.ceil((sessionsResult.count ?? 0) / PAGE_SIZE);
 
   const rates: RateMap = Object.fromEntries(

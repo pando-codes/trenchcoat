@@ -27,7 +27,7 @@ export default async function SharePage({
 
   if (!share) notFound();
 
-  const snap = share.snapshot as TeamShareSnapshot;
+  const snap = share.snapshot as unknown as TeamShareSnapshot;
 
   function formatDate(iso: string): string {
     return new Date(iso).toLocaleDateString("en-US", {

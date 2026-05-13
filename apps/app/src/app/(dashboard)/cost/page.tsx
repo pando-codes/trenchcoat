@@ -43,7 +43,14 @@ export default async function CostPage({
     supabase.rpc("get_top_agents", { p_user_id: user.id, p_from, p_to, p_limit: 20 }),
   ]);
 
-  const dailyCost: DailyCost[] = dailyCostResult.data ?? [];
+  const dailyCost: DailyCost[] = ((dailyCostResult.data as Record<string, unknown>[]) ?? []).map(
+    (row) => ({
+      date: row.date as string,
+      total_cost_usd: (row.total_cost_usd as number | null) ?? 0,
+      input_tokens: (row.input_tokens as number | null) ?? 0,
+      output_tokens: (row.output_tokens as number | null) ?? 0,
+    })
+  );
   const modelCost: ModelCost[] = ((modelCostResult.data as Record<string, unknown>[]) ?? []).map(
     (row) => ({
       model: row.model as string,

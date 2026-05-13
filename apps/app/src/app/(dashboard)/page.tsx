@@ -39,7 +39,7 @@ export default async function OverviewPage({
     supabase.rpc("get_daily_cost", { p_user_id: user.id, p_from, p_to }),
   ]);
 
-  const stats: OverviewStats = statsResult.data ?? {
+  const stats: OverviewStats = (statsResult.data as unknown as OverviewStats) ?? {
     total_sessions: 0,
     total_events: 0,
     total_tool_uses: 0,
@@ -49,9 +49,21 @@ export default async function OverviewPage({
     avg_tools_per_session: 0,
   };
 
-  const dailyActivity: DailyActivity[] = dailyResult.data ?? [];
-  const topTools: ToolUsageStat[] = toolsResult.data ?? [];
-  const dailyCost: DailyCost[] = costResult.data ?? [];
+  const dailyActivity: DailyActivity[] = (dailyResult.data ?? []).map((row) => ({
+    date: row.date,
+    sessions: row.sessions ?? 0,
+    events: row.events ?? 0,
+    tool_uses: row.tool_uses ?? 0,
+  }));
+  const topTools: ToolUsageStat[] = ((toolsResult.data as unknown as ToolUsageStat[]) ?? []);
+  const dailyCost: DailyCost[] = ((costResult.data as Record<string, unknown>[]) ?? []).map(
+    (row) => ({
+      date: row.date as string,
+      total_cost_usd: (row.total_cost_usd as number | null) ?? 0,
+      input_tokens: (row.input_tokens as number | null) ?? 0,
+      output_tokens: (row.output_tokens as number | null) ?? 0,
+    })
+  );
 
   return (
     <div className="flex flex-col gap-6 p-6">

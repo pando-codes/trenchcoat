@@ -19,7 +19,7 @@ export default async function ApiKeysPage() {
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
 
-  const apiKeys: ApiKey[] = data ?? [];
+  const apiKeys: ApiKey[] = (data ?? []) as unknown as ApiKey[];
 
   return (
     <div className="flex flex-col gap-6 p-6">

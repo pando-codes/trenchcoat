@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getAdminClient } from "@/lib/supabase/admin";
 import type { TeamShareSnapshot, TeamMemberStat, TeamTrendPoint } from "@/types/teams";
+import type { Json } from "@/types/supabase";
 
 export type ActionResult<T> =
   | { success: true; data: T }
@@ -39,7 +40,7 @@ export async function createTeamAction(input: {
     role: "owner",
   });
 
-  return { success: true, data: team };
+  return { success: true, data: { id: team.id, name: team.name, slug: team.slug, created_at: team.created_at ?? "" } };
 }
 
 export async function inviteMemberAction(
@@ -170,7 +171,7 @@ export async function createTeamShareAction(
 
   const { data: share, error: insertError } = await admin
     .from("team_shares")
-    .insert({ team_id: teamId, created_by: user.id, date_from: dateFrom, date_to: dateTo, snapshot })
+    .insert({ team_id: teamId, created_by: user.id, date_from: dateFrom, date_to: dateTo, snapshot: snapshot as unknown as Json })
     .select("token")
     .single();
 

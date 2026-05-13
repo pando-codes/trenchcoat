@@ -75,7 +75,7 @@ export default async function SessionDetailPage({ params }: SessionDetailPagePro
     .eq("user_id", user.id)
     .order("seq", { ascending: true });
 
-  const typedEvents: TelemetryEvent[] = events ?? [];
+  const typedEvents: TelemetryEvent[] = (events ?? []) as unknown as TelemetryEvent[];
 
   const { data: pricingData } = await supabase
     .from("model_pricing")

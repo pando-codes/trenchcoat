@@ -45,12 +45,12 @@ async function updateProfile(formData: FormData) {
     .from("user_profiles")
     .upsert(
       {
-        user_id: user.id,
+        id: user.id,
         display_name: displayName,
         timezone,
         updated_at: new Date().toISOString(),
       },
-      { onConflict: "user_id" }
+      { onConflict: "id" }
     );
 
   redirect("/settings");
