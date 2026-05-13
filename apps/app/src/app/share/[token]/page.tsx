@@ -146,7 +146,7 @@ export default async function SharePage({
         <div className="flex items-center justify-between border-t pt-6 text-sm text-muted-foreground">
           <span>Snapshot captured {formatDate(snap.captured_at)}</span>
           <a
-            href="https://trenchcoat.com"
+            href="https://trenchcoat.io"
             className="font-medium text-foreground hover:underline"
           >
             Get Trenchcoat →

@@ -178,6 +178,6 @@ export async function createTeamShareAction(
     return { success: false, error: "Failed to create share link" };
   }
 
-  const url = `${process.env.NEXT_PUBLIC_APP_URL ?? "https://app.trenchcoat.com"}/share/${share.token}`;
+  const url = `${process.env.NEXT_PUBLIC_APP_URL ?? "https://app.trenchcoat.io"}/share/${share.token}`;
   return { success: true, data: { token: share.token as string, url } };
 }
