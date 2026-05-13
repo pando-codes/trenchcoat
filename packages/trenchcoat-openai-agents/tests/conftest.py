@@ -1,9 +1,15 @@
 import pytest
-import trenchcoat_openai_agents.hooks as _hooks_module
+
+try:
+    import trenchcoat_openai_agents.hooks as _hooks_module
+except ImportError:
+    _hooks_module = None
 
 
 @pytest.fixture(autouse=True)
 def reset_default_config():
-    _hooks_module._default_config = None
+    if _hooks_module is not None:
+        _hooks_module._default_config = None
     yield
-    _hooks_module._default_config = None
+    if _hooks_module is not None:
+        _hooks_module._default_config = None
