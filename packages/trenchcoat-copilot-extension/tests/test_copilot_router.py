@@ -124,3 +124,36 @@ async def test_missing_github_token_returns_401(app_with_mock_client):
             json={"messages": [], "copilot_thread_id": "t-1"},
         )
     assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_invalid_github_signature_returns_401(monkeypatch, test_key_pair):
+    """Verify the signature guard actually rejects invalid signatures."""
+    _, pub_pem = test_key_pair
+    monkeypatch.setenv("SKIP_GITHUB_SIGNATURE_VERIFICATION", "false")
+
+    mock_client = _make_mock_openai_client(["Hello"])
+    router = make_copilot_router(CONFIG, _make_client=lambda api_key: mock_client)
+    app = FastAPI()
+    app.include_router(router)
+
+    # Reset the module-level key cache so it triggers a fetch
+    import trenchcoat_copilot_extension.copilot_router as cr_module
+    cr_module._github_keys_cache = {}
+
+    with patch(
+        "trenchcoat_copilot_extension.copilot_router.fetch_github_public_keys",
+        new_callable=AsyncMock,
+        return_value={"key-id-1": pub_pem},
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.post(
+                "/",
+                json={"messages": [], "copilot_thread_id": "t-1"},
+                headers={
+                    "X-GitHub-Token": "gh-token-xxx",
+                    "X-GitHub-Public-Key-Identifier": "key-id-1",
+                    "X-GitHub-Public-Key-Signature": "badsignature==",
+                },
+            )
+    assert response.status_code == 401

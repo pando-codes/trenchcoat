@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import os
 from collections.abc import AsyncGenerator
@@ -19,6 +20,7 @@ _DEFAULT_MODEL = "gpt-4o"
 
 # Module-level key cache; refreshed lazily per process startup.
 _github_keys_cache: dict[str, str] = {}
+_github_keys_lock: asyncio.Lock = asyncio.Lock()
 
 
 def _default_make_client(api_key: str) -> AsyncOpenAI:
@@ -46,8 +48,9 @@ def make_copilot_router(
 
         if os.getenv("SKIP_GITHUB_SIGNATURE_VERIFICATION", "false").lower() != "true":
             global _github_keys_cache
-            if not _github_keys_cache:
-                _github_keys_cache = await fetch_github_public_keys()
+            async with _github_keys_lock:
+                if not _github_keys_cache:
+                    _github_keys_cache = await fetch_github_public_keys()
             if not verify_github_signature(
                 raw_body,
                 x_github_public_key_identifier or "",
