@@ -1,6 +1,8 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { getAdminClient } from "@/lib/supabase/admin";
+import type { TeamShareSnapshot, TeamMemberStat, TeamTrendPoint } from "@/types/teams";
 
 export type ActionResult<T> =
   | { success: true; data: T }
@@ -89,4 +91,92 @@ export async function removeMemberAction(
   }
 
   return { success: true, data: undefined };
+}
+
+export async function createTeamShareAction(
+  teamId:   string,
+  dateFrom: string,
+  dateTo:   string,
+): Promise<ActionResult<{ token: string; url: string }>> {
+  const supabase = await createClient();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) return { success: false, error: "Not authenticated" };
+
+  // Verify caller is a team member.
+  const { data: membership } = await supabase
+    .from("team_members")
+    .select("role")
+    .eq("team_id", teamId)
+    .eq("user_id", user.id)
+    .single();
+  if (!membership) return { success: false, error: "Not a team member" };
+
+  const { data: team } = await supabase
+    .from("teams")
+    .select("name, slug")
+    .eq("id", teamId)
+    .single();
+  if (!team) return { success: false, error: "Team not found" };
+
+  const { data: profile } = await supabase
+    .from("user_profiles")
+    .select("display_name")
+    .eq("user_id", user.id)
+    .single();
+
+  const admin = getAdminClient();
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const adminAny = admin as any;
+
+  const [overviewRes, membersRes, trendRes] = await Promise.all([
+    adminAny.rpc("get_team_overview_stats", {
+      p_team_id: teamId,
+      p_from:    dateFrom,
+      p_to:      dateTo,
+    }),
+    adminAny.rpc("get_team_member_stats", {
+      p_team_id: teamId,
+      p_from:    dateFrom,
+      p_to:      dateTo,
+    }),
+    adminAny.rpc("get_team_trend", {
+      p_team_id: teamId,
+      p_from:    dateFrom,
+      p_to:      dateTo,
+    }),
+  ]);
+
+  const rawStats = overviewRes.data as Record<string, number> | null;
+  const totalCost = ((membersRes.data as TeamMemberStat[] | null) ?? []).reduce(
+    (sum: number, m: TeamMemberStat) => sum + (m.total_cost_usd ?? 0), 0
+  );
+
+  const snapshot: TeamShareSnapshot = {
+    team:  { name: team.name, slug: team.slug },
+    stats: {
+      total_sessions:              rawStats?.total_sessions              ?? 0,
+      total_cost_usd:              totalCost,
+      active_members:              rawStats?.active_members              ?? 0,
+      total_members:               rawStats?.total_members               ?? 0,
+      avg_session_duration_min:    rawStats?.avg_session_duration_min    ?? 0,
+    },
+    members:     (membersRes.data as TeamMemberStat[] | null) ?? [],
+    trend:       (trendRes.data  as TeamTrendPoint[]  | null) ?? [],
+    shared_by:   profile?.display_name ?? user.email ?? "Unknown",
+    captured_at: new Date().toISOString(),
+  };
+
+  const { data: share, error: insertError } = await adminAny
+    .from("team_shares")
+    .insert({ team_id: teamId, created_by: user.id, date_from: dateFrom, date_to: dateTo, snapshot })
+    .select("token")
+    .single();
+
+  if (insertError || !share) {
+    return { success: false, error: "Failed to create share link" };
+  }
+
+  const url = `${process.env.NEXT_PUBLIC_APP_URL ?? "https://app.trenchcoat.com"}/share/${share.token}`;
+  return { success: true, data: { token: share.token as string, url } };
 }
