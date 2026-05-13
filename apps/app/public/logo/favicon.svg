@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Trenchcoat">
+  <rect width="64" height="64" rx="12" fill="#0A0A0B"></rect>
+  <g fill="none" stroke="#F5F4EE" stroke-width="3.5" stroke-linecap="square" stroke-linejoin="miter">
+    <path d="M16 16 L32 32"></path>
+    <path d="M48 16 L32 32"></path>
+    <path d="M32 32 L32 52"></path>
+  </g>
+</svg>

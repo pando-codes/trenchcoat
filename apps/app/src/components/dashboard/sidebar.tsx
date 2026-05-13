@@ -12,9 +12,11 @@ import {
   Users,
   Settings,
 } from "lucide-react";
+
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
+import { TrenchcoatLockup } from "@/components/logo";
 
 export interface SidebarProps {
   userName: string;
@@ -62,11 +64,8 @@ export function SidebarContent({
   return (
     <>
       <div className="flex h-14 items-center px-6">
-        <Link href="/" className="flex items-center gap-2" onClick={onNavigate}>
-          <Terminal className="size-5 text-sidebar-primary" />
-          <span className="text-lg font-semibold tracking-tight">
-            Claude Telemetry
-          </span>
+        <Link href="/" onClick={onNavigate}>
+          <TrenchcoatLockup />
         </Link>
       </div>
 

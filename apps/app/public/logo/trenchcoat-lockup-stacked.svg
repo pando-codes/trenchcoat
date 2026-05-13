@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 110" fill="none" role="img" aria-label="Trenchcoat">
+  <g stroke="currentColor" stroke-width="3.5" stroke-linecap="square" stroke-linejoin="miter" transform="translate(52, 0) scale(0.875)">
+    <path d="M12 12 L32 30"></path>
+    <path d="M52 12 L32 30"></path>
+    <path d="M32 30 L32 54"></path>
+  </g>
+  <text x="80" y="98" font-family="Geist, system-ui, -apple-system, &#39;Segoe UI&#39;, Roboto, sans-serif" font-size="28" font-weight="600" letter-spacing="-1.12" fill="currentColor" text-anchor="middle">trenchcoat</text>
+</svg>

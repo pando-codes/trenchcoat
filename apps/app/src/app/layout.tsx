@@ -13,8 +13,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Claude Telemetry",
-  description: "Team analytics for Claude Code usage",
+  title: "Trenchcoat",
+  description: "Observability for AI agents",
+  icons: {
+    icon: "/logo/favicon.svg",
+  },
 };
 
 export default function RootLayout({

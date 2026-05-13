@@ -13,8 +13,8 @@ import {
   CardDescription,
   CardFooter,
   CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
+import { TrenchcoatStackedLockup } from "@/components/logo";
 
 export default function LoginPage() {
   return (
@@ -71,9 +71,10 @@ function LoginForm() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <Card className="w-full max-w-sm">
+      <div className="flex w-full max-w-sm flex-col gap-8">
+        <TrenchcoatStackedLockup className="self-center" />
+        <Card className="w-full">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Claude Telemetry</CardTitle>
           <CardDescription>Sign in to your account</CardDescription>
         </CardHeader>
         <CardContent>
@@ -150,7 +151,8 @@ function LoginForm() {
             </Link>
           </p>
         </CardFooter>
-      </Card>
+        </Card>
+      </div>
     </div>
   );
 }

@@ -15,6 +15,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { TrenchcoatStackedLockup } from "@/components/logo";
 
 export default function SignupPage() {
   return (
@@ -106,9 +107,10 @@ function SignupForm() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <Card className="w-full max-w-sm">
+      <div className="flex w-full max-w-sm flex-col gap-8">
+        <TrenchcoatStackedLockup className="self-center" />
+        <Card className="w-full">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Claude Telemetry</CardTitle>
           <CardDescription>Create a new account</CardDescription>
         </CardHeader>
         <CardContent>
@@ -198,7 +200,8 @@ function SignupForm() {
             </Link>
           </p>
         </CardFooter>
-      </Card>
+        </Card>
+      </div>
     </div>
   );
 }

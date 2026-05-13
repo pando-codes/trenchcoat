@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 64" fill="none" role="img" aria-label="Trenchcoat — Observability for AI agents">
+  <g stroke="#F5F4EE" stroke-width="3.5" stroke-linecap="square" stroke-linejoin="miter" transform="translate(2, 2) scale(0.5625)">
+    <path d="M12 12 L32 30"></path>
+    <path d="M52 12 L32 30"></path>
+    <path d="M32 30 L32 54"></path>
+  </g>
+  <text x="50" y="30" font-family="Geist, system-ui, -apple-system, &#39;Segoe UI&#39;, Roboto, sans-serif" font-size="32" font-weight="600" letter-spacing="-1.28" fill="#F5F4EE">trenchcoat</text>
+  <line x1="50" y1="44" x2="68" y2="44" stroke="#F5F4EE" stroke-width="1.5" opacity="0.4"></line>
+  <text x="74" y="48" font-family="Geist, system-ui, -apple-system, &#39;Segoe UI&#39;, Roboto, sans-serif" font-size="10" font-weight="500" letter-spacing="1.2" fill="#F5F4EE" opacity="0.62">OBSERVABILITY FOR AI AGENTS</text>
+</svg>
