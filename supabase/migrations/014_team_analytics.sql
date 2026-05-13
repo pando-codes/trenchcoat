@@ -42,7 +42,7 @@ as $$
   member_top_tools as (
     select
       tm.user_id,
-      (e.data->>'tool_name')                                             as tool_name,
+      e.tool_name,
       row_number() over (
         partition by tm.user_id
         order by count(*) desc
@@ -56,7 +56,7 @@ as $$
       on  e.session_id  = s.session_id
       and e.event_type  = 'tool_use'
     where tm.team_id = p_team_id
-    group by tm.user_id, e.data->>'tool_name'
+    group by tm.user_id, e.tool_name
   )
   select
     ms.user_id,
