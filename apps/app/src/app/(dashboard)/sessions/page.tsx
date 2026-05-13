@@ -62,9 +62,7 @@ export default async function SessionsPage({ searchParams }: SessionsPageProps) 
   const targetUserId = params.user_id;
   let viewUserId = user.id;
   if (targetUserId && targetUserId !== user.id) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const supabaseAny = supabase as any;
-    const { data: shared } = await supabaseAny.rpc("check_shared_team", {
+    const { data: shared } = await supabase.rpc("check_shared_team", {
       p_user_a: user.id,
       p_user_b: targetUserId,
     });

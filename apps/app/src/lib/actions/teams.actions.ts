@@ -121,26 +121,23 @@ export async function createTeamShareAction(
   const { data: profile } = await supabase
     .from("user_profiles")
     .select("display_name")
-    .eq("user_id", user.id)
+    .eq("id", user.id)
     .single();
 
   const admin = getAdminClient();
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const adminAny = admin as any;
-
   const [overviewRes, membersRes, trendRes] = await Promise.all([
-    adminAny.rpc("get_team_overview_stats", {
+    admin.rpc("get_team_overview_stats", {
       p_team_id: teamId,
       p_from:    dateFrom,
       p_to:      dateTo,
     }),
-    adminAny.rpc("get_team_member_stats", {
+    admin.rpc("get_team_member_stats", {
       p_team_id: teamId,
       p_from:    dateFrom,
       p_to:      dateTo,
     }),
-    adminAny.rpc("get_team_trend", {
+    admin.rpc("get_team_trend", {
       p_team_id: teamId,
       p_from:    dateFrom,
       p_to:      dateTo,
@@ -171,7 +168,7 @@ export async function createTeamShareAction(
     captured_at: new Date().toISOString(),
   };
 
-  const { data: share, error: insertError } = await adminAny
+  const { data: share, error: insertError } = await admin
     .from("team_shares")
     .insert({ team_id: teamId, created_by: user.id, date_from: dateFrom, date_to: dateTo, snapshot })
     .select("token")

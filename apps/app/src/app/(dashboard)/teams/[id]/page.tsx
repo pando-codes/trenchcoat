@@ -46,21 +46,19 @@ export default async function TeamDetailPage({
     .order("joined_at", { ascending: true });
 
   const admin = getAdminClient();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const adminAny = admin as any;
 
   const [overviewRes, memberStatsRes, trendRes] = await Promise.all([
-    adminAny.rpc("get_team_overview_stats", {
+    admin.rpc("get_team_overview_stats", {
       p_team_id: id,
       p_from:    p_from,
       p_to:      p_to,
     }),
-    adminAny.rpc("get_team_member_stats", {
+    admin.rpc("get_team_member_stats", {
       p_team_id: id,
       p_from:    p_from,
       p_to:      p_to,
     }),
-    adminAny.rpc("get_team_trend", {
+    admin.rpc("get_team_trend", {
       p_team_id: id,
       p_from:    p_from,
       p_to:      p_to,
