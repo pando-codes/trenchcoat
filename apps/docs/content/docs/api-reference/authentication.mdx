@@ -7,7 +7,7 @@ description: How to authenticate with the Trenchcoat API using API keys and unde
 
 API keys are managed from your Trenchcoat dashboard. To create one:
 
-1. Sign in at [app.trenchcoat.com](https://app.trenchcoat.com)
+1. Sign in at [app.trenchcoat.io](https://app.trenchcoat.io)
 2. Navigate to **Settings → API Keys**
 3. Click **Create API Key**, give it a name, and select the scopes it needs
 4. Copy the key immediately — it is shown only once
@@ -27,7 +27,7 @@ Store keys in environment variables, never in source code or version control.
 Include your API key in the `X-API-Key` header on every request:
 
 ```bash
-curl https://app.trenchcoat.com/api/v1/sessions \
+curl https://app.trenchcoat.io/api/v1/sessions \
   -H "X-API-Key: ct_live_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6"
 ```
 

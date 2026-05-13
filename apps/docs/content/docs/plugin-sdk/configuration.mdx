@@ -16,7 +16,7 @@ The Trenchcoat plugin stores its configuration in a JSON file on your local mach
 ```json
 {
   "api_key": "ct_live_...",
-  "api_url": "https://app.trenchcoat.com/api/v1",
+  "api_url": "https://app.trenchcoat.io/api/v1",
   "batch_size": 50,
   "flush_interval_seconds": 30,
   "debug": false
@@ -28,7 +28,7 @@ The Trenchcoat plugin stores its configuration in a JSON file on your local mach
 | Field | Type | Default | Description |
 |---|---|---|---|
 | `api_key` | string | — | Your Trenchcoat API key. Required. Set via `/trenchcoat-connect` or `TRENCHCOAT_API_KEY`. |
-| `api_url` | string | `https://app.trenchcoat.com/api/v1` | Base URL for the Trenchcoat API. Override if you are self-hosting or using a staging environment. |
+| `api_url` | string | `https://app.trenchcoat.io/api/v1` | Base URL for the Trenchcoat API. Override if you are self-hosting or using a staging environment. |
 | `batch_size` | integer | `50` | Maximum number of events to include in a single POST request. Must be between 1 and 1000. |
 | `flush_interval_seconds` | integer | `30` | How often the plugin flushes its local event queue, in seconds. Lower values mean more frequent (smaller) requests. |
 | `debug` | boolean | `false` | When `true`, the plugin writes verbose logs to `~/.claude/plugins/trenchcoat/debug.log`, including each event payload and HTTP response. Useful for troubleshooting. |

@@ -14,12 +14,12 @@ export default function Layout({ children }: { children: ReactNode }) {
             Trenchcoat
           </span>
         ),
-        url: "https://trenchcoat.com",
+        url: "https://trenchcoat.io",
       }}
       links={[
         {
           text: "Dashboard",
-          url: "https://app.trenchcoat.com",
+          url: "https://app.trenchcoat.io",
           external: true,
         },
       ]}

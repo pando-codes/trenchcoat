@@ -8,12 +8,12 @@ This guide takes you from zero to seeing live session data in the Trenchcoat das
 ## Prerequisites
 
 - Claude Code installed and working (`claude --version`)
-- A Trenchcoat account — [sign up free](https://app.trenchcoat.com/signup)
+- A Trenchcoat account — [sign up free](https://app.trenchcoat.io/signup)
 - Python 3.9+ (check with `python3 --version`)
 
 ## Step 1: Create an API key
 
-1. Go to [app.trenchcoat.com](https://app.trenchcoat.com) and sign in
+1. Go to [app.trenchcoat.io](https://app.trenchcoat.io) and sign in
 2. Open **Settings → API Keys**
 3. Click **New API Key**, name it (e.g., "My MacBook"), and select the `write:events` scope
 4. Copy the key — it looks like `ct_live_...` and is shown only once
@@ -44,7 +44,7 @@ Paste your API key when prompted. The command writes it to `~/.claude/telemetry/
 
 ```json
 {
-  "api_url": "https://app.trenchcoat.com",
+  "api_url": "https://app.trenchcoat.io",
   "api_key": "ct_live_your_key_here"
 }
 ```
@@ -64,7 +64,7 @@ The `SessionStart` hook fires automatically. At the end of the session, the plug
 
 ## Step 5: View your session
 
-Go to [app.trenchcoat.com](https://app.trenchcoat.com) and open the **Sessions** page. Your session should appear within a few seconds of it ending.
+Go to [app.trenchcoat.io](https://app.trenchcoat.io) and open the **Sessions** page. Your session should appear within a few seconds of it ending.
 
 ## Troubleshooting
 
