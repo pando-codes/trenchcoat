@@ -11,7 +11,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { createTeamShareAction } from "@/lib/actions/teams.actions";
-import { formatCost } from "@/lib/cost";
 import type { TeamMemberStat } from "@/types/teams";
 
 interface TeamExportDropdownProps {
