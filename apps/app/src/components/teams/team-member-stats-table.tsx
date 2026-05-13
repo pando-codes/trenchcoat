@@ -15,10 +15,12 @@ interface TeamMemberStatsTableProps {
   members: TeamMemberStat[];
 }
 
+const COLUMN_COUNT = 5;
+
 export function TeamMemberStatsTable({ members }: TeamMemberStatsTableProps) {
   const [sortKey, setSortKey] = useState<SortKey>("sessions");
 
-  const sorted = [...members].sort((a, b) => b[sortKey] - a[sortKey]);
+  const sorted = [...members].sort((a, b) => (b[sortKey] ?? 0) - (a[sortKey] ?? 0));
 
   function formatLastActive(date: string | null): string {
     if (!date) return "--";
@@ -59,7 +61,7 @@ export function TeamMemberStatsTable({ members }: TeamMemberStatsTableProps) {
       <TableBody>
         {sorted.length === 0 ? (
           <TableRow>
-            <TableCell colSpan={5} className="text-center text-muted-foreground">
+            <TableCell colSpan={COLUMN_COUNT} className="text-center text-muted-foreground">
               No members found.
             </TableCell>
           </TableRow>

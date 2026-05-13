@@ -147,6 +147,10 @@ export async function createTeamShareAction(
     }),
   ]);
 
+  if (overviewRes.error || membersRes.error || trendRes.error) {
+    return { success: false, error: "Failed to fetch analytics data" };
+  }
+
   const rawStats = overviewRes.data as Record<string, number> | null;
   const totalCost = ((membersRes.data as TeamMemberStat[] | null) ?? []).reduce(
     (sum: number, m: TeamMemberStat) => sum + (m.total_cost_usd ?? 0), 0
