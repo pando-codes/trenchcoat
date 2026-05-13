@@ -1,0 +1,103 @@
+---
+title: API Keys
+description: Create, manage, and revoke API keys that authenticate your plugins and direct API calls to Trenchcoat.
+---
+
+## Where to find API keys
+
+Go to **Settings** in the left sidebar, then select the **API Keys** tab. This page lists all keys associated with your account (or team, if you are in a team workspace).
+
+---
+
+## Creating a key
+
+1. Click **New API Key**.
+2. Enter a descriptive name (e.g., `laptop-dev`, `ci-pipeline`, `production`).
+3. Select the scopes this key needs:
+   - **`write:events`** — allows the key to ingest events via `POST /api/v1/events`. Required for plugins.
+   - **`read:analytics`** — allows the key to read sessions and analytics data via the API. Needed if you are building your own integrations on top of the Trenchcoat API.
+   - You can select both scopes on the same key.
+4. Click **Create**.
+
+The key is displayed **once** immediately after creation. Copy it now — it cannot be retrieved again. Trenchcoat only stores a hashed version of the key.
+
+---
+
+## Key format
+
+All Trenchcoat API keys start with the prefix `ct_live_` followed by a random string:
+
+```
+ct_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+If you see a key that does not start with `ct_live_`, it is not a valid Trenchcoat key.
+
+---
+
+## Keys table
+
+The keys table shows all active keys for your workspace.
+
+| Column | Description |
+|---|---|
+| **Name** | The label you gave the key when creating it |
+| **Created** | Date the key was created |
+| **Last Used** | Date of the most recent authenticated request with this key (updated asynchronously) |
+| **Scopes** | The permission scopes granted to this key |
+| **Rate Limit Tier** | `standard`, `premium`, or `ingestion` — determines request-per-minute limits |
+
+---
+
+## Revoking a key
+
+To revoke a key:
+
+1. Find the key in the table.
+2. Click **Revoke** in the actions column.
+3. Confirm in the dialog that appears.
+
+Revocation is immediate. Any plugin or integration using that key will start receiving `401 Unauthorized` responses. There is no way to un-revoke a key — if you revoke one by accident, create a new key and update your plugin configuration.
+
+---
+
+## Using a key in the Trenchcoat plugin
+
+After installing the Trenchcoat plugin in Claude Code, run the connect command:
+
+```
+/trenchcoat-connect
+```
+
+When prompted, paste your API key. The plugin stores it locally and uses it to authenticate all event submissions. You can verify the connection by running:
+
+```
+/trenchcoat-status
+```
+
+---
+
+## Using a key in direct API requests
+
+Pass the key in the `X-API-Key` header on every request:
+
+```bash
+curl -X POST https://app.trenchcoat.com/api/v1/events \
+  -H "X-API-Key: ct_live_your_key_here" \
+  -H "Content-Type: application/json" \
+  -d '{"events": [...]}'
+```
+
+The header name is case-insensitive, but `X-API-Key` is the conventional casing.
+
+---
+
+## Security best practices
+
+**One key per environment.** Use a separate key for your laptop, CI pipeline, and any production systems. This way, revoking a compromised key does not affect other environments.
+
+**Rotate keys quarterly.** Create a replacement key, update your plugin or integration to use the new key, then revoke the old one. The "Last Used" column helps confirm the old key is no longer in use before you revoke it.
+
+**Never commit keys to git.** Store keys in environment variables, a secrets manager, or a local config file that is listed in `.gitignore`. The plugin stores your key in a local config file outside your project directory by default.
+
+**Use the minimum required scopes.** If a key is only used to ingest events, give it only `write:events`. Reserve `read:analytics` for keys used by integrations that need to query data.

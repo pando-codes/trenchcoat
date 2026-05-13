@@ -1,0 +1,104 @@
+---
+title: Teams
+description: Create shared workspaces so multiple users can view the same analytics data and manage API keys together.
+---
+
+## What teams are
+
+A team is a shared workspace in Trenchcoat. When you work in a team, all members can view the same sessions, analytics, and API keys. Events sent using a team's API key are attributed to that team's workspace.
+
+Without a team, you work in your **personal workspace** — a private workspace visible only to you. The personal workspace is the default until you create or join a team.
+
+---
+
+## Viewing your teams
+
+Navigate to **Teams** in the left sidebar. You will see:
+
+- A list of teams you belong to, with your role in each
+- A button to create a new team
+
+---
+
+## Creating a team
+
+1. Click **New Team**.
+2. Enter a team name (e.g., your company name, project name, or department).
+3. Click **Create**.
+
+The team is created immediately and you are set as its **Owner**. The dashboard switches to the new team's workspace. You can switch between your personal workspace and any team workspace using the workspace selector at the top of the sidebar.
+
+---
+
+## Inviting members
+
+1. Go to **Teams** and select the team you want to manage.
+2. Click the **Members** tab.
+3. Click **Invite**.
+4. Enter the email address of the person you want to invite.
+5. Select their role (see role descriptions below).
+6. Click **Send Invite**.
+
+The invitee receives an email with a link to accept the invitation. If they do not have a Trenchcoat account yet, the link takes them through signup first.
+
+---
+
+## Member roles
+
+| Role | Permissions |
+|---|---|
+| **Owner** | Full control: delete the team, manage members (invite, change roles, remove), create and revoke API keys, view all analytics |
+| **Admin** | Manage members, create and revoke API keys, view all analytics — everything except deleting the team |
+| **Member** | Read-only access to analytics (Overview, Sessions, Tools & Usage, Activity). Cannot manage members or API keys. |
+
+A team must always have at least one Owner. You cannot remove the last Owner or change their role to Admin or Member without first promoting another member to Owner.
+
+---
+
+## API keys and teams
+
+API keys are scoped to a workspace. When you create an API key inside a team workspace, that key is visible to all team members in the API Keys settings tab. Events sent using a team API key appear in the team's analytics — not your personal workspace.
+
+- **Owner and Admin:** can create, view, and revoke API keys
+- **Member:** can see that keys exist (name, created date, last used, scopes) but cannot create or revoke them
+
+This means you can safely add a contractor as a Member to give them analytics visibility without granting them the ability to generate new API credentials.
+
+---
+
+## Leaving a team
+
+To leave a team you are a member of:
+
+1. Go to **Teams** and select the team.
+2. Click the **Members** tab.
+3. Find your own row and click **Leave Team**.
+4. Confirm in the dialog.
+
+If you are the sole Owner of a team, you must first promote another member to Owner before you can leave.
+
+---
+
+## Deleting a team
+
+Only the team Owner can delete a team.
+
+1. Go to **Teams** and select the team.
+2. Click the **Settings** tab within the team view.
+3. Scroll to the **Danger Zone** section.
+4. Click **Delete Team** and confirm by typing the team name.
+
+Deleting a team is permanent. All API keys belonging to the team are immediately revoked, and all analytics data associated with the team is scheduled for deletion. This action cannot be undone.
+
+---
+
+## Personal workspace vs. team workspace
+
+| | Personal workspace | Team workspace |
+|---|---|---|
+| **Visible to** | Only you | All team members |
+| **API keys** | Managed by you alone | Managed by Owner/Admin |
+| **Analytics** | Your events only | All events from team keys |
+| **Cost** | Included in your plan | Shared across the team |
+
+If you want to collaborate with others on the same data, create a team and move your API key usage there. Events sent to a personal workspace cannot be retroactively transferred to a team.

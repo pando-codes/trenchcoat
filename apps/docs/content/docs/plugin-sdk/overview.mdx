@@ -1,0 +1,65 @@
+---
+title: Plugin SDK Overview
+description: Learn how the Trenchcoat plugin collects telemetry from Claude Code sessions and sends it to the Trenchcoat API.
+---
+
+The Trenchcoat plugin runs inside Claude Code and captures telemetry as you work. It attaches to Claude Code's hook system, intercepts lifecycle events, and sends structured event batches to your Trenchcoat workspace — giving you full visibility into how your agents use tools, spawn subagents, and consume tokens.
+
+## How it works
+
+The plugin operates entirely on your local machine. No data is captured or transmitted until you connect it to your Trenchcoat API key.
+
+```
+Claude Code session
+      │
+      ▼
+ Hook fires (PreToolUse, PostToolUse, Stop, Notification)
+      │
+      ▼
+ Plugin hook script runs (~/.claude/plugins/trenchcoat/hooks/)
+      │
+      ▼
+ Event queued in local buffer
+      │
+      ▼
+ Batch flushed (every 30s, or when buffer hits 50 events)
+      │
+      ▼
+ POST /api/v1/events  →  Trenchcoat API  →  Supabase
+```
+
+The plugin never blocks Claude Code's execution. Hook scripts are fire-and-forget; failures are logged locally and retried on the next flush cycle.
+
+## What data is collected
+
+| Category | Events |
+|---|---|
+| Session lifecycle | `session_start`, `session_end` |
+| Tool invocations | `tool_use`, `tool_result` |
+| Subagent activity | `subagent_stop` |
+| Assistant output | `assistant_stop` |
+
+Each event carries a `session_id` (a UUID stable for the lifetime of a Claude Code session), a UTC timestamp, and an event-specific `data` payload. See [Event Schema](/docs/plugin-sdk/event-schema) for the full field reference.
+
+## What you can do with this data
+
+Once events are flowing into Trenchcoat, your dashboard shows:
+
+- **Sessions** — a timeline of every Claude Code session, with duration and cost
+- **Tool usage** — which tools fire most often, and which ones error
+- **Token attribution** — tokens broken down by component type (tools, subagents, assistant turns)
+- **Cost** — per-session and aggregate spend derived from model pricing
+
+## Supported platforms
+
+| Platform | Status |
+|---|---|
+| Claude Code | Supported |
+| Other MCP clients | Planned |
+| Custom agents (API) | Planned |
+
+Multi-platform support is on the roadmap. If you are building a custom agent and want to send events directly, the [API Reference](/docs/api-reference) documents the ingestion endpoint — the plugin is just a convenience wrapper around it.
+
+## Next steps
+
+Follow the [Installation guide](/docs/plugin-sdk/installation) to get the plugin running in under five minutes.

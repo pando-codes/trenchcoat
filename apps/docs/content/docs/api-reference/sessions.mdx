@@ -1,0 +1,90 @@
+---
+title: Sessions
+description: List and filter Claude Code sessions tracked by Trenchcoat.
+---
+
+## GET /api/v1/sessions
+
+Returns a paginated list of sessions recorded for your account.
+
+**Required scope:** `read:analytics`
+
+---
+
+## Request
+
+```bash
+curl "https://app.trenchcoat.com/api/v1/sessions?start_date=2024-01-01&end_date=2024-01-31&limit=50" \
+  -H "X-API-Key: ct_live_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6"
+```
+
+### Query Parameters
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `limit` | integer | `50` | Number of sessions to return. Maximum `200`. |
+| `offset` | integer | `0` | Number of sessions to skip, for pagination. |
+| `start_date` | string (ISO 8601) | — | Filter sessions that started on or after this date/time. |
+| `end_date` | string (ISO 8601) | — | Filter sessions that started on or before this date/time. |
+
+Date parameters accept both date-only (`2024-01-15`) and datetime (`2024-01-15T10:00:00Z`) values. When a date-only value is given, time is assumed to be `00:00:00Z`.
+
+---
+
+## Response
+
+### Success — 200
+
+```json
+{
+  "data": {
+    "sessions": [
+      {
+        "id": "550e8400-e29b-41d4-a716-446655440000",
+        "started_at": "2024-01-15T10:30:00Z",
+        "ended_at": "2024-01-15T11:45:23Z",
+        "duration_ms": 4523000,
+        "event_count": 87,
+        "tool_invocations": 34
+      },
+      {
+        "id": "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
+        "started_at": "2024-01-15T14:02:11Z",
+        "ended_at": "2024-01-15T14:38:55Z",
+        "duration_ms": 2204000,
+        "event_count": 41,
+        "tool_invocations": 18
+      }
+    ],
+    "total": 312,
+    "limit": 50,
+    "offset": 0
+  }
+}
+```
+
+### Session Fields
+
+| Field | Type | Description |
+|---|---|---|
+| `id` | string (UUID) | Unique session identifier, sourced from Claude Code's session ID |
+| `started_at` | string (ISO 8601) | Timestamp of the first `session_start` event received |
+| `ended_at` | string (ISO 8601) | Timestamp of the `session_end` event, or `null` if the session is still open |
+| `duration_ms` | integer | Elapsed milliseconds from `started_at` to `ended_at`, or `null` if the session is open |
+| `event_count` | integer | Total number of events recorded in this session |
+| `tool_invocations` | integer | Count of `tool_use` events within this session |
+
+### Pagination Fields
+
+| Field | Description |
+|---|---|
+| `total` | Total number of sessions matching the current filters |
+| `limit` | The `limit` value applied to this request |
+| `offset` | The `offset` value applied to this request |
+
+To retrieve the next page, increment `offset` by `limit`:
+
+```bash
+curl "https://app.trenchcoat.com/api/v1/sessions?limit=50&offset=50" \
+  -H "X-API-Key: ct_live_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6"
+```

@@ -1,0 +1,85 @@
+---
+title: Tools & Usage
+description: Aggregated tool invocation data — which tools your agents use most, how fast they run, and where they fail.
+---
+
+## What the Tools page shows
+
+Navigate to **Tools & Usage** in the sidebar to see aggregated data about every tool call captured by the Trenchcoat plugin. This page answers questions like:
+
+- Which tools does my agent call most often?
+- Are any tools failing at an unusual rate?
+- Is a particular tool getting slower over time?
+
+---
+
+## What counts as a "tool"?
+
+Trenchcoat tracks any tool that appears in a `tool_use` event. In Claude Code this includes:
+
+**Built-in Claude Code tools:**
+
+- `Read` — read file contents
+- `Write` — write or create a file
+- `Edit` — make targeted edits to a file
+- `Bash` — run a shell command
+- `Glob` — find files by pattern
+- `Grep` — search file contents
+- `WebFetch` — fetch a URL
+- `WebSearch` — run a web search
+
+**MCP tools:** Any tool exposed by a connected MCP server appears here by its fully qualified name (e.g., `mcp__supabase__query`).
+
+**Subagent tools:** Tool calls made by spawned subagents are also captured if the plugin is active in the subagent process.
+
+---
+
+## Top tools table
+
+The main table on the Tools page lists every tool that was invoked at least once during the selected date range, ranked by total invocations descending.
+
+| Column | Description |
+|---|---|
+| **Tool Name** | The name of the tool as reported by Claude Code |
+| **Total Invocations** | Count of `tool_use` events for this tool in the selected period |
+| **Avg Duration (ms)** | Mean time between the `tool_use` event and the corresponding `tool_result` event |
+| **Error Rate (%)** | Percentage of invocations that produced an error result |
+
+### How error rate is calculated
+
+Error rate is computed as:
+
+```
+error_rate = tool_result events where is_error = true
+             ─────────────────────────────────────────
+             total tool_use events for that tool
+```
+
+A `tool_result` is marked as an error when Claude Code sets `is_error: true` on the result — this happens for things like file-not-found, permission denied, non-zero Bash exit codes, and network failures in WebFetch.
+
+---
+
+## Usage over time chart
+
+Below the table, a line chart shows daily invocation counts for the **top 5 tools** (by total volume) over the selected date range. Each tool gets its own colored line. Hover over any point to see exact counts for that day.
+
+This chart is useful for spotting correlated spikes — if `Bash` and `Write` both spike on the same day, that likely maps to a big coding session.
+
+---
+
+## Filtering
+
+- **Date range** — select the time window using the date range picker (top right). The table and chart both update immediately.
+- **Minimum invocations** — enter a threshold to hide low-volume tools. This reduces noise when you have many rarely-used MCP tools and want to focus on the ones that matter.
+
+---
+
+## Clicking a tool row
+
+Click any row in the top tools table to see a detail view for that tool. The detail view shows:
+
+- Invocations per day (chart)
+- Error rate over time (chart)
+- A sample of recent `tool_use` + `tool_result` event pairs, with expandable payloads
+
+This is useful for debugging a specific tool — you can inspect the exact inputs that led to an error.

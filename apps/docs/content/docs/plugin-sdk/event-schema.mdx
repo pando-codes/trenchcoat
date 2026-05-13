@@ -1,0 +1,170 @@
+---
+title: Event Schema
+description: Reference for the event types the Trenchcoat plugin sends and the data fields each event carries.
+---
+
+Every event the plugin sends shares a common base structure. Event-specific fields live in the `data` object, which varies by `event_type`. This page documents the full schema for all known event types.
+
+## Base event structure
+
+All events conform to this envelope:
+
+```json
+{
+  "event_type": "tool_use",
+  "session_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "timestamp": "2026-05-12T14:23:01.456Z",
+  "data": { }
+}
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `event_type` | string | Identifies the type of event. See the table below for all valid values. |
+| `session_id` | string (UUID v4) | Stable identifier for the current Claude Code session. All events within a session share the same `session_id`. |
+| `timestamp` | string (ISO 8601 UTC) | When the event occurred, in UTC with millisecond precision. |
+| `data` | object | Event-specific payload. Schema varies by `event_type`. |
+
+The plugin sends events in batches via `POST /api/v1/events`. Each request body is an array of event objects: `{ "events": [ ... ] }`.
+
+## Event types
+
+### `session_start`
+
+Fires when a new Claude Code session begins. Always the first event in a session.
+
+```json
+{
+  "event_type": "session_start",
+  "session_id": "a1b2c3d4-...",
+  "timestamp": "2026-05-12T14:23:00.000Z",
+  "data": {
+    "model": "claude-sonnet-4-6",
+    "cwd": "/Users/alice/projects/my-app",
+    "git_branch": "feature/dashboard"
+  }
+}
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `model` | string | The Claude model active at session start. |
+| `cwd` | string | Working directory where Claude Code was launched. |
+| `git_branch` | string \| null | Current git branch, if the working directory is a git repository. |
+
+### `session_end`
+
+Fires when the Claude Code session terminates. Always the last event in a session.
+
+```json
+{
+  "event_type": "session_end",
+  "session_id": "a1b2c3d4-...",
+  "timestamp": "2026-05-12T15:47:22.100Z",
+  "data": {
+    "duration_ms": 5062100,
+    "total_tokens": 84320,
+    "cost_usd": 0.253
+  }
+}
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `duration_ms` | integer | Total session duration in milliseconds. |
+| `total_tokens` | integer | Cumulative tokens used across all turns in the session. |
+| `cost_usd` | number | Estimated session cost in USD, derived from model pricing. |
+
+### `tool_use`
+
+Fires immediately before a tool executes (via the `PreToolUse` hook).
+
+```json
+{
+  "event_type": "tool_use",
+  "session_id": "a1b2c3d4-...",
+  "timestamp": "2026-05-12T14:25:10.220Z",
+  "data": {
+    "tool_name": "Bash",
+    "tool_input_preview": "ls -la /Users/alice/projects"
+  }
+}
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `tool_name` | string | The name of the tool being invoked (e.g., `Bash`, `Edit`, `Read`). |
+| `tool_input_preview` | string | A truncated preview of the tool input. Long inputs are trimmed to 500 characters. |
+
+### `tool_result`
+
+Fires after a tool completes (via the `PostToolUse` hook).
+
+```json
+{
+  "event_type": "tool_result",
+  "session_id": "a1b2c3d4-...",
+  "timestamp": "2026-05-12T14:25:10.854Z",
+  "data": {
+    "tool_name": "Bash",
+    "is_error": false,
+    "duration_ms": 634
+  }
+}
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `tool_name` | string | The name of the tool that completed. |
+| `is_error` | boolean | Whether the tool returned an error result. |
+| `duration_ms` | integer | Wall-clock time from tool invocation to result, in milliseconds. |
+
+### `subagent_stop`
+
+Fires when a subagent spawned by the main Claude session completes.
+
+```json
+{
+  "event_type": "subagent_stop",
+  "session_id": "a1b2c3d4-...",
+  "timestamp": "2026-05-12T14:31:45.010Z",
+  "data": {
+    "subagent_id": "f9e8d7c6-b5a4-3210-fedc-ba9876543210",
+    "model": "claude-haiku-4-5",
+    "tokens_used": 12480
+  }
+}
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `subagent_id` | string (UUID) | Unique identifier for this subagent invocation. |
+| `model` | string | The model the subagent ran on (may differ from the parent session model). |
+| `tokens_used` | integer | Tokens consumed by this subagent across its lifetime. |
+
+### `assistant_stop`
+
+Fires each time the assistant finishes generating a response (via the `Stop` hook).
+
+```json
+{
+  "event_type": "assistant_stop",
+  "session_id": "a1b2c3d4-...",
+  "timestamp": "2026-05-12T14:25:11.001Z",
+  "data": {
+    "stop_reason": "end_turn",
+    "tokens_used": 2340,
+    "model": "claude-sonnet-4-6"
+  }
+}
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `stop_reason` | string | Why the assistant stopped. Common values: `end_turn`, `max_tokens`, `stop_sequence`. |
+| `tokens_used` | integer | Tokens used in this assistant turn (input + output combined). |
+| `model` | string | The model that generated this response. |
+
+## Schema stability
+
+The `data` field is stored as `jsonb` in Supabase and is not strictly validated at ingest time. This allows the schema to evolve without breaking older clients. Fields documented here are stable; additional fields may be added in future plugin versions without a major version bump. Removed or renamed fields will be announced in the changelog.

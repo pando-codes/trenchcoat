@@ -1,0 +1,106 @@
+---
+title: Authentication
+description: How to authenticate with the Trenchcoat API using API keys and understand rate limits.
+---
+
+## Getting an API Key
+
+API keys are managed from your Trenchcoat dashboard. To create one:
+
+1. Sign in at [app.trenchcoat.com](https://app.trenchcoat.com)
+2. Navigate to **Settings → API Keys**
+3. Click **Create API Key**, give it a name, and select the scopes it needs
+4. Copy the key immediately — it is shown only once
+
+Keys follow the format `ct_live_` followed by a random string, for example:
+
+```
+ct_live_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6
+```
+
+Store keys in environment variables, never in source code or version control.
+
+---
+
+## Authenticating Requests
+
+Include your API key in the `X-API-Key` header on every request:
+
+```bash
+curl https://app.trenchcoat.com/api/v1/sessions \
+  -H "X-API-Key: ct_live_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6"
+```
+
+There is no other authentication mechanism. The header is required on all endpoints.
+
+---
+
+## Scopes
+
+Each API key is issued with one or more scopes that control what it can do. Select only the scopes a key actually needs.
+
+| Scope | What it grants |
+|---|---|
+| `write:events` | Ingest telemetry events via `POST /api/v1/events` |
+| `read:analytics` | Read session lists and analytics data |
+
+A key without `write:events` cannot post events. A key without `read:analytics` cannot read sessions or analytics. You can create separate keys for ingestion and for querying.
+
+---
+
+## Rate Limits
+
+Limits are applied per API key. Exceeding a limit returns a `429` response.
+
+| Tier | Requests / minute | Events / minute |
+|---|---|---|
+| Ingestion | 1,000 | 100,000 |
+| Premium | 300 | — |
+| Standard | 60 | — |
+
+Plugin keys used for event ingestion are placed on the **Ingestion** tier automatically. Dashboard and analytics keys use the **Standard** or **Premium** tier depending on your plan.
+
+---
+
+## Error Responses
+
+### 401 — Invalid or Missing Key
+
+Returned when the `X-API-Key` header is absent or the key does not exist.
+
+```json
+{
+  "error": {
+    "code": "UNAUTHORIZED",
+    "message": "Missing or invalid API key."
+  }
+}
+```
+
+### 403 — Insufficient Scope
+
+Returned when the key exists but does not have the scope required by the endpoint.
+
+```json
+{
+  "error": {
+    "code": "FORBIDDEN",
+    "message": "This API key does not have the required scope: read:analytics"
+  }
+}
+```
+
+### 429 — Rate Limit Exceeded
+
+Returned when the key has sent too many requests within the current window.
+
+```json
+{
+  "error": {
+    "code": "RATE_LIMITED",
+    "message": "Rate limit exceeded. Retry after 60 seconds."
+  }
+}
+```
+
+The response includes a `Retry-After` header indicating how many seconds to wait before retrying.

@@ -1,0 +1,77 @@
+---
+title: Sessions
+description: Browse and inspect individual Claude Code sessions — from the list view to a full event timeline.
+---
+
+## What is a session?
+
+A session represents one continuous Claude Code work session — from the moment Claude Code starts until it stops or goes idle. Trenchcoat creates a session record the first time it receives a `session_start` event for a given `session_id`. Every subsequent event that carries that same `session_id` is associated with the same session.
+
+Sessions are the primary unit of attribution in Trenchcoat. Token counts, tool invocations, and cost estimates all roll up to a session.
+
+**Automatic session closure:** If a `session_end` event is never received (for example, if Claude Code crashes), Trenchcoat automatically marks a session as ended after 24 hours of inactivity.
+
+---
+
+## Sessions list view
+
+Navigate to **Sessions** in the sidebar to see a paginated table of all recorded sessions.
+
+### Columns
+
+| Column | Description |
+|---|---|
+| **Session ID** | The unique identifier assigned by Claude Code (truncated for readability; hover to see the full ID) |
+| **Started** | Timestamp of the `session_start` event, displayed in your local timezone |
+| **Duration** | Wall-clock time from `session_start` to `session_end` (or last event if no end event was received) |
+| **Events** | Total number of events received for this session |
+| **Tools Used** | Number of distinct tool types invoked during the session |
+
+Rows are sorted by start time descending so your most recent sessions appear first.
+
+---
+
+## Filtering sessions
+
+Use the filter bar above the table to narrow down the list.
+
+- **Date range** — restricts to sessions that started within the selected window. Uses the same date range picker as the Overview page.
+- **Minimum duration** — enter a number of seconds to hide short or near-instant sessions (useful for filtering out test runs).
+- **Session ID search** — paste a full or partial session ID to jump directly to a specific session.
+
+---
+
+## Session detail view
+
+Click any row to open the session detail view. This shows a chronological timeline of every event that belongs to that session.
+
+### Event timeline
+
+Events are listed oldest-first. Each row shows:
+
+- **Timestamp** — exact time the event was received by the API
+- **Event type badge** — color-coded label (e.g., `session_start`, `tool_use`, `tool_result`, `assistant_stop`)
+- **Summary** — a short human-readable description derived from the event payload (e.g., the tool name for `tool_use` events)
+
+Click the **expand** arrow on any event row to see the full raw JSON payload for that event. This is useful for debugging — you can inspect exactly what data the plugin sent.
+
+### Session summary panel
+
+A panel on the right side of the detail view shows totals for the session:
+
+- Total events
+- Total tool invocations
+- Distinct tools used
+- Duration
+- Start and end timestamps
+
+---
+
+## How sessions are matched to events
+
+Every event sent to the Trenchcoat API must include a `session_id` field. The plugin sets this to the value Claude Code provides at hook invocation time. The API uses this field to:
+
+1. Upsert the session row (creating it if it does not exist, or updating `last_seen_at` if it does)
+2. Associate the event row with the session via a foreign key
+
+If two events arrive with the same `session_id`, they are always grouped into the same session regardless of when they arrive. Late-arriving events (for example, from a retry after a network failure) are correctly attributed to the original session.

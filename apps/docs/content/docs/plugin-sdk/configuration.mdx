@@ -1,0 +1,96 @@
+---
+title: Configuration
+description: Configure the Trenchcoat plugin using the config file or environment variable overrides.
+---
+
+The Trenchcoat plugin stores its configuration in a JSON file on your local machine. Most users won't need to touch it after running `/trenchcoat-connect`, but advanced options let you tune batching behavior, point at a self-hosted endpoint, or enable debug logging.
+
+## Config file location
+
+```
+~/.claude/plugins/trenchcoat/config.json
+```
+
+## Config schema
+
+```json
+{
+  "api_key": "ct_live_...",
+  "api_url": "https://app.trenchcoat.com/api/v1",
+  "batch_size": 50,
+  "flush_interval_seconds": 30,
+  "debug": false
+}
+```
+
+## Field reference
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `api_key` | string | — | Your Trenchcoat API key. Required. Set via `/trenchcoat-connect` or `TRENCHCOAT_API_KEY`. |
+| `api_url` | string | `https://app.trenchcoat.com/api/v1` | Base URL for the Trenchcoat API. Override if you are self-hosting or using a staging environment. |
+| `batch_size` | integer | `50` | Maximum number of events to include in a single POST request. Must be between 1 and 1000. |
+| `flush_interval_seconds` | integer | `30` | How often the plugin flushes its local event queue, in seconds. Lower values mean more frequent (smaller) requests. |
+| `debug` | boolean | `false` | When `true`, the plugin writes verbose logs to `~/.claude/plugins/trenchcoat/debug.log`, including each event payload and HTTP response. Useful for troubleshooting. |
+
+Edits to `config.json` take effect the next time a hook fires — there is no need to restart Claude Code.
+
+## Environment variable overrides
+
+Environment variables take precedence over `config.json`. This is useful for CI environments or when you want to keep credentials out of the config file entirely.
+
+| Variable | Overrides |
+|---|---|
+| `TRENCHCOAT_API_KEY` | `api_key` |
+| `TRENCHCOAT_API_URL` | `api_url` |
+| `TRENCHCOAT_DEBUG` | `debug` (set to `"true"` or `"1"` to enable) |
+
+Example — using an environment variable in your shell profile:
+
+```bash
+export TRENCHCOAT_API_KEY="ct_live_xxxxxxxxxxxxxxxxxxxx"
+```
+
+## Plugin commands
+
+The plugin registers three slash commands in Claude Code:
+
+### `/trenchcoat-connect`
+
+Prompts for an API key, validates it against the Trenchcoat API, and saves it to `config.json`. Overwrites any previously saved key.
+
+```
+/trenchcoat-connect
+Enter your Trenchcoat API key: ct_live_xxxx
+Connecting...
+Connected! Workspace: Acme Corp
+```
+
+### `/trenchcoat-disconnect`
+
+Removes the API key from `config.json` and stops event collection. The plugin remains installed and its hooks remain registered, but all events are silently dropped until you reconnect.
+
+```
+/trenchcoat-disconnect
+Disconnected. Run /trenchcoat-connect to reconnect.
+```
+
+### `/trenchcoat-status`
+
+Shows the current connection state, key (masked), workspace name, queued event count, and last flush time.
+
+```
+/trenchcoat-status
+Trenchcoat Plugin Status
+  Connected:    yes
+  API key:      ct_live_xxxx...xxxx
+  Workspace:    Acme Corp
+  Buffer:       3 events queued
+  Last flush:   12s ago
+```
+
+## Tuning batch settings
+
+The default settings (`batch_size: 50`, `flush_interval_seconds: 30`) work well for most individual developers. If you want lower latency in the dashboard, reduce `flush_interval_seconds` to `5` or `10`. If you are in a bandwidth-constrained environment, increase `batch_size` and `flush_interval_seconds` to consolidate requests.
+
+The maximum `batch_size` accepted by the API is 1000 events per request.

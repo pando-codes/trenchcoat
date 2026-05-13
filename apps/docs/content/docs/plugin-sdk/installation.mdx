@@ -1,0 +1,95 @@
+---
+title: Installation
+description: Install the Trenchcoat plugin into Claude Code and connect it to your workspace in five minutes.
+---
+
+This guide walks you through installing the Trenchcoat plugin and connecting it to your Trenchcoat workspace. The whole process takes about five minutes.
+
+## Prerequisites
+
+Before you begin, make sure you have:
+
+- **Python 3.9 or later** — the plugin hook scripts are written in Python. Run `python3 --version` to check.
+- **Claude Code CLI** — the plugin hooks into Claude Code's lifecycle system. Install it from [claude.ai/code](https://claude.ai/code) if you haven't already.
+- A **Trenchcoat account** — sign up at [app.trenchcoat.com](https://app.trenchcoat.com).
+
+## Step 1: Create an API key
+
+The plugin authenticates to Trenchcoat using an API key scoped to event ingestion.
+
+1. Go to your Trenchcoat dashboard at [app.trenchcoat.com](https://app.trenchcoat.com).
+2. Navigate to **Settings → API Keys**.
+3. Click **Create API Key**.
+4. Give it a descriptive name (e.g., `my-laptop-plugin`).
+5. Copy the key — it starts with `ct_live_`. You won't be able to see it again after closing this dialog.
+
+## Step 2: Install the plugin
+
+Run this command to install the Trenchcoat plugin from GitHub:
+
+```bash
+claude plugin install https://github.com/trenchcoat-dev/claude-plugin
+```
+
+Claude Code downloads the plugin files and registers its hooks automatically. You should see confirmation output like:
+
+```
+Plugin installed: trenchcoat
+Hooks registered: PreToolUse, PostToolUse, Stop, Notification
+```
+
+## Step 3: Connect your API key
+
+In any Claude Code session, run the connect command:
+
+```
+/trenchcoat-connect
+```
+
+When prompted, paste your API key and press Enter. The plugin validates the key against the Trenchcoat API before saving it.
+
+```
+Enter your Trenchcoat API key: ct_live_xxxxxxxxxxxx
+Connecting...
+Connected! Workspace: Acme Corp
+```
+
+The key is saved to your local config file at `~/.claude/plugins/trenchcoat/config.json`. It never leaves your machine except in the `X-API-Key` header of outgoing event batches.
+
+## Step 4: Verify the connection
+
+Run the status command to confirm everything is working:
+
+```
+/trenchcoat-status
+```
+
+You should see output like:
+
+```
+Trenchcoat Plugin Status
+  Connected:    yes
+  API key:      ct_live_xxxx...xxxx
+  Workspace:    Acme Corp
+  Buffer:       0 events queued
+  Last flush:   never (no events yet)
+```
+
+If you see `Connected: no`, check that your API key is valid and that you have internet access. See the [Hook Reference](/docs/plugin-sdk/hook-reference) troubleshooting section for common errors.
+
+## What gets created on disk
+
+After installation, the plugin creates the following files:
+
+```
+~/.claude/plugins/trenchcoat/
+  config.json          # Your API key and settings
+  hooks/
+    pre_tool_use.py    # Fires before each tool call
+    post_tool_use.py   # Fires after each tool call
+    stop.py            # Fires on assistant/subagent stop
+    notification.py    # Fires on session start/end
+  queue/               # Temporary event buffer (auto-managed)
+```
+
+You can customize behavior by editing `config.json` directly. See the [Configuration guide](/docs/plugin-sdk/configuration) for all available options.

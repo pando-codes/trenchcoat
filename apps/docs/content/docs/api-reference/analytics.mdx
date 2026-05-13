@@ -1,0 +1,132 @@
+---
+title: Analytics
+description: Query aggregate usage stats and tool breakdown data for your AI agent sessions.
+---
+
+Both analytics endpoints require the `read:analytics` scope.
+
+---
+
+## GET /api/v1/analytics/overview
+
+Returns high-level usage statistics across all sessions in the requested date range.
+
+### Request
+
+```bash
+curl "https://app.trenchcoat.com/api/v1/analytics/overview?start_date=2024-01-01&end_date=2024-01-31" \
+  -H "X-API-Key: ct_live_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6"
+```
+
+### Query Parameters
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `start_date` | string (ISO 8601) | No | Start of the date range (inclusive). Defaults to 30 days ago. |
+| `end_date` | string (ISO 8601) | No | End of the date range (inclusive). Defaults to today. |
+
+### Response — 200
+
+```json
+{
+  "data": {
+    "total_sessions": 218,
+    "total_events": 14302,
+    "total_tool_invocations": 5871,
+    "active_days": 24,
+    "top_tools": [
+      { "name": "Read", "invocation_count": 2104 },
+      { "name": "Bash", "invocation_count": 1489 },
+      { "name": "Edit", "invocation_count": 1237 },
+      { "name": "Write", "invocation_count": 601 },
+      { "name": "WebSearch", "invocation_count": 440 }
+    ]
+  }
+}
+```
+
+### Response Fields
+
+| Field | Type | Description |
+|---|---|---|
+| `total_sessions` | integer | Number of distinct sessions in the date range |
+| `total_events` | integer | Total events recorded across all sessions |
+| `total_tool_invocations` | integer | Total `tool_use` events recorded |
+| `active_days` | integer | Number of calendar days with at least one session |
+| `top_tools` | array | Up to 5 most-used tools, ordered by `invocation_count` descending |
+| `top_tools[].name` | string | Tool name as reported by the Claude Code plugin |
+| `top_tools[].invocation_count` | integer | Total invocations of this tool in the date range |
+
+---
+
+## GET /api/v1/analytics/tools
+
+Returns a detailed breakdown of tool usage, ordered by invocation count.
+
+### Request
+
+```bash
+curl "https://app.trenchcoat.com/api/v1/analytics/tools?start_date=2024-01-01&end_date=2024-01-31&limit=10" \
+  -H "X-API-Key: ct_live_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6"
+```
+
+### Query Parameters
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `start_date` | string (ISO 8601) | 30 days ago | Start of the date range (inclusive) |
+| `end_date` | string (ISO 8601) | Today | End of the date range (inclusive) |
+| `limit` | integer | `10` | Number of top tools to return. Maximum `50`. |
+
+### Response — 200
+
+```json
+{
+  "data": {
+    "tools": [
+      {
+        "name": "Read",
+        "invocation_count": 2104,
+        "avg_duration_ms": 142,
+        "error_rate": 0.002
+      },
+      {
+        "name": "Bash",
+        "invocation_count": 1489,
+        "avg_duration_ms": 1830,
+        "error_rate": 0.031
+      },
+      {
+        "name": "Edit",
+        "invocation_count": 1237,
+        "avg_duration_ms": 95,
+        "error_rate": 0.008
+      },
+      {
+        "name": "Write",
+        "invocation_count": 601,
+        "avg_duration_ms": 110,
+        "error_rate": 0.005
+      },
+      {
+        "name": "WebSearch",
+        "invocation_count": 440,
+        "avg_duration_ms": 3210,
+        "error_rate": 0.045
+      }
+    ]
+  }
+}
+```
+
+### Response Fields
+
+| Field | Type | Description |
+|---|---|---|
+| `tools` | array | List of tools, ordered by `invocation_count` descending |
+| `tools[].name` | string | Tool name |
+| `tools[].invocation_count` | integer | Total invocations in the date range |
+| `tools[].avg_duration_ms` | integer | Average time in milliseconds between the `tool_use` event and its paired `tool_result` event |
+| `tools[].error_rate` | float | Fraction of invocations that produced an error result (0.0 – 1.0) |
+
+`avg_duration_ms` is `null` for tools where no `tool_result` events were received, which can happen if the plugin version does not emit result events.

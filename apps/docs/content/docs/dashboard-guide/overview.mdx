@@ -1,0 +1,73 @@
+---
+title: Dashboard Overview
+description: A tour of the Overview page — your landing screen after login, showing aggregate stats, charts, and navigation.
+---
+
+## What you see after logging in
+
+The Overview page is the first screen you land on after authenticating at [app.trenchcoat.com](https://app.trenchcoat.com). It gives you a high-level picture of your AI agent activity for whatever time window you have selected.
+
+If you have not sent any events yet, the page will show empty-state prompts with a quick link to create your first API key and connect a plugin. Once data is flowing, the page fills in automatically.
+
+---
+
+## Metric cards
+
+Four summary cards run across the top of the page. Each reflects totals for the selected date range.
+
+| Card | What it counts |
+|---|---|
+| **Total Sessions** | Distinct Claude Code sessions that started during the period |
+| **Total Events** | Every event received (session_start, tool_use, tool_result, etc.) |
+| **Tool Invocations** | `tool_use` events only — how many times any tool was called |
+| **Active Days** | Number of calendar days that had at least one event |
+
+---
+
+## Charts
+
+### Sessions over time
+
+A line chart that plots session count per day across the selected range. Hover over any point to see the exact count for that day. This chart is useful for spotting trends — a spike usually means a busy work day; a flat line means no sessions ran.
+
+### Top Tools
+
+A horizontal bar chart ranking your most-used tools by total invocation count. Bars are sorted descending so the highest-volume tool is always at the top. This gives you an instant read on which tools your agents rely on most.
+
+### Hourly activity distribution
+
+A heatmap laid out as days of the week (rows) by hour of day (columns). Darker cells mean more events in that hour/day combination. This helps you understand when your agents are most active — useful for debugging, capacity planning, or just curiosity.
+
+---
+
+## Date range picker
+
+The date range picker sits in the top-right corner of the page. All charts and metric cards update instantly when you change the range.
+
+**Presets:**
+
+- Today
+- Last 7 Days
+- Last 30 Days
+- Last 90 Days
+
+You can also click **Custom Range** to choose any start and end date with the calendar picker. The selected range persists as you navigate between pages in the dashboard.
+
+---
+
+## Navigation sidebar
+
+The left sidebar is present on every dashboard page. Sections:
+
+- **Overview** — this page
+- **Sessions** — browse and inspect individual Claude Code sessions
+- **Tools & Usage** — aggregated tool invocation data
+- **Activity** — event stream and raw activity log
+- **Teams** — manage shared workspaces and members
+- **Settings** — API keys, account preferences
+
+---
+
+## No data yet?
+
+If your account is new or your plugin is not yet connected, the Overview page shows an onboarding prompt. Click **Create API Key** to go directly to Settings → API Keys and generate your first key. Then follow the [Quick Start](/docs/getting-started/quickstart) guide to connect a plugin and start sending events.

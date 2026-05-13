@@ -1,0 +1,87 @@
+---
+title: Hook Reference
+description: A reference for the Claude Code hooks the Trenchcoat plugin registers and how events are batched and flushed.
+---
+
+Claude Code hooks are shell commands that fire automatically at specific points in the agent lifecycle. The Trenchcoat plugin uses four hook types to capture telemetry without interrupting your workflow. This page describes each hook, when it fires, what it captures, and how the resulting events get delivered to Trenchcoat.
+
+## What are Claude Code hooks?
+
+Claude Code's hook system lets plugins register executable scripts that run when lifecycle events occur — before a tool executes, after it completes, when the assistant finishes a turn, and so on. Hooks are defined in the plugin's manifest and point to scripts on disk. They run out-of-process and cannot block Claude Code's main thread.
+
+## Registered hooks
+
+The Trenchcoat plugin registers the following hooks at install time:
+
+| Hook type | Trigger | Script | What it captures |
+|---|---|---|---|
+| `PreToolUse` | Before any tool runs | `hooks/pre_tool_use.py` | Tool name, truncated input |
+| `PostToolUse` | After any tool completes | `hooks/post_tool_use.py` | Tool name, success/error, duration |
+| `Stop` (assistant) | When Claude finishes generating | `hooks/stop.py` | Stop reason, token count, model |
+| `Stop` (subagent) | When a subagent completes | `hooks/stop.py` | Subagent ID, model, token count |
+| `Notification` | On session start and session end | `hooks/notification.py` | Session metadata, duration, cost |
+
+### PreToolUse
+
+Fires immediately before Claude Code hands off control to a tool. The hook receives the tool name and raw input as environment variables. The plugin truncates the input to 500 characters before queuing the event, so sensitive content in long inputs is not fully transmitted.
+
+### PostToolUse
+
+Fires after the tool returns a result. The hook receives the tool name, whether the result was an error, and the elapsed wall-clock time in milliseconds. This is used to populate the **Tool Usage** view in the dashboard, including error rates and p95 latency by tool.
+
+### Stop (assistant and subagent)
+
+Claude Code fires a `Stop` hook both when the main assistant finishes a turn and when a subagent finishes its work. The same `hooks/stop.py` script handles both cases — it inspects the `CLAUDE_STOP_TYPE` environment variable (`assistant` or `subagent`) to determine which event type to emit.
+
+### Notification
+
+Claude Code sends `Notification` events for session lifecycle milestones. The plugin listens for `session_start` and `session_end` notifications and maps them to the corresponding Trenchcoat event types.
+
+## Hook script location
+
+All hook scripts are installed to:
+
+```
+~/.claude/plugins/trenchcoat/hooks/
+  pre_tool_use.py
+  post_tool_use.py
+  stop.py
+  notification.py
+```
+
+You can inspect these files directly. They are plain Python scripts and contain comments explaining each step. Modifying them is supported but not recommended — plugin updates will overwrite local edits.
+
+## Event batching and flushing
+
+To avoid hammering the API on every tool call, the plugin queues events locally and flushes them in batches.
+
+```
+Hook fires
+    │
+    ▼
+Event appended to ~/.claude/plugins/trenchcoat/queue/
+    │
+    ├─── Every 30 seconds ──► Flush: POST /api/v1/events (up to 50 events)
+    │
+    ├─── Queue reaches 50 events ──► Flush immediately
+    │
+    └─── session_end fires ──► Final flush (drain entire queue)
+```
+
+The flush interval and batch size are configurable — see the [Configuration guide](/docs/plugin-sdk/configuration).
+
+Failed flushes are retried on the next interval with exponential backoff (max 5 retries). If all retries fail, events are dropped and a warning is written to `debug.log`. Enable debug mode (`"debug": true` in `config.json`) to see detailed flush logs.
+
+## Troubleshooting
+
+| Symptom | Likely cause | Fix |
+|---|---|---|
+| No events appearing in dashboard | Plugin not connected | Run `/trenchcoat-status`. If disconnected, run `/trenchcoat-connect`. |
+| `/trenchcoat-status` shows `Connected: no` after connecting | Invalid or revoked API key | Generate a new key in Settings → API Keys. |
+| Sessions appear but tool events are missing | Hook scripts failed silently | Enable `"debug": true` and check `~/.claude/plugins/trenchcoat/debug.log`. |
+| High latency in Claude Code (tools feel slow) | Hook scripts taking too long | Check `debug.log` for slow flush calls. Reduce `flush_interval_seconds` or increase `batch_size` to batch more aggressively. |
+| `queue/` directory growing large | API unreachable or key invalid | Check internet connectivity and API key validity. Events accumulate until a successful flush. |
+| Events duplicated in dashboard | Session end flushed before interval flush completed | Rare; harmless. The API deduplicates on `(session_id, event_type, timestamp)`. |
+| Python error on hook fire | Wrong Python version | Ensure `python3 --version` is 3.9 or later and that `python3` is on your `PATH`. |
+
+If you are still stuck after checking the above, open an issue at [github.com/trenchcoat-dev/claude-plugin](https://github.com/trenchcoat-dev/claude-plugin) and include the output of `/trenchcoat-status` and any relevant lines from `debug.log`.
