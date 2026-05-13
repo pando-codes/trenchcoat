@@ -23,9 +23,9 @@ This is a bun workspaces monorepo. Three services live under `apps/`:
 
 | Directory | Framework | Domain |
 |---|---|---|
-| `apps/app/` | Next.js 16 | `app.trenchcoat.com` |
-| `apps/marketing/` | Astro (stub, not yet scaffolded) | `trenchcoat.com` |
-| `apps/docs/` | Nextra or Fumadocs (stub, not yet scaffolded) | `docs.trenchcoat.com` |
+| `apps/app/` | Next.js 16 | `app.trenchcoat.io` |
+| `apps/marketing/` | Astro (stub, not yet scaffolded) | `trenchcoat.io` |
+| `apps/docs/` | Nextra or Fumadocs (stub, not yet scaffolded) | `docs.trenchcoat.io` |
 | `packages/` | (empty, reserved for shared code) | — |
 
 Shared infrastructure (`supabase/`, `plugin-example/`) stays at the repo root. The `docs/` directory at the repo root contains internal developer documentation (setup guides, specs, plans) — it is separate from the `apps/docs/` service. Run `bun install` from the repo root to install all workspace dependencies.
