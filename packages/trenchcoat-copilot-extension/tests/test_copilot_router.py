@@ -157,3 +157,29 @@ async def test_invalid_github_signature_returns_401(monkeypatch, test_key_pair):
                 },
             )
     assert response.status_code == 401
+
+
+# --- server.py / __init__.py tests ---
+
+def test_public_api_exports():
+    from trenchcoat_copilot_extension import create_app, EventEmitter, TrenchcoatConfig
+    assert callable(create_app)
+    assert callable(EventEmitter)
+    assert TrenchcoatConfig  # dataclass
+
+
+def test_create_app_returns_fastapi_instance():
+    from fastapi import FastAPI
+    from trenchcoat_copilot_extension import create_app, TrenchcoatConfig
+    config = TrenchcoatConfig(api_key="ct_live_x")
+    app = create_app(config)
+    assert isinstance(app, FastAPI)
+
+
+def test_create_app_has_copilot_and_bot_routes():
+    from trenchcoat_copilot_extension import create_app, TrenchcoatConfig
+    config = TrenchcoatConfig(api_key="ct_live_x")
+    app = create_app(config)
+    routes = {route.path for route in app.routes}
+    assert "/" in routes
+    assert "/bot" in routes
