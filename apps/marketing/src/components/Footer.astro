@@ -6,18 +6,40 @@ const footerLinks = [
   { href: 'https://github.com/pando-codes/trenchcoat', label: 'GitHub' },
 ];
 ---
-<footer class="border-t border-slate-200 bg-white">
-  <div class="mx-auto flex max-w-6xl items-center justify-between px-6 py-8">
-    <p class="text-sm text-slate-500">© {currentYear} Trenchcoat. All rights reserved.</p>
-    <div class="flex gap-6">
-      {footerLinks.map(link => (
-        <a
-          href={link.href}
-          class="text-sm text-slate-500 transition-colors hover:text-slate-900"
+<footer class="border-t border-brand-border bg-brand-surface">
+  <div class="mx-auto max-w-6xl px-6 py-10">
+    <div class="flex flex-col items-start justify-between gap-8 sm:flex-row sm:items-center">
+      <div class="flex items-center gap-2.5">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 64 64"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="3.5"
+          stroke-linecap="square"
+          stroke-linejoin="miter"
+          class="h-4 w-4 text-brand-accent"
+          aria-hidden="true"
         >
-          {link.label}
-        </a>
-      ))}
+          <path d="M12 12 L32 30"/>
+          <path d="M52 12 L32 30"/>
+          <path d="M32 30 L32 54"/>
+        </svg>
+        <span class="text-sm font-semibold text-brand-fg" style="letter-spacing: -0.03em">trenchcoat</span>
+        <span class="text-brand-fg-subtle text-sm">·</span>
+        <span class="text-xs text-brand-fg-subtle uppercase tracking-widest">Observability for AI agents</span>
+      </div>
+      <div class="flex items-center gap-2 flex-wrap">
+        {footerLinks.map(link => (
+          <a
+            href={link.href}
+            class="rounded px-3 py-1.5 text-sm text-brand-fg-subtle transition-colors hover:text-brand-fg"
+          >
+            {link.label}
+          </a>
+        ))}
+        <span class="ml-4 text-sm text-brand-fg-subtle">© {currentYear} Trenchcoat</span>
+      </div>
     </div>
   </div>
 </footer>

@@ -1,5 +1,24 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Geist', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+  /* Brand palette */
+  --color-brand-bg:           #0A0A0B;
+  --color-brand-surface:      #131316;
+  --color-brand-surface-2:    #1B1B20;
+  --color-brand-surface-3:    #232329;
+  --color-brand-fg:           #F5F4EE;
+  --color-brand-fg-muted:     rgba(245, 244, 238, 0.62);
+  --color-brand-fg-subtle:    rgba(245, 244, 238, 0.40);
+  --color-brand-fg-faint:     rgba(245, 244, 238, 0.18);
+  --color-brand-accent:       #C8832A;
+  --color-brand-accent-bright:#E8A341;
+  --color-brand-accent-dim:   #7C5219;
+  --color-brand-accent-tint:  rgba(200, 131, 42, 0.12);
+  --color-brand-border:       rgba(255, 255, 255, 0.08);
+  --color-brand-border-strong:rgba(255, 255, 255, 0.14);
+  --color-brand-success:      #5E9F7E;
+  --color-brand-danger:       #E5484D;
 }

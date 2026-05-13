@@ -14,9 +14,9 @@ function cell(value: string | boolean): string {
   return value;
 }
 ---
-<tr class="border-t border-slate-200">
-  <th scope="row" class="py-4 pr-6 text-left text-sm text-slate-700">{feature}</th>
-  <td class="px-6 py-4 text-center text-sm text-slate-700">{cell(free)}</td>
-  <td class="px-6 py-4 text-center text-sm font-medium text-indigo-700">{cell(pro)}</td>
-  <td class="pl-6 py-4 text-center text-sm text-slate-700">{cell(enterprise)}</td>
+<tr class="border-t border-brand-border">
+  <th scope="row" class="py-4 pr-6 text-left text-sm text-brand-fg-muted">{feature}</th>
+  <td class="px-6 py-4 text-center text-sm text-brand-fg-subtle">{cell(free)}</td>
+  <td class="px-6 py-4 text-center text-sm font-medium text-brand-accent">{cell(pro)}</td>
+  <td class="pl-6 py-4 text-center text-sm text-brand-fg-subtle">{cell(enterprise)}</td>
 </tr>

@@ -19,26 +19,29 @@ const signupUrl = 'https://app.trenchcoat.io/signup';
 ---
 <section class="py-24 text-center">
   <div class="mx-auto max-w-3xl px-6">
-    <h1 class="text-5xl font-bold leading-tight tracking-tight text-slate-900">
+    <p class="mb-6 text-xs font-medium uppercase tracking-widest text-brand-accent">
+      Observability for AI agents
+    </p>
+    <h1 class="text-5xl font-semibold leading-tight text-brand-fg" style="letter-spacing: -0.03em">
       {headline}
     </h1>
-    <p class="mt-6 text-xl leading-relaxed text-slate-600">
+    <p class="mt-6 text-xl leading-relaxed text-brand-fg-muted">
       {subheading}
     </p>
     <div class="mt-10 flex items-center justify-center gap-4">
       <a
         href={signupUrl}
-        class="rounded-lg bg-indigo-600 px-6 py-3 text-base font-medium text-white transition-colors hover:bg-indigo-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+        class="rounded-lg bg-brand-accent px-6 py-3 text-base font-medium text-brand-bg transition-colors hover:bg-brand-accent-bright focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-accent"
       >
         {primaryCtaLabel}
       </a>
       <a
         href={secondaryCtaHref}
-        class="rounded-lg border border-slate-300 px-6 py-3 text-base font-medium text-slate-700 transition-colors hover:border-slate-400 hover:text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+        class="rounded-lg border border-brand-border-strong px-6 py-3 text-base font-medium text-brand-fg-muted transition-colors hover:border-brand-fg-faint hover:text-brand-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-accent"
       >
         {secondaryCtaLabel}
       </a>
     </div>
-    <p class="mt-4 text-sm text-slate-500">No credit card required</p>
+    <p class="mt-4 text-sm text-brand-fg-subtle">No credit card required</p>
   </div>
 </section>

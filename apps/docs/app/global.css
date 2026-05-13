@@ -1,14 +1,15 @@
 @import "tailwindcss";
 @import "fumadocs-ui/style.css";
 
+/* Amber accent — light and dark */
 :root {
-  --primary: oklch(0.488 0.243 264.376);
-  --primary-foreground: oklch(0.985 0 0);
-  --ring: oklch(0.488 0.243 264.376);
+  --primary: oklch(0.615 0.145 62);
+  --primary-foreground: oklch(1 0 0);
+  --ring: oklch(0.615 0.145 62);
 }
 
 .dark {
-  --primary: oklch(0.488 0.243 264.376);
-  --primary-foreground: oklch(0.985 0 0);
-  --ring: oklch(0.488 0.243 264.376);
+  --primary: oklch(0.615 0.145 62);
+  --primary-foreground: oklch(0.085 0.015 70);
+  --ring: oklch(0.615 0.145 62);
 }

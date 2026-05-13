@@ -1,17 +1,14 @@
 ---
 const features = [
   {
-    icon: '📊',
     title: 'Session tracking',
     description: 'See every session, every agent, every tool call in one place',
   },
   {
-    icon: '💰',
     title: 'Cost attribution',
     description: 'Know exactly what each agent and model is costing your team',
   },
   {
-    icon: '👥',
     title: 'Team access',
     description: 'Share dashboards, manage API keys, control who sees what',
   },
@@ -22,10 +19,26 @@ const features = [
   <div class="mx-auto max-w-6xl px-6">
     <div class="grid grid-cols-1 gap-12 md:grid-cols-3">
       {features.map(feature => (
-        <div class="flex flex-col gap-4">
-          <div class="text-4xl" aria-hidden="true">{feature.icon}</div>
-          <h3 class="text-lg font-semibold text-slate-900">{feature.title}</h3>
-          <p class="leading-relaxed text-slate-600">{feature.description}</p>
+        <div class="flex flex-col gap-4 rounded-xl border border-brand-border bg-brand-surface p-8">
+          <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-accent-tint">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 64 64"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="3.5"
+              stroke-linecap="square"
+              stroke-linejoin="miter"
+              class="h-5 w-5 text-brand-accent"
+              aria-hidden="true"
+            >
+              <path d="M12 12 L32 30"/>
+              <path d="M52 12 L32 30"/>
+              <path d="M32 30 L32 54"/>
+            </svg>
+          </div>
+          <h3 class="text-lg font-semibold text-brand-fg">{feature.title}</h3>
+          <p class="leading-relaxed text-brand-fg-muted">{feature.description}</p>
         </div>
       ))}
     </div>

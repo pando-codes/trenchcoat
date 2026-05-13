@@ -5,21 +5,39 @@ const navLinks = [
 ];
 const signupUrl = 'https://app.trenchcoat.io/signup';
 ---
-<nav class="sticky top-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur">
+<nav class="sticky top-0 z-50 border-b border-brand-border bg-brand-bg/95 backdrop-blur">
   <div class="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-    <a href="/" class="text-lg font-semibold text-slate-900">Trenchcoat</a>
+    <a href="/" class="flex items-center gap-2.5">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 64 64"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="3.5"
+        stroke-linecap="square"
+        stroke-linejoin="miter"
+        class="h-5 w-5 text-brand-accent"
+        role="img"
+        aria-label="Trenchcoat mark"
+      >
+        <path d="M12 12 L32 30"/>
+        <path d="M52 12 L32 30"/>
+        <path d="M32 30 L32 54"/>
+      </svg>
+      <span class="text-lg font-semibold text-brand-fg" style="letter-spacing: -0.04em">trenchcoat</span>
+    </a>
     <div class="flex items-center gap-6">
       {navLinks.map(link => (
         <a
           href={link.href}
-          class="text-sm text-slate-600 transition-colors hover:text-slate-900"
+          class="text-sm text-brand-fg-muted transition-colors hover:text-brand-fg"
         >
           {link.label}
         </a>
       ))}
       <a
         href={signupUrl}
-        class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+        class="rounded-lg bg-brand-accent px-4 py-2 text-sm font-medium text-brand-bg transition-colors hover:bg-brand-accent-bright focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-accent"
       >
         Sign up
       </a>
