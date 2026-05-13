@@ -1,0 +1,45 @@
+---
+title: "Quickstart: Dashboard"
+description: Create a Trenchcoat account and explore the analytics dashboard.
+---
+
+This guide walks you through signing up, reading your first session, and inviting your team. If you are here to install the plugin, see [Quickstart: Plugin](/docs/getting-started/quickstart-plugin).
+
+## Step 1: Create an account
+
+Go to [app.trenchcoat.com/signup](https://app.trenchcoat.com/signup) and sign up with your work email. You will be placed on the free tier, which supports up to 3 team members and retains 30 days of history.
+
+## Step 2: Explore the Overview page
+
+The Overview page shows aggregated stats for the selected date range:
+
+- **Sessions** — total Claude Code sessions in the period
+- **Events** — total telemetry events captured
+- **Tool uses** — total tool invocations across all sessions
+- **Active days** — number of days with at least one session
+
+Use the date picker in the top-right corner to adjust the range.
+
+## Step 3: Create an API key for the plugin
+
+Your team members need API keys to connect the plugin. Go to **Settings → API Keys → New API Key**:
+
+- **Name** the key for the team member or machine (e.g., "Alice — MacBook Pro")
+- **Scope**: select `write:events` for plugin keys
+- Share the key with the team member — it will not be shown again
+
+## Step 4: Invite team members
+
+Go to **Settings → Team**. Each invited member gets their own login and their sessions appear in your shared dashboard.
+
+Members with the **member** role can view analytics. The **admin** role can manage API keys and invite others.
+
+## Step 5: Filter by date and explore sessions
+
+On the **Sessions** page, you can:
+
+- Click any session row to see its event timeline and tool breakdown
+- Use **from / to** date filters to scope results
+- See duration, tool count, and event count at a glance
+
+On the **Tools** page, the top tools are ranked by call count with average and P50 duration.

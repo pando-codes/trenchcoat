@@ -1,0 +1,78 @@
+---
+title: "Quickstart: Plugin"
+description: Install the Trenchcoat plugin for Claude Code and send your first session.
+---
+
+This guide takes you from zero to seeing live session data in the Trenchcoat dashboard. Estimated time: 5 minutes.
+
+## Prerequisites
+
+- Claude Code installed and working (`claude --version`)
+- A Trenchcoat account — [sign up free](https://app.trenchcoat.com/signup)
+- Python 3.9+ (check with `python3 --version`)
+
+## Step 1: Create an API key
+
+1. Go to [app.trenchcoat.com](https://app.trenchcoat.com) and sign in
+2. Open **Settings → API Keys**
+3. Click **New API Key**, name it (e.g., "My MacBook"), and select the `write:events` scope
+4. Copy the key — it looks like `ct_live_...` and is shown only once
+
+## Step 2: Install the plugin
+
+Install the Trenchcoat plugin from the Claude Code plugin registry:
+
+```bash
+claude plugin install trenchcoat
+```
+
+Or install manually by cloning the plugin files into your Claude plugins directory:
+
+```bash
+git clone https://github.com/trenchcoat-ai/plugin ~/.claude/plugins/trenchcoat
+```
+
+## Step 3: Connect your API key
+
+After installing, run the connect command inside Claude Code:
+
+```
+/trenchcoat-connect
+```
+
+Paste your API key when prompted. The command writes it to `~/.claude/telemetry/config.json`:
+
+```json
+{
+  "api_url": "https://app.trenchcoat.com",
+  "api_key": "ct_live_your_key_here"
+}
+```
+
+You can also set this manually by editing the file directly.
+
+## Step 4: Start a session
+
+Open a new Claude Code session in any project:
+
+```bash
+cd ~/my-project
+claude
+```
+
+The `SessionStart` hook fires automatically. At the end of the session, the plugin batches all events and pushes them to the API.
+
+## Step 5: View your session
+
+Go to [app.trenchcoat.com](https://app.trenchcoat.com) and open the **Sessions** page. Your session should appear within a few seconds of it ending.
+
+## Troubleshooting
+
+**No session appearing after ending a session?**
+- Check that `api_key` is set in `~/.claude/telemetry/config.json`
+- Run `/trenchcoat-report` inside Claude Code to see local event counts
+- The push happens on `SessionEnd` — make sure you closed the session cleanly (not Ctrl+C mid-session)
+
+**Plugin not loading?**
+- Confirm `plugin list` shows `trenchcoat` in the list
+- Check `~/.claude/telemetry/config.json` exists and has `"enabled": true`

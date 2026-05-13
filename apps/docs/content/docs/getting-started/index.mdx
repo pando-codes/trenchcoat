@@ -1,6 +1,32 @@
 ---
 title: Introduction
-description: What Trenchcoat is and who it is for
+description: Trenchcoat monitors, meters, and reports on your team's AI agent usage.
 ---
 
-Coming soon.
+Trenchcoat is a SaaS platform that gives engineering teams visibility into how they use AI agents. It ingests telemetry from Claude Code via a lightweight plugin, stores it in a managed database, and surfaces analytics through a dashboard — sessions, tool usage, token attribution, and cost.
+
+## What Trenchcoat tracks
+
+- **Sessions** — every time a developer opens Claude Code, a session is created
+- **Tools** — every tool call (Read, Edit, Bash, etc.) is captured with name and duration
+- **Agents** — subagent invocations are tracked separately so you can see which agents your team runs most
+- **Tokens & cost** — input/output token counts per session, mapped to current model pricing
+
+## Who is this for?
+
+<Cards>
+  <Card title="Installing the plugin?" href="/docs/getting-started/quickstart-plugin">
+    **Developers** — install the Claude Code plugin, connect your API key, and start sending telemetry in minutes.
+  </Card>
+  <Card title="Using the dashboard?" href="/docs/getting-started/quickstart-dashboard">
+    **Engineering managers** — create an account, explore the analytics dashboard, and invite your team.
+  </Card>
+</Cards>
+
+## How it works
+
+```
+Claude Code → Plugin hooks → Local JSONL → Batch push → Trenchcoat API → Dashboard
+```
+
+The plugin runs Python hooks on each Claude Code lifecycle event. Events are written locally first (under `~/.claude/telemetry/`) and flushed to the Trenchcoat API at the end of each session. No prompt content is ever captured — only metadata.
