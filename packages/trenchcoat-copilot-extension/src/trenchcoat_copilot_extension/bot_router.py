@@ -50,14 +50,10 @@ def make_bot_router(
         )
         reply_text = response.choices[0].message.content
 
-        emitter.append("assistant_stop", {
-            "input_tokens": response.usage.prompt_tokens,
-            "output_tokens": response.usage.completion_tokens,
-        })
-        emitter.append("session_end", {
-            "input_tokens": response.usage.prompt_tokens,
-            "output_tokens": response.usage.completion_tokens,
-        })
+        input_tokens = getattr(response.usage, "prompt_tokens", 0) if response.usage else 0
+        output_tokens = getattr(response.usage, "completion_tokens", 0) if response.usage else 0
+        emitter.append("assistant_stop", {"input_tokens": input_tokens, "output_tokens": output_tokens})
+        emitter.append("session_end", {"input_tokens": input_tokens, "output_tokens": output_tokens})
         await emitter.flush()
 
         return {
