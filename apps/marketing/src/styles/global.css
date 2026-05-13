@@ -4,7 +4,7 @@
   --font-sans: 'Geist', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'Geist Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
 
-  /* Brand palette */
+  /* Brand palette — dark by default */
   --color-brand-bg:           #0A0A0B;
   --color-brand-surface:      #131316;
   --color-brand-surface-2:    #1B1B20;
@@ -21,4 +21,18 @@
   --color-brand-border-strong:rgba(255, 255, 255, 0.14);
   --color-brand-success:      #5E9F7E;
   --color-brand-danger:       #E5484D;
+}
+
+/* Light mode overrides — applied when <html class="light"> */
+html.light {
+  --color-brand-bg:            #F5F4EE;
+  --color-brand-surface:       #FFFFFF;
+  --color-brand-surface-2:     #EDECEA;
+  --color-brand-surface-3:     #E3E2DE;
+  --color-brand-fg:            #0A0A0B;
+  --color-brand-fg-muted:      rgba(10, 10, 11, 0.62);
+  --color-brand-fg-subtle:     rgba(10, 10, 11, 0.40);
+  --color-brand-fg-faint:      rgba(10, 10, 11, 0.18);
+  --color-brand-border:        rgba(0, 0, 0, 0.08);
+  --color-brand-border-strong: rgba(0, 0, 0, 0.14);
 }
