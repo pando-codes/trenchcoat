@@ -17,43 +17,47 @@ interface TeamMemberStatsTableProps {
 
 const COLUMN_COUNT = 5;
 
+function formatLastActive(date: string | null): string {
+  if (!date) return "--";
+  return new Date(date).toLocaleDateString("en-US", {
+    month: "short",
+    day:   "numeric",
+  });
+}
+
+function SortHeader({
+  label,
+  field,
+  currentSort,
+  onSort,
+}: {
+  label: string;
+  field: SortKey;
+  currentSort: SortKey;
+  onSort: (field: SortKey) => void;
+}) {
+  return (
+    <TableHead
+      className="cursor-pointer select-none text-right"
+      onClick={() => onSort(field)}
+    >
+      {label} {currentSort === field ? "↓" : ""}
+    </TableHead>
+  );
+}
+
 export function TeamMemberStatsTable({ members }: TeamMemberStatsTableProps) {
   const [sortKey, setSortKey] = useState<SortKey>("sessions");
 
   const sorted = [...members].sort((a, b) => (b[sortKey] ?? 0) - (a[sortKey] ?? 0));
-
-  function formatLastActive(date: string | null): string {
-    if (!date) return "--";
-    return new Date(date).toLocaleDateString("en-US", {
-      month: "short",
-      day:   "numeric",
-    });
-  }
-
-  function SortHeader({
-    label,
-    field,
-  }: {
-    label: string;
-    field: SortKey;
-  }) {
-    return (
-      <TableHead
-        className="cursor-pointer select-none text-right"
-        onClick={() => setSortKey(field)}
-      >
-        {label} {sortKey === field ? "↓" : ""}
-      </TableHead>
-    );
-  }
 
   return (
     <Table>
       <TableHeader>
         <TableRow>
           <TableHead>Member</TableHead>
-          <SortHeader label="Sessions" field="sessions" />
-          <SortHeader label="Cost"     field="total_cost_usd" />
+          <SortHeader label="Sessions" field="sessions" currentSort={sortKey} onSort={setSortKey} />
+          <SortHeader label="Cost"     field="total_cost_usd" currentSort={sortKey} onSort={setSortKey} />
           <TableHead className="text-right">Top Tool</TableHead>
           <TableHead className="text-right">Last Active</TableHead>
         </TableRow>

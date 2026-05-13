@@ -18,6 +18,7 @@ export default async function SharePage({
 }) {
   const { token } = await params;
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const adminAny = getAdminClient() as any;
   const { data: share } = await adminAny
     .from("team_shares")
