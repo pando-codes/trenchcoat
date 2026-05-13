@@ -137,9 +137,9 @@ async def test_invalid_github_signature_returns_401(monkeypatch, test_key_pair):
     app = FastAPI()
     app.include_router(router)
 
-    # Reset the module-level key cache so it triggers a fetch
+    # Reset the module-level key cache so it triggers a fetch (monkeypatch auto-restores on teardown)
     import trenchcoat_copilot_extension.copilot_router as cr_module
-    cr_module._github_keys_cache = {}
+    monkeypatch.setattr(cr_module, "_github_keys_cache", {})
 
     with patch(
         "trenchcoat_copilot_extension.copilot_router.fetch_github_public_keys",
