@@ -44,29 +44,20 @@ export default async function SettingsPage() {
   const timezone = profile?.timezone ?? "UTC";
 
   return (
-    <div className="flex flex-col gap-6 p-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
-        <p className="text-sm text-muted-foreground">
-          Manage your profile and preferences.
-        </p>
-      </div>
-
-      <Card className="max-w-2xl">
-        <CardHeader>
-          <CardTitle>Profile</CardTitle>
-          <CardDescription>
-            Update your display name and timezone.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ProfileForm
-            displayName={displayName}
-            timezone={timezone}
-            action={updateProfile}
-          />
-        </CardContent>
-      </Card>
-    </div>
+    <Card className="max-w-2xl">
+      <CardHeader>
+        <CardTitle>Profile</CardTitle>
+        <CardDescription>
+          Update your display name and timezone.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <ProfileForm
+          displayName={displayName}
+          timezone={timezone}
+          action={updateProfile}
+        />
+      </CardContent>
+    </Card>
   );
 }
