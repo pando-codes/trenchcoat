@@ -1,30 +1,11 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
+import { ProfileForm } from "@/components/settings/profile-form";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-
-const TIMEZONES = [
-  "UTC",
-  "America/New_York",
-  "America/Chicago",
-  "America/Denver",
-  "America/Los_Angeles",
-  "Europe/London",
-  "Europe/Paris",
-  "Europe/Berlin",
-  "Asia/Tokyo",
-  "Asia/Shanghai",
-  "Australia/Sydney",
-];
+  getProfile,
+  updateProfile as updateProfileService,
+} from "@/lib/services/user-profile.service";
 
 async function updateProfile(formData: FormData) {
   "use server";
@@ -41,17 +22,7 @@ async function updateProfile(formData: FormData) {
   const displayName = formData.get("display_name") as string;
   const timezone = formData.get("timezone") as string;
 
-  await supabase
-    .from("user_profiles")
-    .upsert(
-      {
-        id: user.id,
-        display_name: displayName,
-        timezone,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "id" }
-    );
+  await updateProfileService(supabase, user.id, { display_name: displayName, timezone });
 
   redirect("/settings");
 }
@@ -66,11 +37,8 @@ export default async function SettingsPage() {
     redirect("/login");
   }
 
-  const { data: profile } = await supabase
-    .from("user_profiles")
-    .select("display_name, timezone")
-    .eq("user_id", user.id)
-    .single();
+  const profileResult = await getProfile(supabase, user.id);
+  const profile = profileResult.success ? profileResult.data : null;
 
   const displayName = profile?.display_name ?? user.user_metadata?.display_name ?? "";
   const timezone = profile?.timezone ?? "UTC";
@@ -92,37 +60,11 @@ export default async function SettingsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form action={updateProfile} className="flex flex-col gap-4">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="display_name">Display Name</Label>
-              <Input
-                id="display_name"
-                name="display_name"
-                defaultValue={displayName}
-                placeholder="Your name"
-              />
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="timezone">Timezone</Label>
-              <Select name="timezone" defaultValue={timezone}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select timezone" />
-                </SelectTrigger>
-                <SelectContent>
-                  {TIMEZONES.map((tz) => (
-                    <SelectItem key={tz} value={tz}>
-                      {tz}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex justify-end">
-              <Button type="submit">Save Changes</Button>
-            </div>
-          </form>
+          <ProfileForm
+            displayName={displayName}
+            timezone={timezone}
+            action={updateProfile}
+          />
         </CardContent>
       </Card>
     </div>
