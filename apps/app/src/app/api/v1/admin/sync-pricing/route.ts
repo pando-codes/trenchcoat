@@ -36,8 +36,8 @@ export async function GET(req: NextRequest) {
   }
 
   const supabase = getAdminClient();
-  const { error } = await (supabase
-    .from("model_pricing") as any)
+  const { error } = await supabase
+    .from("model_pricing")
     .upsert(rows, { onConflict: "model_id" });
 
   if (error) {

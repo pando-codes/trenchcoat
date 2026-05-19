@@ -4,7 +4,6 @@ import {
   createApiHandler,
   successResponse,
   badRequest,
-  type ApiContext,
 } from "@/lib/api-middleware";
 import { ingestEvents } from "@/lib/services/events.service";
 import type { IngestPayload } from "@/types/events";

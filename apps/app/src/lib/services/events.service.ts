@@ -1,5 +1,4 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { getAdminClient } from "@/lib/supabase/admin";
 import type { TelemetryEvent, IngestEvent } from "@/types/events";
 import type { ServiceResult } from "./types";
 

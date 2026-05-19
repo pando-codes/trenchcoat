@@ -7,7 +7,6 @@ import {
 import { createMockSupabase } from "./helpers/supabase-mock";
 
 const USER_ID = "user-abc";
-const OK = { data: null, error: null };
 
 // --- listApiKeys ---
 
