@@ -27,7 +27,7 @@ const eventSchema = z.object({
   data: z.record(z.string(), z.unknown()).default({}),
 });
 
-const bodySchema = z.object({
+export const bodySchema = z.object({
   events: z.array(eventSchema).min(1).max(1000),
 });
 

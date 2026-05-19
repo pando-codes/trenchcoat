@@ -1,5 +1,6 @@
 import { describe, it, expect } from "bun:test";
 import {
+  slugify,
   listTeams,
   createTeam,
   getTeam,
@@ -297,5 +298,49 @@ describe("removeMember", () => {
     const result = await removeMember(supabase, USER_ID, TEAM_ID, MEMBER_ID);
     expect(result.success).toBe(false);
     if (!result.success) expect(result.error.code).toBe("DELETE_FAILED");
+  });
+});
+
+// --- slugify ---
+
+describe("slugify", () => {
+  it("lowercases the input", () => {
+    expect(slugify("Hello")).toBe("hello");
+  });
+
+  it("replaces spaces with dashes", () => {
+    expect(slugify("hello world")).toBe("hello-world");
+  });
+
+  it("replaces underscores with dashes", () => {
+    expect(slugify("hello_world")).toBe("hello-world");
+  });
+
+  it("strips special characters", () => {
+    expect(slugify("hello!@#world")).toBe("helloworld");
+  });
+
+  it("collapses multiple consecutive dashes into one", () => {
+    expect(slugify("hello   world")).toBe("hello-world");
+  });
+
+  it("trims leading and trailing dashes", () => {
+    expect(slugify("  hello  ")).toBe("hello");
+  });
+
+  it("handles a mix of spaces, underscores, and special chars", () => {
+    expect(slugify("My Team (2025)")).toBe("my-team-2025");
+  });
+
+  it("preserves numbers", () => {
+    expect(slugify("Team 42")).toBe("team-42");
+  });
+
+  it("returns an empty string for input that has no word characters", () => {
+    expect(slugify("!!!")).toBe("");
+  });
+
+  it("handles already-lowercase kebab-case input unchanged", () => {
+    expect(slugify("my-team")).toBe("my-team");
   });
 });

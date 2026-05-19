@@ -11,7 +11,7 @@ import type { ServiceResult } from "./types";
 // Helpers
 // ---------------------------------------------------------------------------
 
-function slugify(name: string): string {
+export function slugify(name: string): string {
   return name
     .toLowerCase()
     .trim()
