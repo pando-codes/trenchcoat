@@ -98,18 +98,18 @@ Open [http://localhost:3000](http://localhost:3000). Sign up for an account — 
 
 ## 6. Install the Claude Code plugin
 
-The plugin lives in `plugin-example/`. It collects telemetry locally via Claude Code hooks and sends batched events to the SaaS on session end.
+The plugin lives in `claude-plugin/`. It collects telemetry locally via Claude Code hooks and sends batched events to the SaaS on session end.
 
 ### Install globally
 
 ```bash
-claude plugin add /path/to/claude-telemetry-saas/plugin-example
+claude plugin add /path/to/claude-telemetry-saas/claude-plugin
 ```
 
 Or symlink it into your Claude plugins directory:
 
 ```bash
-ln -s /path/to/claude-telemetry-saas/plugin-example ~/.claude/plugins/claude-telemetry
+ln -s /path/to/claude-telemetry-saas/claude-plugin ~/.claude/plugins/claude-telemetry
 ```
 
 ### Configure the plugin

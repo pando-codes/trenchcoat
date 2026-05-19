@@ -101,7 +101,7 @@ Real screenshot of the Trenchcoat dashboard (sessions overview or cost page), di
 - Button: "Start for free" → `app.trenchcoat.com/signup`
 
 ### Footer
-Logo + copyright | Links: Pricing, Docs, GitHub (plugin-example repo)
+Logo + copyright | Links: Pricing, Docs, GitHub (claude-plugin repo)
 
 ## Pricing Page (`/pricing`)
 

@@ -38,7 +38,7 @@ trenchcoat-app/                  ← repo root = workspace root
 │   └── docs/                    ← Nextra or Fumadocs (scaffolded separately)
 │       └── package.json         ← name: "@trenchcoat/docs"
 ├── packages/                    ← empty, reserved for future shared code
-├── plugin-example/              ← stays (Claude Code plugin, not a web app)
+├── claude-plugin/              ← stays (Claude Code plugin, not a web app)
 ├── supabase/                    ← stays (shared infra)
 ├── docs/                        ← stays (internal dev docs/specs)
 ├── CLAUDE.md
@@ -93,7 +93,7 @@ Minimal stubs created at migration time. Filled out properly when those apps are
 
 ### Stays at Root
 
-`supabase/`, `plugin-example/`, `docs/`, `CLAUDE.md`, `README.md`
+`supabase/`, `claude-plugin/`, `docs/`, `CLAUDE.md`, `README.md`
 
 ### Deleted
 

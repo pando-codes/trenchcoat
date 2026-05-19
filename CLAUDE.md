@@ -15,7 +15,7 @@ Trenchcoat is a SaaS platform for monitoring, metering, and reporting on AI Agen
 4. Token attribution — tokens consumed by each component type (skills, commands, tools, MCPs, hooks, subagents)
 5. Cost — session cost derived from model token rates
 
-The companion plugin lives in `plugin-example/` and collects local session data via Claude Code hooks.
+The companion plugin lives in `claude-plugin/` and collects local session data via Claude Code hooks.
 
 ## Workspace Structure
 
@@ -28,7 +28,7 @@ This is a bun workspaces monorepo. Three services live under `apps/`:
 | `apps/docs/` | Nextra or Fumadocs (stub, not yet scaffolded) | `docs.trenchcoat.io` |
 | `packages/` | (empty, reserved for shared code) | — |
 
-Shared infrastructure (`supabase/`, `plugin-example/`) stays at the repo root. The `docs/` directory at the repo root contains internal developer documentation (setup guides, specs, plans) — it is separate from the `apps/docs/` service. Run `bun install` from the repo root to install all workspace dependencies.
+Shared infrastructure (`supabase/`, `claude-plugin/`) stays at the repo root. The `docs/` directory at the repo root contains internal developer documentation (setup guides, specs, plans) — it is separate from the `apps/docs/` service. Run `bun install` from the repo root to install all workspace dependencies.
 
 ## Commands
 
@@ -107,7 +107,7 @@ Migrations are in `supabase/migrations/` (001–013). Key tables:
 
 Known event types flowing through the `events` table: `session_start`, `session_end`, `tool_use`, `tool_result`, `subagent_stop`, `assistant_stop`. Event-specific payload stored in `data jsonb`. Token counts and model info expected in `data` once token attribution is implemented.
 
-### Plugin Example (`plugin-example/`)
+### Claude Plugin (`claude-plugin/`)
 
 A Claude Code plugin that collects telemetry locally via hooks (session_start, session_end, tool_use, etc.) and sends batched events to the SaaS API. Written in Python. Contains its own commands, skills, and hook scripts.
 

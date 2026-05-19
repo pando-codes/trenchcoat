@@ -4,7 +4,7 @@
 
 **Goal:** Transform the current single Next.js app repo into a bun workspaces monorepo with three service slots: app (Next.js, existing), marketing (Astro, stub), and docs (Nextra/Fumadocs, stub).
 
-**Architecture:** The repo root becomes the workspace root. All app-specific files move into `apps/app/` via `git mv` (preserving history). Two stub service directories are created at `apps/marketing/` and `apps/docs/`. Infra files (`supabase/`, `plugin-example/`, `docs/`) stay at root. A single `bun.lock` at workspace root covers all packages.
+**Architecture:** The repo root becomes the workspace root. All app-specific files move into `apps/app/` via `git mv` (preserving history). Two stub service directories are created at `apps/marketing/` and `apps/docs/`. Infra files (`supabase/`, `claude-plugin/`, `docs/`) stay at root. A single `bun.lock` at workspace root covers all packages.
 
 **Tech Stack:** bun workspaces, Next.js 16 (app), git mv for history-preserving migration
 
@@ -338,7 +338,7 @@ Search `CLAUDE.md` for references to paths that moved. Specifically update:
 - `src/lib/` → `apps/app/src/lib/`
 - Any other `src/` prefixed paths
 
-Do not change references to `supabase/`, `plugin-example/`, or `docs/` — those stayed at the root.
+Do not change references to `supabase/`, `claude-plugin/`, or `docs/` — those stayed at the root.
 
 - [ ] **Step 3: Add a Workspace Structure section**
 
@@ -355,7 +355,7 @@ This is a bun workspaces monorepo. Three services live under `apps/`:
 | `apps/marketing/` | Astro (stub) | `trenchcoat.com` |
 | `apps/docs/` | Nextra or Fumadocs (stub) | `docs.trenchcoat.com` |
 
-Shared infrastructure (`supabase/`, `plugin-example/`) stays at the repo root. Run `bun install` from the repo root to install all workspace dependencies.
+Shared infrastructure (`supabase/`, `claude-plugin/`) stays at the repo root. Run `bun install` from the repo root to install all workspace dependencies.
 ```
 
 - [ ] **Step 4: Commit**
