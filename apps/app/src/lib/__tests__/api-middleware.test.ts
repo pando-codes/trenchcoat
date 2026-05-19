@@ -6,10 +6,35 @@ const mockRequireScopes = mock(() => null);
 const mockLimiterCheck = mock();
 const mockRateLimitHeaders = mock(() => ({}));
 
-mock.module("@/lib/api-keys", () => ({
-  validateApiKey: mockValidateApiKey,
-  requireScopes: mockRequireScopes,
-}));
+mock.module("@/lib/api-keys", () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const nodeCrypto = require("crypto") as typeof import("crypto");
+  const CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  const hashApiKey = (k: string) =>
+    nodeCrypto.createHash("sha256").update(k).digest("hex");
+  return {
+    validateApiKey: mockValidateApiKey,
+    requireScopes: mockRequireScopes,
+    // Inline real implementations so other test files that statically import
+    // @/lib/api-keys still receive valid exports (mock.module persists across files).
+    hashApiKey,
+    generateApiKey: () => {
+      const arr = nodeCrypto.randomBytes(32) as Buffer;
+      const rnd = Array.from(arr).map((b) => CHARS[(b as number) % CHARS.length]).join("");
+      const plaintext = `ct_live_${rnd}`;
+      return { plaintext, hash: hashApiKey(plaintext), prefix: plaintext.substring(0, 12) };
+    },
+    hasRequiredScopes: (ks: string[], rs: string[]) =>
+      ks.includes("admin") || rs.every((s) => ks.includes(s)),
+    API_SCOPES: {
+      "write:events": { label: "Write Events", description: "", recommended: true },
+      "read:events": { label: "Read Events", description: "" },
+      "read:sessions": { label: "Read Sessions", description: "" },
+      "read:analytics": { label: "Read Analytics", description: "" },
+      admin: { label: "Admin", description: "", danger: true },
+    },
+  };
+});
 
 mock.module("@/lib/rate-limit", () => ({
   createRateLimiter: () => ({ check: mockLimiterCheck, reset: mock() }),
@@ -250,3 +275,4 @@ describe("createApiHandler", () => {
     expect(captured.offset).toBe(0);
   });
 });
+
