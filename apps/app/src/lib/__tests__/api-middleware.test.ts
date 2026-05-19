@@ -1,4 +1,4 @@
-import { mock, describe, it, expect, beforeEach } from "bun:test";
+import { mock, describe, it, expect, beforeEach, afterAll } from "bun:test";
 import { NextRequest } from "next/server";
 
 const mockValidateApiKey = mock();
@@ -274,5 +274,11 @@ describe("createApiHandler", () => {
     expect(captured.limit).toBe(50);
     expect(captured.offset).toBe(0);
   });
+});
+
+// Restore all module mocks so later test files (rate-limit, validate-api-key)
+// get the real implementations. In Bun v1.x, mock.module is global within the run.
+afterAll(() => {
+  mock.restore();
 });
 

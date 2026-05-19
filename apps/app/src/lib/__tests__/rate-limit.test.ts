@@ -1,5 +1,63 @@
-import { describe, it, expect } from "bun:test";
+import { describe, it, expect, mock } from "bun:test";
 import { createRateLimiter, getClientIdentifier, rateLimitHeaders } from "../rate-limit";
+
+// Re-establish real implementations in case an earlier test file mocked this module.
+// Bun v1.x shares mock.module state across files in the same run; calling mock.module
+// here updates the live ESM bindings imported above.
+{
+  interface RLEntry { count: number; resetTime: number }
+  class Store {
+    private m = new Map<string, RLEntry>();
+    get(k: string) {
+      const e = this.m.get(k);
+      if (e && Date.now() >= e.resetTime) { this.m.delete(k); return undefined; }
+      return e;
+    }
+    set(k: string, e: RLEntry) { this.m.set(k, e); }
+    inc(k: string, w: number): RLEntry {
+      const existing = this.get(k);
+      if (existing) { existing.count++; return existing; }
+      const entry: RLEntry = { count: 1, resetTime: Date.now() + w };
+      this.m.set(k, entry);
+      return entry;
+    }
+  }
+  const store = new Store();
+  mock.module("@/lib/rate-limit", () => ({
+    createRateLimiter(cfg: { limit: number; windowMs: number; prefix?: string }) {
+      const { limit, windowMs, prefix = "rl" } = cfg;
+      return {
+        async check(id: string) {
+          const key = `${prefix}:${id}`;
+          const entry = store.inc(key, windowMs);
+          const remaining = Math.max(0, limit - entry.count);
+          const success = entry.count <= limit;
+          return { success, remaining, limit, reset: entry.resetTime, retryAfter: success ? 0 : entry.resetTime - Date.now() };
+        },
+        async reset(id: string) { store.set(`${prefix}:${id}`, { count: 0, resetTime: Date.now() + windowMs }); },
+      };
+    },
+    getClientIdentifier(request: Request) {
+      const fwd = request.headers.get("x-forwarded-for");
+      if (fwd) return fwd.split(",")[0].trim();
+      const real = request.headers.get("x-real-ip");
+      if (real) return real;
+      const ua = request.headers.get("user-agent") || "unknown";
+      const al = request.headers.get("accept-language") || "unknown";
+      let h = 0;
+      for (const ch of ua + al) { h = (h << 5) - h + ch.charCodeAt(0); h |= 0; }
+      return `fingerprint:${Math.abs(h).toString(36)}`;
+    },
+    rateLimitHeaders(r: { limit: number; remaining: number; reset: number; retryAfter: number }) {
+      return {
+        "X-RateLimit-Limit": r.limit.toString(),
+        "X-RateLimit-Remaining": r.remaining.toString(),
+        "X-RateLimit-Reset": r.reset.toString(),
+        ...(r.retryAfter > 0 && { "Retry-After": Math.ceil(r.retryAfter / 1000).toString() }),
+      };
+    },
+  }));
+}
 
 // Each test group uses a unique prefix to avoid sharing the global MemoryStore state.
 

@@ -8,7 +8,7 @@
  * the real requireScopes logic to verify end-to-end wiring without module
  * pollution (mirrors the pattern used by api-middleware.test.ts).
  */
-import { mock, describe, it, expect, beforeEach } from "bun:test";
+import { mock, describe, it, expect, beforeEach, afterAll } from "bun:test";
 import { NextRequest } from "next/server";
 
 const mockValidateApiKey = mock();
@@ -269,5 +269,11 @@ describe("POST /events — scope enforcement", () => {
     expect(res.status).toBe(200);
     expect(okHandler).toHaveBeenCalledTimes(1);
   });
+});
+
+// Restore all module mocks so later test files (rate-limit, validate-api-key)
+// get the real implementations. In Bun v1.x, mock.module is global within the run.
+afterAll(() => {
+  mock.restore();
 });
 

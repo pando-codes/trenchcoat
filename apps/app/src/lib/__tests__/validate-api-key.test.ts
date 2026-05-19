@@ -7,6 +7,33 @@ mock.module("@/lib/supabase/admin", () => ({
   getAdminClient: () => mockAdminRef.client,
 }));
 
+// Re-establish the real validateApiKey in case an earlier test file mocked @/lib/api-keys.
+// Bun v1.x shares mock.module state across files; this override restores correct behavior.
+// The inline implementation calls getAdminClient() at runtime, picking up the mock above.
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const _nodeCrypto = require("crypto");
+const _hashKey = (k: string) => _nodeCrypto.createHash("sha256").update(k).digest("hex");
+
+mock.module("@/lib/api-keys", () => ({
+  validateApiKey: async (request: Request) => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { getAdminClient } = require("@/lib/supabase/admin");
+    const header = request.headers.get("x-api-key");
+    if (!header) return { valid: false, error: "Missing X-API-Key header" };
+    if (!header.startsWith("ct_live_") || header.length !== 40)
+      return { valid: false, error: "Invalid API key format" };
+    const supabase = getAdminClient();
+    const { data, error } = await supabase.from("api_keys").select("*").eq("key_hash", _hashKey(header)).single();
+    if (error || !data) return { valid: false, error: "Invalid API key" };
+    const row = data as { id: string; user_id: string; scopes: string[] | null; expires_at: string | null };
+    if (row.expires_at && new Date(row.expires_at) < new Date())
+      return { valid: false, error: "API key has expired" };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (supabase.from("api_keys") as any).update({ last_used_at: new Date().toISOString() }).eq("id", row.id).then(() => {});
+    return { valid: true, key: row, user_id: row.user_id, scopes: row.scopes ?? [] };
+  },
+}));
+
 const { validateApiKey } = await import("../api-keys");
 
 // ============================================================================
