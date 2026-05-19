@@ -84,11 +84,16 @@ Open [http://localhost:3000](http://localhost:3000). Sign up for an account — 
 2. Go to **Settings → API Keys**
 3. Click **Create API Key**
 4. Name it (e.g., "My Laptop") and select scopes:
-   - `write:events` — required for the plugin to send telemetry
-   - `read:events` — read raw events via API
-   - `read:sessions` — read session data via API
-   - `read:analytics` — read analytics via API
-   - `admin` — full access
+
+   | Scope | Description | Notes |
+   |---|---|---|
+   | `write:events` | Send telemetry events to the ingestion API | **Required** for the Claude Code plugin |
+   | `read:events` | Retrieve raw event records via the API | Not needed for the plugin |
+   | `read:sessions` | List and retrieve session records via the API | — |
+   | `read:analytics` | Query overview stats, tool usage breakdowns, and daily aggregates | — |
+   | `admin` | Unrestricted access to all endpoints | Only grant to fully trusted applications |
+
+   For plugin use, select **`write:events`** only.
 5. Copy the `ct_live_...` key — it is only shown once
 
 ## 6. Install the Claude Code plugin
@@ -199,3 +204,15 @@ The plugin is privacy-first by default:
 ### API authentication
 
 All `/api/v1/*` endpoints require an `X-API-Key` header with a valid `ct_live_...` key. Keys are SHA-256 hashed in the database and checked against scopes per endpoint. Rate limits apply based on the key's tier (standard: 60 req/min, premium: 200 req/min, ingestion: 200 req/min).
+
+#### Scopes
+
+| Scope | Grants access to | Endpoint(s) |
+|---|---|---|
+| `write:events` | `POST /api/v1/events` — ingest telemetry | Event ingestion |
+| `read:events` | `GET /api/v1/events` — read raw events | Raw event access |
+| `read:sessions` | `GET /api/v1/sessions` — list sessions | Session records |
+| `read:analytics` | `GET /api/v1/analytics/*` — stats and aggregates | Analytics endpoints |
+| `admin` | All endpoints, bypasses scope checks | Everything |
+
+Keys with the `admin` scope bypass per-endpoint scope checks. A key without a required scope receives a `403 Forbidden` response with `error.code: "insufficient_permissions"`.

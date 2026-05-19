@@ -31,6 +31,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
 import { API_SCOPES, type ApiKey, type ApiScopeName } from "@/types/api-keys";
 import { createApiKeyAction, revokeApiKeyAction } from "@/lib/actions/api-keys.actions";
 
@@ -169,19 +170,35 @@ export function ApiKeyList({ initialKeys }: ApiKeyListProps) {
 
                 <div className="flex flex-col gap-2">
                   <Label>Scopes</Label>
-                  <div className="flex flex-wrap gap-2">
-                    {(Object.keys(API_SCOPES) as ApiScopeName[]).map((scope) => (
-                      <Badge
-                        key={scope}
-                        variant={
-                          selectedScopes.includes(scope) ? "default" : "outline"
-                        }
-                        className="cursor-pointer"
-                        onClick={() => toggleScope(scope)}
-                      >
-                        {scope}
-                      </Badge>
-                    ))}
+                  <div className="flex flex-col gap-2">
+                    {(Object.keys(API_SCOPES) as ApiScopeName[]).map((scope) => {
+                      const meta = API_SCOPES[scope];
+                      const checked = selectedScopes.includes(scope);
+                      return (
+                        <label
+                          key={scope}
+                          className="flex cursor-pointer items-start gap-3 rounded-md border p-3 transition-colors hover:bg-muted/50 has-[[data-state=checked]]:border-primary/40 has-[[data-state=checked]]:bg-primary/5"
+                        >
+                          <Checkbox
+                            checked={checked}
+                            onCheckedChange={() => toggleScope(scope)}
+                            className="mt-0.5"
+                          />
+                          <div className="flex flex-1 flex-col gap-0.5">
+                            <div className="flex items-center gap-2">
+                              <code className="text-xs font-semibold">{scope}</code>
+                              {"recommended" in meta && meta.recommended && (
+                                <Badge variant="secondary" className="text-xs">Recommended</Badge>
+                              )}
+                              {"danger" in meta && meta.danger && (
+                                <Badge variant="destructive" className="text-xs">Sensitive</Badge>
+                              )}
+                            </div>
+                            <p className="text-xs text-muted-foreground">{meta.description}</p>
+                          </div>
+                        </label>
+                      );
+                    })}
                   </div>
                 </div>
               </div>

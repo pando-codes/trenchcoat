@@ -1,9 +1,26 @@
 export const API_SCOPES = {
-  "write:events": "Push telemetry events",
-  "read:events": "Read telemetry events",
-  "read:sessions": "Read session data",
-  "read:analytics": "Read analytics and aggregates",
-  admin: "Full access to all resources",
+  "write:events": {
+    label: "Write Events",
+    description: "Send telemetry events to the ingestion API. Required for the Claude Code plugin to report session data.",
+    recommended: true,
+  },
+  "read:events": {
+    label: "Read Events",
+    description: "Retrieve raw event records via the API. Not needed for the plugin.",
+  },
+  "read:sessions": {
+    label: "Read Sessions",
+    description: "List and retrieve session records via the API.",
+  },
+  "read:analytics": {
+    label: "Read Analytics",
+    description: "Query overview stats, tool usage breakdowns, and daily aggregates.",
+  },
+  admin: {
+    label: "Admin",
+    description: "Unrestricted access to all endpoints. Only grant to fully trusted applications.",
+    danger: true,
+  },
 } as const;
 
 export type ApiScopeName = keyof typeof API_SCOPES;
