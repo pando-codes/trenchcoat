@@ -389,6 +389,45 @@ class TestPendingStack:
         read_entry = telemetry.pop_pending("s1", "Read")
         assert read_entry["correlation_id"] == "read-1"
 
+    def test_push_with_agent_id_roundtrip(self, isolated_telemetry):
+        telemetry.push_pending("s1", "Agent", "corr-xyz", agent_id="agt-001")
+        entry = telemetry.pop_pending("s1", "Agent")
+        assert entry is not None
+        assert entry["agent_id"] == "agt-001"
+
+    def test_push_without_agent_id_has_no_agent_id_key(self, isolated_telemetry):
+        telemetry.push_pending("s1", "Bash", "corr-abc")
+        entry = telemetry.pop_pending("s1", "Bash")
+        assert "agent_id" not in entry
+
+
+# ---------------------------------------------------------------------------
+# peek_pending_by_tool
+# ---------------------------------------------------------------------------
+
+class TestPeekPendingByTool:
+    def test_peek_returns_entry_without_removing(self, isolated_telemetry):
+        telemetry.push_pending("s1", "Agent", "corr-abc", agent_id="agt-1")
+        peeked = telemetry.peek_pending_by_tool("s1", "Agent")
+        assert peeked is not None
+        assert peeked["agent_id"] == "agt-1"
+        # Entry still present after peek
+        popped = telemetry.pop_pending("s1", "Agent")
+        assert popped is not None
+
+    def test_peek_returns_none_when_no_match(self, isolated_telemetry):
+        telemetry.push_pending("s1", "Bash", "corr-xyz")
+        assert telemetry.peek_pending_by_tool("s1", "Agent") is None
+
+    def test_peek_returns_none_for_missing_session(self, isolated_telemetry):
+        assert telemetry.peek_pending_by_tool("no-session", "Agent") is None
+
+    def test_peek_returns_most_recent_match(self, isolated_telemetry):
+        telemetry.push_pending("s1", "Agent", "corr-1", agent_id="agt-old")
+        telemetry.push_pending("s1", "Agent", "corr-2", agent_id="agt-new")
+        peeked = telemetry.peek_pending_by_tool("s1", "Agent")
+        assert peeked["agent_id"] == "agt-new"
+
 
 # ---------------------------------------------------------------------------
 # cleanup_old_events
@@ -560,12 +599,12 @@ class TestHookIntegration:
         })
         assert r.returncode == 0, f"stderr: {r.stderr}"
 
-    def test_user_prompt_submit_clears_skill_context(self, tmp_path):
-        """UserPromptSubmit → skill context file removed."""
+    def test_user_prompt_submit_clears_active_context(self, tmp_path):
+        """UserPromptSubmit → active context file removed."""
         tc_dir = tmp_path / ".claude" / "trenchcoat"
         tc_dir.mkdir(parents=True, exist_ok=True)
-        ctx_file = tc_dir / ".skill_context_test-s.json"
-        ctx_file.write_text('{"activation_id": "act-abc", "skill_name": "test:skill", "activated_at": "2026-05-20T00:00:00.000+00:00"}')
+        ctx_file = tc_dir / ".active_context_test-s.json"
+        ctx_file.write_text('{"spawner_id": "act-abc", "spawner_type": "skill", "spawner_name": "test:skill", "activated_at": "2026-05-20T00:00:00.000+00:00"}')
         assert ctx_file.exists()
 
         r = self._run_hook(tmp_path, "user_prompt_submit.py", {
@@ -573,7 +612,7 @@ class TestHookIntegration:
             "prompt": "do something",
         })
         assert r.returncode == 0, f"stderr: {r.stderr}"
-        assert not ctx_file.exists(), "skill context must be cleared on new user prompt"
+        assert not ctx_file.exists(), "active context must be cleared on new user prompt"
 
     def test_post_tool_use_queues_event_when_api_key_set(self, tmp_path):
         """End-to-end: api_key set → event written to push queue."""
@@ -615,29 +654,28 @@ class TestHookIntegration:
         assert skill_events[0]["data"]["skill_name"] == "superpowers:brainstorming"
         assert "activation_id" in skill_events[0]["data"]
 
-    def test_pre_tool_use_skill_tool_writes_context_file(self, tmp_path):
-        """Skill tool call → context file written at ~/.claude/trenchcoat/.skill_context_{session_id}.json."""
+    def test_pre_tool_use_skill_tool_writes_active_context_file(self, tmp_path):
+        """Skill tool call → .active_context_{session_id}.json written."""
         r = self._run_hook(tmp_path, "pre_tool_use.py", {
             "session_id": "test-s",
             "tool_name": "Skill",
             "tool_input": {"skill": "superpowers:brainstorming", "args": ""},
         })
         assert r.returncode == 0, f"stderr: {r.stderr}"
-        ctx_file = tmp_path / ".claude" / "trenchcoat" / ".skill_context_test-s.json"
-        assert ctx_file.exists(), "skill context file must be written"
+        ctx_file = tmp_path / ".claude" / "trenchcoat" / ".active_context_test-s.json"
+        assert ctx_file.exists(), "active context file must be written"
         ctx = json.loads(ctx_file.read_text())
-        assert ctx["skill_name"] == "superpowers:brainstorming"
-        assert "activation_id" in ctx
+        assert ctx["spawner_name"] == "superpowers:brainstorming"
+        assert ctx["spawner_type"] == "skill"
+        assert "spawner_id" in ctx
 
     def test_pre_tool_use_non_skill_tool_with_active_context_tagged(self, tmp_path):
-        """Non-Skill tool call when context is active → active_skill_id in event data."""
-        # First, invoke Skill to write context
+        """Non-Skill tool call when context is active → spawner_id in event data."""
         self._run_hook(tmp_path, "pre_tool_use.py", {
             "session_id": "test-s",
             "tool_name": "Skill",
             "tool_input": {"skill": "superpowers:brainstorming", "args": ""},
         })
-        # Then invoke a regular tool
         r = self._run_hook(tmp_path, "pre_tool_use.py", {
             "session_id": "test-s",
             "tool_name": "Read",
@@ -645,14 +683,14 @@ class TestHookIntegration:
         })
         assert r.returncode == 0, f"stderr: {r.stderr}"
         tc_dir = tmp_path / ".claude" / "trenchcoat"
-        jsonl_files = list(tc_dir.glob("events-*.jsonl"))
-        events = [json.loads(l) for l in jsonl_files[0].read_text().splitlines() if l.strip()]
-        tool_start_events = [e for e in events if e["event"] == "tool_start" and e["data"].get("tool_name") == "Read"]
-        assert len(tool_start_events) == 1
-        assert "active_skill_id" in tool_start_events[0]["data"]
+        events = [json.loads(l) for l in list(tc_dir.glob("events-*.jsonl"))[0].read_text().splitlines() if l.strip()]
+        read_starts = [e for e in events if e["event"] == "tool_start" and e["data"].get("tool_name") == "Read"]
+        assert len(read_starts) == 1
+        assert "spawner_id" in read_starts[0]["data"]
+        assert read_starts[0]["data"]["spawner_type"] == "skill"
 
     def test_pre_tool_use_non_skill_without_context_not_tagged(self, tmp_path):
-        """Non-Skill tool call with no active context → no active_skill_id in event data."""
+        """Non-Skill tool call with no active context → no spawner_id in event data."""
         r = self._run_hook(tmp_path, "pre_tool_use.py", {
             "session_id": "test-s",
             "tool_name": "Bash",
@@ -660,19 +698,17 @@ class TestHookIntegration:
         })
         assert r.returncode == 0, f"stderr: {r.stderr}"
         tc_dir = tmp_path / ".claude" / "trenchcoat"
-        jsonl_files = list(tc_dir.glob("events-*.jsonl"))
-        events = [json.loads(l) for l in jsonl_files[0].read_text().splitlines() if l.strip()]
-        tool_start_events = [e for e in events if e["event"] == "tool_start"]
-        assert len(tool_start_events) == 1
-        assert "active_skill_id" not in tool_start_events[0]["data"]
+        events = [json.loads(l) for l in list(tc_dir.glob("events-*.jsonl"))[0].read_text().splitlines() if l.strip()]
+        tool_starts = [e for e in events if e["event"] == "tool_start"]
+        assert len(tool_starts) == 1
+        assert "spawner_id" not in tool_starts[0]["data"]
 
-    def test_post_tool_use_tags_active_skill_id_when_context_set(self, tmp_path):
-        """PostToolUse with active skill context → active_skill_id in tool_end event."""
-        # Write a context file directly to simulate an active skill
+    def test_post_tool_use_tags_spawner_when_context_set(self, tmp_path):
+        """PostToolUse with active context → spawner_id + spawner_type in tool_end event."""
         tc_dir = tmp_path / ".claude" / "trenchcoat"
         tc_dir.mkdir(parents=True, exist_ok=True)
-        (tc_dir / ".skill_context_test-s.json").write_text(
-            '{"activation_id": "act-xyz", "skill_name": "test:skill", "activated_at": "2026-05-20T00:00:00.000+00:00"}'
+        (tc_dir / ".active_context_test-s.json").write_text(
+            '{"spawner_id": "act-xyz", "spawner_type": "skill", "spawner_name": "test:skill", "activated_at": "2026-05-20T00:00:00.000+00:00"}'
         )
         r = self._run_hook(tmp_path, "post_tool_use.py", {
             "session_id": "test-s",
@@ -681,15 +717,14 @@ class TestHookIntegration:
             "tool_response": "hi",
         })
         assert r.returncode == 0, f"stderr: {r.stderr}"
-        jsonl_files = list(tc_dir.glob("events-*.jsonl"))
-        assert len(jsonl_files) == 1
-        events = [json.loads(l) for l in jsonl_files[0].read_text().splitlines() if l.strip()]
-        tool_end_events = [e for e in events if e["event"] == "tool_end"]
-        assert len(tool_end_events) == 1
-        assert tool_end_events[0]["data"].get("active_skill_id") == "act-xyz"
+        events = [json.loads(l) for l in list(tc_dir.glob("events-*.jsonl"))[0].read_text().splitlines() if l.strip()]
+        tool_ends = [e for e in events if e["event"] == "tool_end"]
+        assert len(tool_ends) == 1
+        assert tool_ends[0]["data"].get("spawner_id") == "act-xyz"
+        assert tool_ends[0]["data"].get("spawner_type") == "skill"
 
     def test_post_tool_use_no_tag_without_context(self, tmp_path):
-        """PostToolUse with no active context → no active_skill_id in tool_end event."""
+        """PostToolUse with no active context → no spawner_id in tool_end event."""
         r = self._run_hook(tmp_path, "post_tool_use.py", {
             "session_id": "test-s",
             "tool_name": "Bash",
@@ -698,51 +733,77 @@ class TestHookIntegration:
         })
         assert r.returncode == 0, f"stderr: {r.stderr}"
         tc_dir = tmp_path / ".claude" / "trenchcoat"
-        jsonl_files = list(tc_dir.glob("events-*.jsonl"))
-        events = [json.loads(l) for l in jsonl_files[0].read_text().splitlines() if l.strip()]
-        tool_end_events = [e for e in events if e["event"] == "tool_end"]
-        assert len(tool_end_events) == 1
-        assert "active_skill_id" not in tool_end_events[0]["data"]
+        events = [json.loads(l) for l in list(tc_dir.glob("events-*.jsonl"))[0].read_text().splitlines() if l.strip()]
+        tool_ends = [e for e in events if e["event"] == "tool_end"]
+        assert len(tool_ends) == 1
+        assert "spawner_id" not in tool_ends[0]["data"]
 
 
 # ---------------------------------------------------------------------------
-# Skill context helpers
+# Active context helpers
 # ---------------------------------------------------------------------------
 
-class TestSkillContext:
+class TestActiveContext:
     def test_write_then_read_roundtrip(self, isolated_telemetry):
-        telemetry.write_skill_context("s1", "act-abc", "superpowers:brainstorming")
-        ctx = telemetry.read_skill_context("s1")
+        telemetry.write_active_context("s1", "act-abc", "skill", "superpowers:brainstorming")
+        ctx = telemetry.read_active_context("s1")
         assert ctx is not None
-        assert ctx["activation_id"] == "act-abc"
-        assert ctx["skill_name"] == "superpowers:brainstorming"
+        assert ctx["spawner_id"] == "act-abc"
+        assert ctx["spawner_type"] == "skill"
+        assert ctx["spawner_name"] == "superpowers:brainstorming"
 
     def test_read_returns_none_when_no_context(self, isolated_telemetry):
-        assert telemetry.read_skill_context("s1") is None
+        assert telemetry.read_active_context("s1") is None
 
     def test_clear_removes_context(self, isolated_telemetry):
-        telemetry.write_skill_context("s1", "act-abc", "superpowers:brainstorming")
-        telemetry.clear_skill_context("s1")
-        assert telemetry.read_skill_context("s1") is None
+        telemetry.write_active_context("s1", "act-abc", "skill", "superpowers:brainstorming")
+        telemetry.clear_active_context("s1")
+        assert telemetry.read_active_context("s1") is None
 
     def test_clear_is_safe_when_no_context(self, isolated_telemetry):
-        telemetry.clear_skill_context("no-such-session")  # must not raise
+        telemetry.clear_active_context("no-such-session")  # must not raise
 
     def test_contexts_are_session_scoped(self, isolated_telemetry):
-        telemetry.write_skill_context("s1", "act-1", "skill-a")
-        telemetry.write_skill_context("s2", "act-2", "skill-b")
-        assert telemetry.read_skill_context("s1")["activation_id"] == "act-1"
-        assert telemetry.read_skill_context("s2")["activation_id"] == "act-2"
+        telemetry.write_active_context("s1", "act-1", "skill", "skill-a")
+        telemetry.write_active_context("s2", "act-2", "agent", "Agent")
+        assert telemetry.read_active_context("s1")["spawner_id"] == "act-1"
+        assert telemetry.read_active_context("s2")["spawner_id"] == "act-2"
 
     def test_write_overwrites_previous(self, isolated_telemetry):
-        telemetry.write_skill_context("s1", "act-1", "skill-a")
-        telemetry.write_skill_context("s1", "act-2", "skill-b")
-        ctx = telemetry.read_skill_context("s1")
-        assert ctx["activation_id"] == "act-2"
-        assert ctx["skill_name"] == "skill-b"
+        telemetry.write_active_context("s1", "act-1", "skill", "skill-a")
+        telemetry.write_active_context("s1", "act-2", "skill", "skill-b")
+        ctx = telemetry.read_active_context("s1")
+        assert ctx["spawner_id"] == "act-2"
+        assert ctx["spawner_name"] == "skill-b"
 
-    def test_skill_use_passthrough_in_event_type_map(self, isolated_telemetry, with_api_key):
-        telemetry.write_event("skill_use", "s1", {"skill_name": "test:skill"})
-        queue = isolated_telemetry / ".push_queue.jsonl"
-        queued = [json.loads(l) for l in queue.read_text().splitlines() if l.strip()]
-        assert queued[0]["event"] == "skill_use"  # must not be remapped
+
+# ---------------------------------------------------------------------------
+# Agent spawn context helpers
+# ---------------------------------------------------------------------------
+
+class TestAgentSpawnContext:
+    def test_write_then_read_roundtrip(self, isolated_telemetry):
+        telemetry.write_agent_spawn_context("parent-s1", "agt-abc", "act-xyz", "skill")
+        ctx = telemetry.read_agent_spawn_context()
+        assert ctx is not None
+        assert ctx["parent_session_id"] == "parent-s1"
+        assert ctx["agent_id"] == "agt-abc"
+        assert ctx["spawner_id"] == "act-xyz"
+        assert ctx["spawner_type"] == "skill"
+
+    def test_write_without_spawner(self, isolated_telemetry):
+        telemetry.write_agent_spawn_context("parent-s1", "agt-abc", None, None)
+        ctx = telemetry.read_agent_spawn_context()
+        assert ctx["parent_session_id"] == "parent-s1"
+        assert "spawner_id" not in ctx
+
+    def test_read_returns_none_when_absent(self, isolated_telemetry):
+        assert telemetry.read_agent_spawn_context() is None
+
+    def test_clear_removes_file(self, isolated_telemetry):
+        telemetry.write_agent_spawn_context("p", "a", None, None)
+        telemetry.clear_agent_spawn_context()
+        assert telemetry.read_agent_spawn_context() is None
+
+    def test_clear_safe_when_absent(self, isolated_telemetry):
+        telemetry.clear_agent_spawn_context()  # must not raise
