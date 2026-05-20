@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""PreToolUse hook — push to pending stack, log tool_start, detect skill invocations."""
+"""PreToolUse hook — push to pending stack, log tool_start, detect skill/agent invocations."""
 
 import sys
 from pathlib import Path
@@ -9,7 +9,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "lib"))
 from telemetry import (
     read_hook_input, is_enabled, load_config, write_event,
     sanitize_tool_input, push_pending, generate_correlation_id,
-    write_skill_context, read_skill_context,
+    write_active_context, read_active_context,
+    write_agent_spawn_context,
 )
 
 
@@ -19,44 +20,59 @@ def main():
         return
 
     session_id = hook_input.get("session_id", "unknown")
-    tool_name = hook_input.get("tool_name", "unknown")
+    tool_name  = hook_input.get("tool_name", "unknown")
     tool_input = hook_input.get("tool_input") or {}
 
-    config = load_config()
+    config         = load_config()
     correlation_id = generate_correlation_id()
 
-    # Read context BEFORE updating it — so the Skill tool's own tool_start
-    # gets tagged with the parent skill (if nested), not itself.
-    ctx = read_skill_context(session_id)
-    active_skill_id = ctx["activation_id"] if ctx else None
+    # Read context BEFORE updating it — Skill/Agent tool_start is tagged with
+    # the parent spawner (not itself), matching behavior of nested invocations.
+    ctx          = read_active_context(session_id)
+    spawner_id   = ctx["spawner_id"]   if ctx else None
+    spawner_type = ctx["spawner_type"] if ctx else None
 
-    # Push to pending stack for PostToolUse correlation
-    push_pending(session_id, tool_name, correlation_id)
-
-    # Build base tool_start data
     tool_data: dict = {
-        "tool_name": tool_name,
+        "tool_name":     tool_name,
         "correlation_id": correlation_id,
         "input_preview": sanitize_tool_input(tool_input, config),
     }
-    if active_skill_id:
-        tool_data["active_skill_id"] = active_skill_id
+    if spawner_id:
+        tool_data["spawner_id"]   = spawner_id
+        tool_data["spawner_type"] = spawner_type
 
-    write_event("tool_start", session_id, tool_data)
+    if tool_name == "Agent":
+        agent_id = generate_correlation_id()
+        tool_data["agent_id"] = agent_id
+        push_pending(session_id, tool_name, correlation_id, agent_id=agent_id)
+        write_event("tool_start", session_id, tool_data)
+        write_agent_spawn_context(
+            parent_session_id=session_id,
+            agent_id=agent_id,
+            spawner_id=spawner_id,
+            spawner_type=spawner_type,
+        )
 
-    # Detect Skill invocations — emit skill_use and update context
-    if tool_name == "Skill":
-        skill_name = tool_input.get("skill", "unknown")
-        args = tool_input.get("args", "")
+    elif tool_name == "Skill":
         activation_id = generate_correlation_id()
-
-        write_event("skill_use", session_id, {
-            "skill_name": skill_name,
+        skill_name    = tool_input.get("skill", "unknown")
+        args          = tool_input.get("args", "")
+        push_pending(session_id, tool_name, correlation_id)
+        write_event("tool_start", session_id, tool_data)
+        skill_data: dict = {
+            "skill_name":   skill_name,
             "args_preview": str(args)[:100] if args else None,
             "activation_id": activation_id,
-        })
+        }
+        if spawner_id:
+            skill_data["spawner_id"]   = spawner_id
+            skill_data["spawner_type"] = spawner_type
+        write_event("skill_use", session_id, skill_data)
+        write_active_context(session_id, activation_id, "skill", skill_name)
 
-        write_skill_context(session_id, activation_id, skill_name)
+    else:
+        push_pending(session_id, tool_name, correlation_id)
+        write_event("tool_start", session_id, tool_data)
 
 
 if __name__ == "__main__":
