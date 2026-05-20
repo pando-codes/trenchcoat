@@ -55,6 +55,7 @@ _EVENT_TYPE_MAP = {
     "tool_end": "tool_result",
     "prompt": "prompt_submit",
     "stop": "assistant_stop",
+    "skill_use": "skill_use",
 }
 
 # Module-level sequence counter (per-process)
@@ -351,6 +352,39 @@ def pop_pending(session_id: str, tool_name: str) -> dict | None:
 
 def generate_correlation_id() -> str:
     return uuid.uuid4().hex[:12]
+
+
+# --- Skill activation context ---
+
+def write_skill_context(session_id: str, activation_id: str, skill_name: str) -> None:
+    """Write the current skill activation context for a session."""
+    TRENCHCOAT_DIR.mkdir(parents=True, exist_ok=True)
+    ctx_file = TRENCHCOAT_DIR / f".skill_context_{session_id}.json"
+    ctx_file.write_text(json.dumps({
+        "activation_id": activation_id,
+        "skill_name": skill_name,
+        "activated_at": _now_iso(),
+    }))
+
+
+def read_skill_context(session_id: str) -> dict | None:
+    """Return the active skill context for a session, or None if not set."""
+    ctx_file = TRENCHCOAT_DIR / f".skill_context_{session_id}.json"
+    if not ctx_file.exists():
+        return None
+    try:
+        return json.loads(ctx_file.read_text())
+    except (json.JSONDecodeError, OSError):
+        return None
+
+
+def clear_skill_context(session_id: str) -> None:
+    """Remove the skill activation context for a session."""
+    ctx_file = TRENCHCOAT_DIR / f".skill_context_{session_id}.json"
+    try:
+        ctx_file.unlink(missing_ok=True)
+    except OSError:
+        pass
 
 
 # --- Retention cleanup ---

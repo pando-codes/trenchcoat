@@ -582,3 +582,46 @@ class TestHookIntegration:
         assert r.returncode == 0
         queue = tmp_path / ".claude" / "trenchcoat" / ".push_queue.jsonl"
         assert not queue.exists()
+
+
+# ---------------------------------------------------------------------------
+# Skill context helpers
+# ---------------------------------------------------------------------------
+
+class TestSkillContext:
+    def test_write_then_read_roundtrip(self, isolated_telemetry):
+        telemetry.write_skill_context("s1", "act-abc", "superpowers:brainstorming")
+        ctx = telemetry.read_skill_context("s1")
+        assert ctx is not None
+        assert ctx["activation_id"] == "act-abc"
+        assert ctx["skill_name"] == "superpowers:brainstorming"
+
+    def test_read_returns_none_when_no_context(self, isolated_telemetry):
+        assert telemetry.read_skill_context("s1") is None
+
+    def test_clear_removes_context(self, isolated_telemetry):
+        telemetry.write_skill_context("s1", "act-abc", "superpowers:brainstorming")
+        telemetry.clear_skill_context("s1")
+        assert telemetry.read_skill_context("s1") is None
+
+    def test_clear_is_safe_when_no_context(self, isolated_telemetry):
+        telemetry.clear_skill_context("no-such-session")  # must not raise
+
+    def test_contexts_are_session_scoped(self, isolated_telemetry):
+        telemetry.write_skill_context("s1", "act-1", "skill-a")
+        telemetry.write_skill_context("s2", "act-2", "skill-b")
+        assert telemetry.read_skill_context("s1")["activation_id"] == "act-1"
+        assert telemetry.read_skill_context("s2")["activation_id"] == "act-2"
+
+    def test_write_overwrites_previous(self, isolated_telemetry):
+        telemetry.write_skill_context("s1", "act-1", "skill-a")
+        telemetry.write_skill_context("s1", "act-2", "skill-b")
+        ctx = telemetry.read_skill_context("s1")
+        assert ctx["activation_id"] == "act-2"
+        assert ctx["skill_name"] == "skill-b"
+
+    def test_skill_use_passthrough_in_event_type_map(self, isolated_telemetry, with_api_key):
+        telemetry.write_event("skill_use", "s1", {"skill_name": "test:skill"})
+        queue = isolated_telemetry / ".push_queue.jsonl"
+        queued = [json.loads(l) for l in queue.read_text().splitlines() if l.strip()]
+        assert queued[0]["event"] == "skill_use"  # must not be remapped
