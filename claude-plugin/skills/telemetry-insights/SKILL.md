@@ -34,6 +34,6 @@ Based on the loaded data, answer the user's question with specific numbers and i
 - **Performance**: Which tools have high latency? Are there correlation between tool usage and session duration?
 - **Context pressure**: How often do compactions happen? Do they correlate with longer sessions?
 
-If the user's question requires looking at raw events, read the JSONL files directly from `~/.claude/telemetry/events-*.jsonl`.
+If the user's question requires looking at raw events, read the JSONL files directly from `~/.claude/trenchcoat/events-*.jsonl`.
 
 Always provide concrete numbers, not vague observations. Use tables and charts-in-text where helpful.

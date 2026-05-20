@@ -33,11 +33,11 @@ import telemetry
 @pytest.fixture(autouse=True)
 def isolated_telemetry(tmp_path, monkeypatch):
     """Redirect every module-level path constant to a throwaway temp dir."""
-    td = tmp_path / "telemetry"
+    td = tmp_path / "trenchcoat"
     td.mkdir()
     (td / ".pending").mkdir()
 
-    monkeypatch.setattr(telemetry, "TELEMETRY_DIR", td)
+    monkeypatch.setattr(telemetry, "TRENCHCOAT_DIR", td)
     monkeypatch.setattr(telemetry, "CONFIG_PATH", td / "config.json")
     monkeypatch.setattr(telemetry, "SESSIONS_PATH", td / "sessions.json")
     monkeypatch.setattr(telemetry, "PENDING_DIR", td / ".pending")
@@ -496,7 +496,7 @@ class TestHookIntegration:
     """Run each hook with valid stdin and assert exit 0.
 
     HOME is overridden to a temp dir so hooks write to an isolated telemetry dir
-    rather than the real ~/.claude/telemetry.
+    rather than the real ~/.claude/trenchcoat.
     """
 
     def _run_hook(self, tmp_path, hook_name, stdin_data, extra_env=None):
@@ -567,7 +567,7 @@ class TestHookIntegration:
             "tool_input": {"command": "echo hi"}, "tool_response": "hi",
         }, extra_env={"TRENCHCOAT_API_KEY": "ct_live_test"})
         assert r.returncode == 0
-        queue = tmp_path / ".claude" / "telemetry" / ".push_queue.jsonl"
+        queue = tmp_path / ".claude" / "trenchcoat" / ".push_queue.jsonl"
         assert queue.exists(), "Push queue must be created when api_key is set"
         events = [json.loads(l) for l in queue.read_text().splitlines() if l.strip()]
         assert len(events) == 1
@@ -580,5 +580,5 @@ class TestHookIntegration:
             "tool_input": {"command": "echo hi"}, "tool_response": "hi",
         })
         assert r.returncode == 0
-        queue = tmp_path / ".claude" / "telemetry" / ".push_queue.jsonl"
+        queue = tmp_path / ".claude" / "trenchcoat" / ".push_queue.jsonl"
         assert not queue.exists()

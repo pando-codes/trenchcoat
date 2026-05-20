@@ -18,14 +18,18 @@ from collections import Counter
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
-# Paths
-TELEMETRY_DIR = Path.home() / ".claude" / "telemetry"
-CONFIG_PATH = TELEMETRY_DIR / "config.json"
-SESSIONS_PATH = TELEMETRY_DIR / "sessions.json"
-PENDING_DIR = TELEMETRY_DIR / ".pending"
-PUSH_QUEUE_PATH = TELEMETRY_DIR / ".push_queue.jsonl"
+# Paths — all plugin data lives under ~/.claude/trenchcoat/ (our own namespace).
+# Do NOT use ~/.claude/telemetry/; that name risks conflating with Claude Code's
+# own OpenTelemetry feature (CLAUDE_CODE_ENABLE_TELEMETRY / OTEL_* env vars).
+TRENCHCOAT_DIR = Path.home() / ".claude" / "trenchcoat"
+CONFIG_PATH = TRENCHCOAT_DIR / "config.json"
+SESSIONS_PATH = TRENCHCOAT_DIR / "sessions.json"
+PENDING_DIR = TRENCHCOAT_DIR / ".pending"
+PUSH_QUEUE_PATH = TRENCHCOAT_DIR / ".push_queue.jsonl"
 
-# Defaults
+# Non-credential config only. Credentials live in ~/.claude/settings.json env block:
+#   TRENCHCOAT_API_KEY  — ct_live_... key
+#   TRENCHCOAT_API_URL  — SaaS endpoint (default: https://app.trenchcoat.io)
 DEFAULT_CONFIG = {
     "enabled": True,
     "privacy": {
@@ -34,13 +38,8 @@ DEFAULT_CONFIG = {
         "log_tool_results": False,  # only log result size
     },
     "retention_days": 30,
-    "webhook_url": None,
     "push_batch_size": 100,  # events per batch POST
 }
-
-# Credentials are read from environment variables, not config.json:
-#   TRENCHCOAT_API_KEY  — ct_live_... key (set in ~/.claude/.env)
-#   TRENCHCOAT_API_URL  — SaaS endpoint (default: https://app.trenchcoat.io)
 _DEFAULT_API_URL = "https://app.trenchcoat.io"
 
 
@@ -72,7 +71,7 @@ def _today_str() -> str:
 
 def load_config() -> dict:
     """Load config, creating defaults if missing."""
-    TELEMETRY_DIR.mkdir(parents=True, exist_ok=True)
+    TRENCHCOAT_DIR.mkdir(parents=True, exist_ok=True)
     if CONFIG_PATH.exists():
         try:
             return json.loads(CONFIG_PATH.read_text())
@@ -119,7 +118,7 @@ def sanitize_tool_result(tool_result) -> dict:
 
 def write_event(event_type: str, session_id: str, data: dict) -> None:
     """Append a single event to today's JSONL file with flock."""
-    TELEMETRY_DIR.mkdir(parents=True, exist_ok=True)
+    TRENCHCOAT_DIR.mkdir(parents=True, exist_ok=True)
 
     event = {
         "ts": _now_iso(),
@@ -130,7 +129,7 @@ def write_event(event_type: str, session_id: str, data: dict) -> None:
     }
 
     line = json.dumps(event, default=str) + "\n"
-    event_file = TELEMETRY_DIR / f"events-{_today_str()}.jsonl"
+    event_file = TRENCHCOAT_DIR / f"events-{_today_str()}.jsonl"
 
     fd = os.open(str(event_file), os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o644)
     try:
@@ -287,7 +286,7 @@ def _fire_webhook(url: str, event: dict) -> None:
 
 def update_session_index(session_id: str, data: dict) -> None:
     """Update the lightweight session index."""
-    TELEMETRY_DIR.mkdir(parents=True, exist_ok=True)
+    TRENCHCOAT_DIR.mkdir(parents=True, exist_ok=True)
 
     sessions = {}
     if SESSIONS_PATH.exists():
@@ -362,7 +361,7 @@ def cleanup_old_events(retention_days: int = 30) -> int:
     cutoff_str = cutoff.strftime("%Y-%m-%d")
     deleted = 0
 
-    for f in TELEMETRY_DIR.glob("events-*.jsonl"):
+    for f in TRENCHCOAT_DIR.glob("events-*.jsonl"):
         # Extract date from filename: events-YYYY-MM-DD.jsonl
         date_part = f.stem.replace("events-", "")
         if date_part < cutoff_str:

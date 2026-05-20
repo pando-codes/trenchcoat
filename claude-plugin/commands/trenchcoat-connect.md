@@ -29,7 +29,7 @@ Example result:
 }
 ```
 
-Omit `TRENCHCOAT_API_URL` if using the default hosted instance. Never put credentials in `~/.claude/telemetry/config.json`.
+Omit `TRENCHCOAT_API_URL` if using the default hosted instance. Never put credentials in `~/.claude/trenchcoat/config.json` — that file is for non-secret settings only.
 
 3. **Test the connection:**
 
@@ -50,7 +50,7 @@ Tell the user:
 - Credentials are stored in `~/.claude/settings.json` under `env` (Claude Code's standard secrets location)
 - Events will now be queued locally during each session
 - On session end, all queued events are batch-pushed to the SaaS
-- Local JSONL files in `~/.claude/telemetry/` are still preserved
+- Local JSONL files in `~/.claude/trenchcoat/` are still preserved
 - They can view their analytics at the dashboard after their next session
 - A new Claude Code session is required for the env vars to take effect
 
