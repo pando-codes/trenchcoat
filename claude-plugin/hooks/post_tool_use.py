@@ -9,7 +9,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "lib"))
 
 from telemetry import (
     read_hook_input, is_enabled, write_event,
-    sanitize_tool_result, pop_pending, read_skill_context,
+    sanitize_tool_result, pop_pending, read_active_context,
+    clear_agent_spawn_context,
 )
 
 
@@ -19,34 +20,38 @@ def main():
         return
 
     session_id = hook_input.get("session_id", "unknown")
-    tool_name = hook_input.get("tool_name", "unknown")
+    tool_name  = hook_input.get("tool_name", "unknown")
     tool_result = hook_input.get("tool_result")
 
-    # Pop matching pending entry
     pending = pop_pending(session_id, tool_name)
 
     correlation_id = None
-    duration_ms = None
+    duration_ms    = None
     if pending:
         correlation_id = pending.get("correlation_id")
-        started_ns = pending.get("started_at")
+        started_ns     = pending.get("started_at")
         if started_ns:
             duration_ms = (time.monotonic_ns() - started_ns) / 1_000_000
 
     result_info = sanitize_tool_result(tool_result)
 
     event_data: dict = {
-        "tool_name": tool_name,
+        "tool_name":     tool_name,
         "correlation_id": correlation_id,
-        "duration_ms": round(duration_ms, 1) if duration_ms is not None else None,
-        "result_size": result_info.get("size"),
+        "duration_ms":   round(duration_ms, 1) if duration_ms is not None else None,
+        "result_size":   result_info.get("size"),
     }
 
-    ctx = read_skill_context(session_id)
+    ctx = read_active_context(session_id)
     if ctx:
-        event_data["active_skill_id"] = ctx["activation_id"]
+        event_data["spawner_id"]   = ctx["spawner_id"]
+        event_data["spawner_type"] = ctx["spawner_type"]
 
     write_event("tool_end", session_id, event_data)
+
+    if tool_name == "Agent":
+        # Guard: clear spawn context in case the child process crashed before reading it.
+        clear_agent_spawn_context()
 
 
 if __name__ == "__main__":

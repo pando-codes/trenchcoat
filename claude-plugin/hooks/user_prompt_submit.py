@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""UserPromptSubmit hook — log prompt metadata, clear skill activation context."""
+"""UserPromptSubmit hook — log prompt metadata, clear active spawner context."""
 
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "lib"))
 
-from telemetry import read_hook_input, is_enabled, load_config, write_event, clear_skill_context
+from telemetry import read_hook_input, is_enabled, load_config, write_event, clear_active_context
 
 
 def main():
@@ -15,17 +15,16 @@ def main():
         return
 
     session_id = hook_input.get("session_id", "unknown")
-    prompt = hook_input.get("prompt", "")
+    prompt     = hook_input.get("prompt", "")
 
-    # New user turn — close any open skill activation window
-    clear_skill_context(session_id)
+    clear_active_context(session_id)
 
-    config = load_config()
+    config      = load_config()
     log_content = config.get("privacy", {}).get("log_prompt_content", False)
 
     data = {
         "prompt_length": len(prompt),
-        "word_count": len(prompt.split()),
+        "word_count":    len(prompt.split()),
     }
 
     if log_content:
