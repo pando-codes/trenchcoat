@@ -181,6 +181,62 @@ def _check_connectivity(api_url: str, api_key: str) -> list[Check]:
     return checks
 
 
+def _count_event_type_in_recent_files(event_type: str, days: int = 7) -> tuple[int, bool]:
+    """Return (count, had_any_files) for the given event type in recent JSONL files."""
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%d")
+    recent_files = sorted(
+        f for f in TRENCHCOAT_DIR.glob("events-*.jsonl")
+        if f.stem.replace("events-", "") >= cutoff
+    )
+    if not recent_files:
+        return 0, False
+    count = 0
+    for f in recent_files:
+        try:
+            for line in f.read_text().splitlines():
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    if json.loads(line).get("event") == event_type:
+                        count += 1
+                except json.JSONDecodeError:
+                    continue
+        except OSError:
+            continue
+    return count, True
+
+
+def _check_skill_invocations() -> Check:
+    if not TRENCHCOAT_DIR.exists():
+        return Check("Skill invocations", "info", "No data directory yet")
+    count, had_files = _count_event_type_in_recent_files("skill_use")
+    if count > 0:
+        return Check("Skill invocations", "ok", f"{count} skill_use event(s) in the last 7 days")
+    if had_files:
+        return Check(
+            "Skill invocations", "warn",
+            "No skill_use events in the last 7 days",
+            "Invoke any skill to confirm tracking; check that pre_tool_use hook is installed",
+        )
+    return Check("Skill invocations", "info", "No recent event files to check")
+
+
+def _check_agent_invocations() -> Check:
+    if not TRENCHCOAT_DIR.exists():
+        return Check("Agent invocations", "info", "No data directory yet")
+    count, had_files = _count_event_type_in_recent_files("subagent_stop")
+    if count > 0:
+        return Check("Agent invocations", "ok", f"{count} subagent_stop event(s) in the last 7 days")
+    if had_files:
+        return Check(
+            "Agent invocations", "warn",
+            "No subagent_stop events in the last 7 days",
+            "Agent invocations are tracked via the SubagentStop hook; verify the hook is installed",
+        )
+    return Check("Agent invocations", "info", "No recent event files to check")
+
+
 def _check_local_data() -> list[Check]:
     checks: list[Check] = []
 
@@ -297,11 +353,12 @@ def run_verify() -> int:
     url_check, api_url = _check_api_url()
     conn_checks = _check_connectivity(api_url, api_key)
     data_checks = _check_local_data()
+    coverage_checks = [_check_skill_invocations(), _check_agent_invocations()]
 
     checks = [config_check]
     if config:
         checks.append(_check_enabled(config))
-    checks += [key_check, url_check] + conn_checks + data_checks
+    checks += [key_check, url_check] + conn_checks + data_checks + coverage_checks
 
     for c in checks:
         print(c)
@@ -343,6 +400,7 @@ def run_doctor() -> int:
         ("Hooks", _check_hooks()),
         ("Local Data", _check_local_data()),
         ("API Connectivity", _check_connectivity(api_url, api_key)),
+        ("Event Coverage", [_check_skill_invocations(), _check_agent_invocations()]),
     ]
 
     all_checks: list[Check] = []
