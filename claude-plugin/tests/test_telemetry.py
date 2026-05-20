@@ -583,6 +583,74 @@ class TestHookIntegration:
         queue = tmp_path / ".claude" / "trenchcoat" / ".push_queue.jsonl"
         assert not queue.exists()
 
+    def test_pre_tool_use_skill_tool_emits_skill_use_event(self, tmp_path):
+        """Skill tool call → skill_use event written to JSONL."""
+        r = self._run_hook(tmp_path, "pre_tool_use.py", {
+            "session_id": "test-s",
+            "tool_name": "Skill",
+            "tool_input": {"skill": "superpowers:brainstorming", "args": "help me plan"},
+        })
+        assert r.returncode == 0, f"stderr: {r.stderr}"
+        tc_dir = tmp_path / ".claude" / "trenchcoat"
+        jsonl_files = list(tc_dir.glob("events-*.jsonl"))
+        assert len(jsonl_files) == 1
+        events = [json.loads(l) for l in jsonl_files[0].read_text().splitlines() if l.strip()]
+        skill_events = [e for e in events if e["event"] == "skill_use"]
+        assert len(skill_events) == 1
+        assert skill_events[0]["data"]["skill_name"] == "superpowers:brainstorming"
+        assert "activation_id" in skill_events[0]["data"]
+
+    def test_pre_tool_use_skill_tool_writes_context_file(self, tmp_path):
+        """Skill tool call → context file written at ~/.claude/trenchcoat/.skill_context_{session_id}.json."""
+        r = self._run_hook(tmp_path, "pre_tool_use.py", {
+            "session_id": "test-s",
+            "tool_name": "Skill",
+            "tool_input": {"skill": "superpowers:brainstorming", "args": ""},
+        })
+        assert r.returncode == 0, f"stderr: {r.stderr}"
+        ctx_file = tmp_path / ".claude" / "trenchcoat" / ".skill_context_test-s.json"
+        assert ctx_file.exists(), "skill context file must be written"
+        ctx = json.loads(ctx_file.read_text())
+        assert ctx["skill_name"] == "superpowers:brainstorming"
+        assert "activation_id" in ctx
+
+    def test_pre_tool_use_non_skill_tool_with_active_context_tagged(self, tmp_path):
+        """Non-Skill tool call when context is active → active_skill_id in event data."""
+        # First, invoke Skill to write context
+        self._run_hook(tmp_path, "pre_tool_use.py", {
+            "session_id": "test-s",
+            "tool_name": "Skill",
+            "tool_input": {"skill": "superpowers:brainstorming", "args": ""},
+        })
+        # Then invoke a regular tool
+        r = self._run_hook(tmp_path, "pre_tool_use.py", {
+            "session_id": "test-s",
+            "tool_name": "Read",
+            "tool_input": {"file_path": "/tmp/foo.py"},
+        })
+        assert r.returncode == 0, f"stderr: {r.stderr}"
+        tc_dir = tmp_path / ".claude" / "trenchcoat"
+        jsonl_files = list(tc_dir.glob("events-*.jsonl"))
+        events = [json.loads(l) for l in jsonl_files[0].read_text().splitlines() if l.strip()]
+        tool_start_events = [e for e in events if e["event"] == "tool_start" and e["data"].get("tool_name") == "Read"]
+        assert len(tool_start_events) == 1
+        assert "active_skill_id" in tool_start_events[0]["data"]
+
+    def test_pre_tool_use_non_skill_without_context_not_tagged(self, tmp_path):
+        """Non-Skill tool call with no active context → no active_skill_id in event data."""
+        r = self._run_hook(tmp_path, "pre_tool_use.py", {
+            "session_id": "test-s",
+            "tool_name": "Bash",
+            "tool_input": {"command": "echo hi"},
+        })
+        assert r.returncode == 0, f"stderr: {r.stderr}"
+        tc_dir = tmp_path / ".claude" / "trenchcoat"
+        jsonl_files = list(tc_dir.glob("events-*.jsonl"))
+        events = [json.loads(l) for l in jsonl_files[0].read_text().splitlines() if l.strip()]
+        tool_start_events = [e for e in events if e["event"] == "tool_start"]
+        assert len(tool_start_events) == 1
+        assert "active_skill_id" not in tool_start_events[0]["data"]
+
 
 # ---------------------------------------------------------------------------
 # Skill context helpers
