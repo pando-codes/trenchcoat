@@ -58,6 +58,13 @@ export interface AgentStat {
   total_cost_usd: number | null;
 }
 
+export interface SkillStat {
+  skill_name: string;
+  invocation_count: number;
+  tool_calls_triggered: number;
+  avg_tools_per_invocation: number;
+}
+
 export interface DailyCost {
   date: string;
   total_cost_usd: number;

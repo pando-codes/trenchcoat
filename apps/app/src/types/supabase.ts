@@ -452,6 +452,14 @@ export type Database = {
         }
         Returns: Json
       }
+      get_skill_stats: {
+        Args: {
+          p_from: string
+          p_to: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       get_top_tools: {
         Args: {
           p_from: string
