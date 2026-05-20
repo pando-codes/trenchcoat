@@ -651,6 +651,44 @@ class TestHookIntegration:
         assert len(tool_start_events) == 1
         assert "active_skill_id" not in tool_start_events[0]["data"]
 
+    def test_post_tool_use_tags_active_skill_id_when_context_set(self, tmp_path):
+        """PostToolUse with active skill context → active_skill_id in tool_end event."""
+        # Write a context file directly to simulate an active skill
+        tc_dir = tmp_path / ".claude" / "trenchcoat"
+        tc_dir.mkdir(parents=True, exist_ok=True)
+        (tc_dir / ".skill_context_test-s.json").write_text(
+            '{"activation_id": "act-xyz", "skill_name": "test:skill", "activated_at": "2026-05-20T00:00:00.000+00:00"}'
+        )
+        r = self._run_hook(tmp_path, "post_tool_use.py", {
+            "session_id": "test-s",
+            "tool_name": "Bash",
+            "tool_input": {"command": "echo hi"},
+            "tool_response": "hi",
+        })
+        assert r.returncode == 0, f"stderr: {r.stderr}"
+        jsonl_files = list(tc_dir.glob("events-*.jsonl"))
+        assert len(jsonl_files) == 1
+        events = [json.loads(l) for l in jsonl_files[0].read_text().splitlines() if l.strip()]
+        tool_end_events = [e for e in events if e["event"] == "tool_end"]
+        assert len(tool_end_events) == 1
+        assert tool_end_events[0]["data"].get("active_skill_id") == "act-xyz"
+
+    def test_post_tool_use_no_tag_without_context(self, tmp_path):
+        """PostToolUse with no active context → no active_skill_id in tool_end event."""
+        r = self._run_hook(tmp_path, "post_tool_use.py", {
+            "session_id": "test-s",
+            "tool_name": "Bash",
+            "tool_input": {"command": "echo hi"},
+            "tool_response": "hi",
+        })
+        assert r.returncode == 0, f"stderr: {r.stderr}"
+        tc_dir = tmp_path / ".claude" / "trenchcoat"
+        jsonl_files = list(tc_dir.glob("events-*.jsonl"))
+        events = [json.loads(l) for l in jsonl_files[0].read_text().splitlines() if l.strip()]
+        tool_end_events = [e for e in events if e["event"] == "tool_end"]
+        assert len(tool_end_events) == 1
+        assert "active_skill_id" not in tool_end_events[0]["data"]
+
 
 # ---------------------------------------------------------------------------
 # Skill context helpers

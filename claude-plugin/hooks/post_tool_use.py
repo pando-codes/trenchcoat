@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """PostToolUse hook — pop pending, compute duration, log tool_end."""
 
-import json
 import sys
 import time
 from pathlib import Path
@@ -10,7 +9,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "lib"))
 
 from telemetry import (
     read_hook_input, is_enabled, write_event,
-    sanitize_tool_result, pop_pending,
+    sanitize_tool_result, pop_pending, read_skill_context,
 )
 
 
@@ -36,12 +35,18 @@ def main():
 
     result_info = sanitize_tool_result(tool_result)
 
-    write_event("tool_end", session_id, {
+    event_data: dict = {
         "tool_name": tool_name,
         "correlation_id": correlation_id,
         "duration_ms": round(duration_ms, 1) if duration_ms is not None else None,
         "result_size": result_info.get("size"),
-    })
+    }
+
+    ctx = read_skill_context(session_id)
+    if ctx:
+        event_data["active_skill_id"] = ctx["activation_id"]
+
+    write_event("tool_end", session_id, event_data)
 
 
 if __name__ == "__main__":
