@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
-"""UserPromptSubmit hook — log prompt metadata (not content by default)."""
+"""UserPromptSubmit hook — log prompt metadata, clear skill activation context."""
 
-import json
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "lib"))
 
-from telemetry import read_hook_input, is_enabled, load_config, write_event
+from telemetry import read_hook_input, is_enabled, load_config, write_event, clear_skill_context
 
 
 def main():
@@ -17,6 +16,9 @@ def main():
 
     session_id = hook_input.get("session_id", "unknown")
     prompt = hook_input.get("prompt", "")
+
+    # New user turn — close any open skill activation window
+    clear_skill_context(session_id)
 
     config = load_config()
     log_content = config.get("privacy", {}).get("log_prompt_content", False)

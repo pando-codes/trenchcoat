@@ -560,6 +560,21 @@ class TestHookIntegration:
         })
         assert r.returncode == 0, f"stderr: {r.stderr}"
 
+    def test_user_prompt_submit_clears_skill_context(self, tmp_path):
+        """UserPromptSubmit → skill context file removed."""
+        tc_dir = tmp_path / ".claude" / "trenchcoat"
+        tc_dir.mkdir(parents=True, exist_ok=True)
+        ctx_file = tc_dir / ".skill_context_test-s.json"
+        ctx_file.write_text('{"activation_id": "act-abc", "skill_name": "test:skill", "activated_at": "2026-05-20T00:00:00.000+00:00"}')
+        assert ctx_file.exists()
+
+        r = self._run_hook(tmp_path, "user_prompt_submit.py", {
+            "session_id": "test-s",
+            "prompt": "do something",
+        })
+        assert r.returncode == 0, f"stderr: {r.stderr}"
+        assert not ctx_file.exists(), "skill context must be cleared on new user prompt"
+
     def test_post_tool_use_queues_event_when_api_key_set(self, tmp_path):
         """End-to-end: api_key set → event written to push queue."""
         r = self._run_hook(tmp_path, "post_tool_use.py", {
