@@ -7,6 +7,7 @@ export type EventType =
   | "assistant_stop"
   | "subagent_stop"
   | "pre_compact"
+  | "skill_use"
   | "stop"
   | "error";
 

@@ -19,6 +19,7 @@ const eventSchema = z.object({
     "assistant_stop",
     "subagent_stop",
     "pre_compact",
+    "skill_use",
     "error",
   ]),
   session_id: z.string().min(1),
