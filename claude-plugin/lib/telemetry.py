@@ -35,10 +35,20 @@ DEFAULT_CONFIG = {
     },
     "retention_days": 30,
     "webhook_url": None,
-    "api_url": None,        # SaaS endpoint, e.g. https://telemetry.pando.codes
-    "api_key": None,         # ct_live_... key from the SaaS
     "push_batch_size": 100,  # events per batch POST
 }
+
+# Credentials are read from environment variables, not config.json:
+#   TRENCHCOAT_API_KEY  — ct_live_... key (set in ~/.claude/.env)
+#   TRENCHCOAT_API_URL  — SaaS endpoint (default: https://app.trenchcoat.io)
+_DEFAULT_API_URL = "https://app.trenchcoat.io"
+
+
+def _get_credentials() -> tuple[str | None, str]:
+    """Return (api_key, api_url) from environment variables."""
+    api_key = os.environ.get("TRENCHCOAT_API_KEY")
+    api_url = os.environ.get("TRENCHCOAT_API_URL", _DEFAULT_API_URL)
+    return api_key, api_url
 
 # Map local event types to SaaS-expected types
 _EVENT_TYPE_MAP = {
@@ -130,13 +140,13 @@ def write_event(event_type: str, session_id: str, data: dict) -> None:
         fcntl.flock(fd, fcntl.LOCK_UN)
         os.close(fd)
 
-    # Queue for SaaS push if api_key configured
-    config = load_config()
-    if config.get("api_key"):
+    # Queue for SaaS push if credentials are configured
+    api_key, _ = _get_credentials()
+    if api_key:
         _queue_for_push(event)
 
     # Fire webhook if configured (legacy per-event webhook)
-    webhook_url = config.get("webhook_url")
+    webhook_url = load_config().get("webhook_url")
     if webhook_url:
         _fire_webhook(webhook_url, event)
 
@@ -163,12 +173,10 @@ def _queue_for_push(event: dict) -> None:
 
 def flush_push_queue() -> dict:
     """Flush queued events to the SaaS API in batches. Returns stats."""
-    config = load_config()
-    api_url = config.get("api_url")
-    api_key = config.get("api_key")
+    api_key, api_url = _get_credentials()
 
-    if not api_url or not api_key:
-        return {"status": "skipped", "reason": "no api_url or api_key configured"}
+    if not api_key:
+        return {"status": "skipped", "reason": "TRENCHCOAT_API_KEY not set in environment"}
 
     if not PUSH_QUEUE_PATH.exists():
         return {"status": "ok", "pushed": 0}
@@ -188,7 +196,7 @@ def flush_push_queue() -> dict:
         _clear_push_queue()
         return {"status": "ok", "pushed": 0}
 
-    batch_size = config.get("push_batch_size", 100)
+    batch_size = load_config().get("push_batch_size", 100)
     total_pushed = 0
     errors = []
 

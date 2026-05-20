@@ -12,6 +12,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "lib"))
 from telemetry import (
     read_hook_input, is_enabled, write_event, update_session_index,
     load_config, cleanup_old_events, flush_push_queue, SESSIONS_PATH, PENDING_DIR,
+    _get_credentials,
 )
 
 
@@ -55,8 +56,8 @@ def main():
             pass
 
     # Flush queued events to SaaS (non-blocking via fork)
-    config = load_config()
-    if config.get("api_key"):
+    api_key, _ = _get_credentials()
+    if api_key:
         try:
             pid = os.fork()
             if pid == 0:
@@ -69,7 +70,7 @@ def main():
             pass
 
     # Retention cleanup
-    retention_days = config.get("retention_days", 30)
+    retention_days = load_config().get("retention_days", 30)
     cleanup_old_events(retention_days)
 
 
