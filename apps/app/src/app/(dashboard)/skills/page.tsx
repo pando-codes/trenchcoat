@@ -10,6 +10,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { ToolInfoTooltip } from "@/components/tools/tool-info-tooltip";
+import { getSkillDescription } from "@/lib/skill-descriptions";
 import type { SkillStat } from "@/types/analytics";
 
 export default async function SkillsPage({
@@ -136,7 +138,13 @@ export default async function SkillsPage({
                 skills.map((skill) => (
                   <TableRow key={skill.skill_name}>
                     <TableCell className="font-medium font-mono text-sm">
-                      {skill.skill_name}
+                      <span className="inline-flex items-center">
+                        {skill.skill_name}
+                        {(() => {
+                          const desc = getSkillDescription(skill.skill_name);
+                          return desc ? <ToolInfoTooltip description={desc} /> : null;
+                        })()}
+                      </span>
                     </TableCell>
                     <TableCell className="text-right">{skill.invocation_count}</TableCell>
                     <TableCell className="text-right">{skill.tool_calls_triggered}</TableCell>
