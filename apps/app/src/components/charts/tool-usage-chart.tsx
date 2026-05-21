@@ -25,6 +25,7 @@ export function ToolUsageChart({ data }: ToolUsageChartProps) {
   }
 
   return (
+    <div role="img" aria-label="Bar chart showing top tools by number of uses">
     <ResponsiveContainer width="100%" height={300}>
       <BarChart data={data} layout="vertical" margin={{ left: 80 }}>
         <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
@@ -56,5 +57,6 @@ export function ToolUsageChart({ data }: ToolUsageChartProps) {
         />
       </BarChart>
     </ResponsiveContainer>
+    </div>
   );
 }

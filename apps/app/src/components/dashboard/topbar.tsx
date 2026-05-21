@@ -60,7 +60,7 @@ export function Topbar({
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" className="rounded-full">
+          <Button variant="ghost" size="icon" className="rounded-full" aria-label="Open user menu">
             <Avatar size="sm">
               {avatarUrl && <AvatarImage src={avatarUrl} alt={userName} />}
               <AvatarFallback>{getInitials(userName)}</AvatarFallback>

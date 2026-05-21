@@ -16,15 +16,18 @@ interface DailyCostChartProps {
 }
 
 export function DailyCostChart({ data }: DailyCostChartProps) {
-  if (data.length === 0) {
+  const hasData = data.length > 0 && data.some((d) => d.total_cost_usd > 0);
+
+  if (!hasData) {
     return (
       <div className="flex h-[300px] items-center justify-center text-sm text-muted-foreground">
-        No cost data available.
+        Cost data will appear once token attribution is active.
       </div>
     );
   }
 
   return (
+    <div role="img" aria-label="Line chart showing daily cost in USD over time">
     <ResponsiveContainer width="100%" height={300}>
       <LineChart data={data}>
         <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
@@ -61,5 +64,6 @@ export function DailyCostChart({ data }: DailyCostChartProps) {
         />
       </LineChart>
     </ResponsiveContainer>
+    </div>
   );
 }

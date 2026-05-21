@@ -26,6 +26,7 @@ export function DailyActivityChart({ data }: DailyActivityChartProps) {
   }
 
   return (
+    <div role="img" aria-label="Daily activity chart showing events and sessions over time">
     <ResponsiveContainer width="100%" height={300}>
       <AreaChart data={data}>
         <defs>
@@ -49,6 +50,14 @@ export function DailyActivityChart({ data }: DailyActivityChartProps) {
           tick={{ fill: "var(--color-muted-foreground)" }}
         />
         <YAxis
+          yAxisId="left"
+          orientation="left"
+          className="text-xs"
+          tick={{ fill: "var(--color-muted-foreground)" }}
+        />
+        <YAxis
+          yAxisId="right"
+          orientation="right"
           className="text-xs"
           tick={{ fill: "var(--color-muted-foreground)" }}
         />
@@ -59,17 +68,11 @@ export function DailyActivityChart({ data }: DailyActivityChartProps) {
             borderRadius: "0.375rem",
             color: "var(--color-popover-foreground)",
           }}
+          formatter={(value) => [Number(value).toLocaleString()]}
         />
         <Legend />
         <Area
-          type="monotone"
-          dataKey="sessions"
-          stroke="var(--color-chart-1)"
-          fillOpacity={1}
-          fill="url(#colorSessions)"
-          name="Sessions"
-        />
-        <Area
+          yAxisId="left"
           type="monotone"
           dataKey="events"
           stroke="var(--color-chart-2)"
@@ -77,7 +80,17 @@ export function DailyActivityChart({ data }: DailyActivityChartProps) {
           fill="url(#colorEvents)"
           name="Events"
         />
+        <Area
+          yAxisId="right"
+          type="monotone"
+          dataKey="sessions"
+          stroke="var(--color-chart-1)"
+          fillOpacity={1}
+          fill="url(#colorSessions)"
+          name="Sessions"
+        />
       </AreaChart>
     </ResponsiveContainer>
+    </div>
   );
 }
