@@ -78,10 +78,10 @@ Trenchcoat owns this gap.
 **Done — Theme 1 (Agent Value Clarity)** ✓
 Date filtering wired to all analytics pages, tool trend calculation, session branch filtering, Agents page with aggregate chart and ranked table, Agents section in session detail. Skill logging and universal spawner chain (cross-session attribution graph) also shipped as part of this foundation.
 
-**Now — Theme 2 (Cost Transparency)**
-Cost is the second most urgent pain point and a natural complement to usage data. Unlocks the budget reporting use case.
+**Done — Theme 2 (Cost Transparency)** ✓
+Token capture in plugin (stop + subagent_stop hooks), model_pricing table synced daily from LiteLLM via Vercel Cron, cost computed at read time. Sessions list Cost column, session detail Cost card + per-agent cost, overview Daily Cost chart, dedicated /cost page (daily spend, cost by model, cost by agent).
 
-**Next — Theme 3 (Executive Reporting)**
+**Now — Theme 3 (Executive Reporting)**
 Flows from Themes 1 and 2. Build this when bottom-up adoption creates pull from managers asking for team-level views.
 
 ---
