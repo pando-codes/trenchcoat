@@ -45,6 +45,9 @@ export interface SessionSummary {
   model: string | null;
   input_tokens: number | null;
   output_tokens: number | null;
+  parent_session_id: string | null;
+  spawner_id: string | null;
+  spawner_type: "skill" | "agent" | null;
 }
 
 export interface AgentStat {
@@ -63,6 +66,7 @@ export interface SkillStat {
   invocation_count: number;
   tool_calls_triggered: number;
   avg_tools_per_invocation: number;
+  cross_session_tool_calls: number;
 }
 
 export interface DailyCost {
@@ -83,4 +87,27 @@ export interface ModelCost {
 export interface DateRange {
   from: Date;
   to: Date;
+}
+
+export interface SessionTreeNode {
+  session_id: string;
+  parent_session_id: string | null;
+  spawner_id: string | null;
+  spawner_type: "skill" | "agent" | null;
+  depth: number;
+  started_at: string;
+  ended_at: string | null;
+  tool_count: number;
+  skill_count: number;
+  subagent_count: number;
+  input_tokens: number;
+  output_tokens: number;
+}
+
+export interface EntityRollup {
+  total_tools: number;
+  total_skills: number;
+  total_subagents: number;
+  input_tokens: number;
+  output_tokens: number;
 }
