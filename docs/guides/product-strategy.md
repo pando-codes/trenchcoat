@@ -81,8 +81,8 @@ Date filtering wired to all analytics pages, tool trend calculation, session bra
 **Done — Theme 2 (Cost Transparency)** ✓
 Token capture in plugin (stop + subagent_stop hooks), model_pricing table synced daily from LiteLLM via Vercel Cron, cost computed at read time. Sessions list Cost column, session detail Cost card + per-agent cost, overview Daily Cost chart, dedicated /cost page (daily spend, cost by model, cost by agent).
 
-**Now — Theme 3 (Executive Reporting)**
-Flows from Themes 1 and 2. Build this when bottom-up adoption creates pull from managers asking for team-level views.
+**Done — Theme 3 (Executive Reporting)** ✓
+Team detail page with tabbed Overview/Members layout, per-member breakdown (sessions, cost, top tool, last active), sortable table, date range filtering, team sessions trend chart (area), CSV export, snapshot-based shareable links at `/share/[token]` (no auth required), and drill-down to any member's sessions page.
 
 ---
 
