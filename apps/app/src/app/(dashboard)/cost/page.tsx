@@ -148,7 +148,7 @@ export default async function CostPage({
               ) : (
                 agents.map((agent) => (
                   <TableRow key={agent.agent_type}>
-                    <TableCell className="font-medium">{agent.agent_type}</TableCell>
+                    <TableCell className="font-medium">{agent.agent_type || "unknown"}</TableCell>
                     <TableCell className="text-right">{agent.count}</TableCell>
                     <TableCell className="text-right">
                       {agent.total_input_tokens != null ? formatTokens(agent.total_input_tokens) : "--"}

@@ -18,7 +18,7 @@ def main():
         return
 
     session_id      = hook_input.get("session_id", "unknown")
-    agent_type      = hook_input.get("agent_type", "unknown")
+    agent_type      = hook_input.get("agent_type") or "unknown"
     stop_reason     = hook_input.get("stop_hook_reason", "unknown")
     transcript_path = hook_input.get("agent_transcript_path")
 

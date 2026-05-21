@@ -110,7 +110,7 @@ export default async function AgentsPage({
                 agents.map((stat) => (
                   <TableRow key={stat.agent_type}>
                     <TableCell className="font-medium">
-                      {stat.agent_type}
+                      {stat.agent_type || "unknown"}
                     </TableCell>
                     <TableCell className="text-right">{stat.count}</TableCell>
                     <TableCell className="text-right">
