@@ -39,6 +39,7 @@ export default async function SkillsPage({
     skill_name: row.skill_name as string,
     invocation_count: row.invocation_count as number,
     tool_calls_triggered: row.tool_calls_triggered as number,
+    cross_session_tool_calls: (row.cross_session_tool_calls as number) ?? 0,
     avg_tools_per_invocation: row.avg_tools_per_invocation as number,
   }));
 
@@ -61,7 +62,7 @@ export default async function SkillsPage({
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
         <Card>
           <CardHeader>
             <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -94,6 +95,19 @@ export default async function SkillsPage({
             <p className="text-2xl font-bold">{avgToolsOverall}</p>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Cross-Session Tools
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold">
+              {skills.reduce((sum, s) => sum + s.cross_session_tool_calls, 0).toLocaleString()}
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
       <Card>
@@ -108,12 +122,13 @@ export default async function SkillsPage({
                 <TableHead className="text-right">Invocations</TableHead>
                 <TableHead className="text-right">Tools Triggered</TableHead>
                 <TableHead className="text-right">Avg Tools / Invocation</TableHead>
+                <TableHead className="text-right">Cross-Session Tools</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {skills.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground">
+                  <TableCell colSpan={5} className="text-center text-muted-foreground">
                     No skill usage data found for this date range.
                   </TableCell>
                 </TableRow>
@@ -126,6 +141,12 @@ export default async function SkillsPage({
                     <TableCell className="text-right">{skill.invocation_count}</TableCell>
                     <TableCell className="text-right">{skill.tool_calls_triggered}</TableCell>
                     <TableCell className="text-right">{skill.avg_tools_per_invocation}</TableCell>
+                    <TableCell className="text-right">
+                      {skill.cross_session_tool_calls > 0
+                        ? skill.cross_session_tool_calls.toLocaleString()
+                        : <span className="text-muted-foreground">--</span>
+                      }
+                    </TableCell>
                   </TableRow>
                 ))
               )}
