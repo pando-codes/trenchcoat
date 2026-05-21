@@ -75,13 +75,13 @@ Trenchcoat owns this gap.
 
 ## Sequencing
 
-**Now — Theme 1 (Agent Value Clarity)**
-This is the core value proposition and the reason an individual engineer signs up. Without this, Themes 2 and 3 have no foundation. Focus here until engineers consistently report that Trenchcoat answers "which agents are working."
+**Done — Theme 1 (Agent Value Clarity)** ✓
+Date filtering wired to all analytics pages, tool trend calculation, session branch filtering, Agents page with aggregate chart and ranked table, Agents section in session detail. Skill logging and universal spawner chain (cross-session attribution graph) also shipped as part of this foundation.
 
-**Next — Theme 2 (Cost Transparency)**
+**Now — Theme 2 (Cost Transparency)**
 Cost is the second most urgent pain point and a natural complement to usage data. Unlocks the budget reporting use case.
 
-**Later — Theme 3 (Executive Reporting)**
+**Next — Theme 3 (Executive Reporting)**
 Flows from Themes 1 and 2. Build this when bottom-up adoption creates pull from managers asking for team-level views.
 
 ---
