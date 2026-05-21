@@ -147,6 +147,30 @@ export async function ingestEvents(
   }
 
   // -----------------------------------------------------------------------
+  // Write parent session linkage from session_start events
+  // -----------------------------------------------------------------------
+  for (const e of events) {
+    if (e.event === "session_start") {
+      const parentSessionId = (e.data?.parent_session_id as string) ?? null;
+      const spawnerId = (e.data?.spawner_id as string) ?? null;
+      const spawnerType = (e.data?.spawner_type as string) ?? null;
+
+      if (parentSessionId || spawnerId) {
+        const update: Record<string, unknown> = {};
+        if (parentSessionId) update.parent_session_id = parentSessionId;
+        if (spawnerId) update.spawner_id = spawnerId;
+        if (spawnerType) update.spawner_type = spawnerType;
+
+        await adminClient
+          .from("sessions")
+          .update(update)
+          .eq("session_id", e.session_id)
+          .eq("user_id", userId);
+      }
+    }
+  }
+
+  // -----------------------------------------------------------------------
   // Update daily aggregates for each affected date
   // -----------------------------------------------------------------------
   const affectedDates = new Set<string>();
