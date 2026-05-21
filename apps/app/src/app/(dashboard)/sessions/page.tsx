@@ -69,7 +69,7 @@ export default async function SessionsPage({ searchParams }: SessionsPageProps) 
     if (shared) viewUserId = targetUserId;
   }
 
-  const [branchesResult, sessionsResult, pricingResult] = await Promise.all([
+  const [branchesResult, sessionsResult, pricingResult, childCountsResult] = await Promise.all([
     supabase
       .from("sessions")
       .select("git_branch")
@@ -89,6 +89,13 @@ export default async function SessionsPage({ searchParams }: SessionsPageProps) 
       return query;
     })(),
     supabase.from("model_pricing").select("model_id, input_cost_per_1m, output_cost_per_1m"),
+    supabase
+      .from("sessions")
+      .select("parent_session_id")
+      .eq("user_id", viewUserId)
+      .not("parent_session_id", "is", null)
+      .gte("started_at", p_from)
+      .lte("started_at", p_to + "T23:59:59.999Z"),
   ]);
 
   const branches: string[] = [
@@ -110,6 +117,19 @@ export default async function SessionsPage({ searchParams }: SessionsPageProps) 
       { input_cost_per_1m: r.input_cost_per_1m, output_cost_per_1m: r.output_cost_per_1m },
     ])
   );
+
+  // Map: plugin session_id → DB UUID id (for building parent links)
+  const sessionIdToDbId = new Map<string, string>();
+  for (const s of sessions) {
+    sessionIdToDbId.set(s.session_id, s.id);
+  }
+
+  // Map: plugin session_id → child count
+  const childCountMap = new Map<string, number>();
+  for (const row of (childCountsResult.data ?? [])) {
+    const pid = row.parent_session_id as string;
+    childCountMap.set(pid, (childCountMap.get(pid) ?? 0) + 1);
+  }
 
   function buildPageUrl(p: number): string {
     const ps = new URLSearchParams();
@@ -144,6 +164,8 @@ export default async function SessionsPage({ searchParams }: SessionsPageProps) 
             <TableHeader>
               <TableRow>
                 <TableHead>Started</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead className="text-right">Subagents</TableHead>
                 <TableHead>Duration</TableHead>
                 <TableHead className="text-right">Events</TableHead>
                 <TableHead className="text-right">Tools</TableHead>
@@ -154,7 +176,7 @@ export default async function SessionsPage({ searchParams }: SessionsPageProps) 
             <TableBody>
               {sessions.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground">
+                  <TableCell colSpan={8} className="text-center text-muted-foreground">
                     No sessions found.
                   </TableCell>
                 </TableRow>
@@ -168,6 +190,22 @@ export default async function SessionsPage({ searchParams }: SessionsPageProps) 
                       >
                         {formatDate(session.started_at)}
                       </Link>
+                    </TableCell>
+                    <TableCell>
+                      {session.parent_session_id ? (() => {
+                        const parentDbId = sessionIdToDbId.get(session.parent_session_id as string);
+                        return (
+                          <Link
+                            href={parentDbId ? `/sessions/${parentDbId}` : "#"}
+                            className="text-xs text-muted-foreground underline-offset-4 hover:underline"
+                          >
+                            <Badge variant="outline">Subagent</Badge>
+                          </Link>
+                        );
+                      })() : null}
+                    </TableCell>
+                    <TableCell className="text-right text-muted-foreground">
+                      {childCountMap.get(session.session_id) ?? "--"}
                     </TableCell>
                     <TableCell>{formatDuration(session.duration_ms)}</TableCell>
                     <TableCell className="text-right">{session.event_count}</TableCell>
