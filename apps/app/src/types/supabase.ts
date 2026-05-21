@@ -178,7 +178,10 @@ export type Database = {
           input_tokens: number | null
           model: string | null
           output_tokens: number | null
+          parent_session_id: string | null
           session_id: string
+          spawner_id: string | null
+          spawner_type: string | null
           started_at: string
           stop_reason: string | null
           tool_count: number | null
@@ -196,7 +199,10 @@ export type Database = {
           input_tokens?: number | null
           model?: string | null
           output_tokens?: number | null
+          parent_session_id?: string | null
           session_id: string
+          spawner_id?: string | null
+          spawner_type?: string | null
           started_at: string
           stop_reason?: string | null
           tool_count?: number | null
@@ -214,7 +220,10 @@ export type Database = {
           input_tokens?: number | null
           model?: string | null
           output_tokens?: number | null
+          parent_session_id?: string | null
           session_id?: string
+          spawner_id?: string | null
+          spawner_type?: string | null
           started_at?: string
           stop_reason?: string | null
           tool_count?: number | null
