@@ -11,6 +11,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ToolUsageChart } from "@/components/charts/tool-usage-chart";
+import { ToolInfoTooltip } from "@/components/tools/tool-info-tooltip";
+import { getToolDescription } from "@/lib/tool-descriptions";
 import type { ToolUsageStat } from "@/types/analytics";
 
 function formatMs(ms: number | null): string {
@@ -96,7 +98,15 @@ export default async function ToolsPage({
               ) : (
                 tools.map((tool) => (
                   <TableRow key={tool.tool_name}>
-                    <TableCell className="font-medium">{tool.tool_name}</TableCell>
+                    <TableCell className="font-medium">
+                      <span className="inline-flex items-center">
+                        {tool.tool_name}
+                        {(() => {
+                          const desc = getToolDescription(tool.tool_name);
+                          return desc ? <ToolInfoTooltip description={desc} /> : null;
+                        })()}
+                      </span>
+                    </TableCell>
                     <TableCell className="text-right">{tool.count}</TableCell>
                     <TableCell className="text-right">
                       {formatMs(tool.avg_duration_ms)}
