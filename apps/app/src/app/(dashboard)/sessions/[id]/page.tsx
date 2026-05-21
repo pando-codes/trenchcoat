@@ -1,4 +1,5 @@
 import { redirect, notFound } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -68,6 +69,36 @@ export default async function SessionDetailPage({ params }: SessionDetailPagePro
 
   const typedSession = session as SessionSummary;
 
+  const parentSessionId = (session as SessionSummary & { parent_session_id?: string }).parent_session_id ?? null;
+
+  const [parentResult, childrenResult] = await Promise.all([
+    parentSessionId
+      ? supabase
+          .from("sessions")
+          .select("id, session_id, started_at")
+          .eq("session_id", parentSessionId)   // parent_session_id stores plugin text session_id
+          .eq("user_id", user.id)
+          .single()
+      : Promise.resolve({ data: null }),
+    supabase
+      .from("sessions")
+      .select("id, session_id, started_at, tool_count, input_tokens, output_tokens, model")
+      .eq("parent_session_id", (session as SessionSummary).session_id)
+      .eq("user_id", user.id)
+      .order("started_at", { ascending: true }),
+  ]);
+
+  const parentSession = parentResult.data as { id: string; session_id: string; started_at: string } | null;
+  const childSessions = (childrenResult.data ?? []) as {
+    id: string;
+    session_id: string;
+    started_at: string;
+    tool_count: number;
+    input_tokens: number | null;
+    output_tokens: number | null;
+    model: string | null;
+  }[];
+
   const { data: events } = await supabase
     .from("events")
     .select("*")
@@ -102,6 +133,18 @@ export default async function SessionDetailPage({ params }: SessionDetailPagePro
           {formatTimestamp(typedSession.started_at)}
         </p>
       </div>
+
+      {parentSession && (
+        <div className="flex items-center gap-2 rounded-lg border bg-muted/40 px-4 py-2 text-sm text-muted-foreground">
+          <span>Subagent session — spawned by</span>
+          <Link
+            href={`/sessions/${parentSession.id}`}
+            className="font-mono text-primary underline-offset-4 hover:underline"
+          >
+            {formatTimestamp(parentSession.started_at)}
+          </Link>
+        </div>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <Card>
@@ -224,6 +267,42 @@ export default async function SessionDetailPage({ params }: SessionDetailPagePro
           </Card>
         );
       })()}
+
+      {childSessions.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Subagent Sessions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {childSessions.map((child) => {
+                const childCost = computeCost(
+                  child.input_tokens ?? null,
+                  child.output_tokens ?? null,
+                  child.model ?? null,
+                  rates
+                );
+                return (
+                  <div key={child.id} className="flex items-center justify-between rounded-lg border px-4 py-3">
+                    <Link
+                      href={`/sessions/${child.id}`}
+                      className="text-sm text-primary underline-offset-4 hover:underline"
+                    >
+                      {formatTimestamp(child.started_at)}
+                    </Link>
+                    <div className="flex gap-4 text-sm text-muted-foreground">
+                      <span>{child.tool_count} tools</span>
+                      {childCost !== null && (
+                        <span className="font-mono">{formatCost(childCost)}</span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>
