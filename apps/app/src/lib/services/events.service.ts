@@ -124,7 +124,7 @@ export async function ingestEvents(
   // Write token data and model from stop events to the session row
   // -----------------------------------------------------------------------
   for (const e of events) {
-    if (e.event === "stop") {
+    if (e.event === "assistant_stop") {
       const inputTokens = (e.data?.input_tokens as number | null) ?? null;
       const outputTokens = (e.data?.output_tokens as number | null) ?? null;
       const model = (e.data?.model as string | null) ?? null;
