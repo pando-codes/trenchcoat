@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { computeCost, formatCost, type RateMap } from "@/lib/cost";
 import type { SessionSummary } from "@/types/analytics";
 import type { TelemetryEvent } from "@/types/events";
+import { getProfile } from "@/lib/services/user-profile.service";
 
 interface SessionDetailPageProps {
   params: Promise<{ id: string }>;
@@ -20,13 +21,14 @@ function formatDuration(ms: number | null): string {
   return `${hours}h ${remainingMinutes}m`;
 }
 
-function formatTimestamp(iso: string): string {
+function formatTimestamp(iso: string, timeZone: string): string {
   return new Date(iso).toLocaleString("en-US", {
     month: "short",
     day: "numeric",
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
+    timeZone,
   });
 }
 
@@ -70,6 +72,9 @@ export default async function SessionDetailPage({ params }: SessionDetailPagePro
   const typedSession = session as SessionSummary;
 
   const parentSessionId = (session as SessionSummary & { parent_session_id?: string }).parent_session_id ?? null;
+
+  const profileResult = await getProfile(supabase, user.id);
+  const userTimezone = profileResult.success ? (profileResult.data?.timezone ?? "UTC") : "UTC";
 
   const [parentResult, childrenResult] = await Promise.all([
     parentSessionId
@@ -130,7 +135,7 @@ export default async function SessionDetailPage({ params }: SessionDetailPagePro
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Session Detail</h1>
         <p className="text-sm text-muted-foreground">
-          {formatTimestamp(typedSession.started_at)}
+          {formatTimestamp(typedSession.started_at, userTimezone)}
         </p>
       </div>
 
@@ -141,7 +146,7 @@ export default async function SessionDetailPage({ params }: SessionDetailPagePro
             href={`/sessions/${parentSession.id}`}
             className="font-mono text-primary underline-offset-4 hover:underline"
           >
-            {formatTimestamp(parentSession.started_at)}
+            {formatTimestamp(parentSession.started_at, userTimezone)}
           </Link>
         </div>
       )}
@@ -288,7 +293,7 @@ export default async function SessionDetailPage({ params }: SessionDetailPagePro
                       href={`/sessions/${child.id}`}
                       className="text-sm text-primary underline-offset-4 hover:underline"
                     >
-                      {formatTimestamp(child.started_at)}
+                      {formatTimestamp(child.started_at, userTimezone)}
                     </Link>
                     <div className="flex gap-4 text-sm text-muted-foreground">
                       <span>{child.tool_count} tools</span>
@@ -339,7 +344,7 @@ export default async function SessionDetailPage({ params }: SessionDetailPagePro
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      {formatTimestamp(event.timestamp)} (seq: {event.seq})
+                      {formatTimestamp(event.timestamp, userTimezone)} (seq: {event.seq})
                     </p>
                   </div>
                 </div>

@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import type { SessionSummary } from "@/types/analytics";
+import { getProfile } from "@/lib/services/user-profile.service";
 
 interface SessionsPageProps {
   searchParams: Promise<{
@@ -33,13 +34,14 @@ function formatDuration(ms: number | null): string {
   return `${hours}h ${minutes % 60}m`;
 }
 
-function formatDate(iso: string): string {
+function formatDate(iso: string, timeZone: string): string {
   const d = new Date(iso);
   return d.toLocaleDateString("en-US", {
     month:  "short",
     day:    "numeric",
     hour:   "2-digit",
     minute: "2-digit",
+    timeZone,
   });
 }
 
@@ -68,6 +70,9 @@ export default async function SessionsPage({ searchParams }: SessionsPageProps) 
     });
     if (shared) viewUserId = targetUserId;
   }
+
+  const profileResult = await getProfile(supabase, user.id);
+  const userTimezone = profileResult.success ? (profileResult.data?.timezone ?? "UTC") : "UTC";
 
   const [branchesResult, sessionsResult, pricingResult, childCountsResult] = await Promise.all([
     supabase
@@ -188,7 +193,7 @@ export default async function SessionsPage({ searchParams }: SessionsPageProps) 
                         href={`/sessions/${session.id}`}
                         className="text-primary underline-offset-4 hover:underline"
                       >
-                        {formatDate(session.started_at)}
+                        {formatDate(session.started_at, userTimezone)}
                       </Link>
                     </TableCell>
                     <TableCell>
