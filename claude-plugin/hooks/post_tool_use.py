@@ -21,7 +21,10 @@ def main():
 
     session_id = hook_input.get("session_id", "unknown")
     tool_name  = hook_input.get("tool_name", "unknown")
-    tool_result = hook_input.get("tool_result")
+    # Claude Code's PostToolUse hook input uses the key "tool_response"
+    # (not "tool_result"). Previously we read the wrong key, so every event
+    # recorded result_size: 0 and could never detect errors.
+    tool_response = hook_input.get("tool_response")
 
     pending = pop_pending(session_id, tool_name)
 
@@ -33,13 +36,15 @@ def main():
         if started_ns:
             duration_ms = (time.monotonic_ns() - started_ns) / 1_000_000
 
-    result_info = sanitize_tool_result(tool_result)
+    result_info = sanitize_tool_result(tool_response)
 
     event_data: dict = {
         "tool_name":     tool_name,
         "correlation_id": correlation_id,
         "duration_ms":   round(duration_ms, 1) if duration_ms is not None else None,
         "result_size":   result_info.get("size"),
+        "is_error":      result_info.get("is_error"),
+        "error_preview": result_info.get("error_preview"),
     }
 
     ctx = read_active_context(session_id)

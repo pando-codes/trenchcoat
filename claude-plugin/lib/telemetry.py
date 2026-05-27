@@ -107,14 +107,44 @@ def sanitize_tool_input(tool_input, config: dict) -> str | None:
     return text
 
 
-def sanitize_tool_result(tool_result) -> dict:
-    """Return size info about tool result, never the content."""
-    if tool_result is None:
-        return {"size": 0}
-    if isinstance(tool_result, str):
-        return {"size": len(tool_result)}
-    text = json.dumps(tool_result, default=str)
-    return {"size": len(text)}
+def sanitize_tool_result(tool_response) -> dict:
+    """Return size + error info about a tool response.
+
+    Never surfaces the full content. The only place we expose actual content is
+    ``error_preview`` — a short (≤200 char) excerpt that is only populated when
+    we can affirmatively detect an error (``is_error is True``). Error messages
+    are short, high-signal, and the user opts into telemetry by enabling the
+    plugin, so we surface them without a separate config flag.
+
+    Detection:
+    - ``None`` → unknown; ``is_error`` and ``error_preview`` are both ``None``.
+    - ``dict`` with ``"is_error"`` key → trust that boolean. When True, pull
+      ``error_preview`` from ``content`` / ``error`` / ``message`` (first
+      string match wins), truncated to 200 chars.
+    - ``dict`` without ``"is_error"`` → unknown; no preview.
+    - ``str`` or any other type → unknown; size only.
+    """
+    if tool_response is None:
+        return {"size": 0, "is_error": None, "error_preview": None}
+
+    if isinstance(tool_response, str):
+        return {"size": len(tool_response), "is_error": None, "error_preview": None}
+
+    if isinstance(tool_response, dict):
+        text = json.dumps(tool_response, default=str)
+        is_error = tool_response.get("is_error") if "is_error" in tool_response else None
+        error_preview = None
+        if is_error is True:
+            for key in ("content", "error", "message"):
+                candidate = tool_response.get(key)
+                if isinstance(candidate, str) and candidate:
+                    error_preview = candidate[:200]
+                    break
+        return {"size": len(text), "is_error": is_error, "error_preview": error_preview}
+
+    # Fallback for unknown types (list, etc.) — size only.
+    text = json.dumps(tool_response, default=str)
+    return {"size": len(text), "is_error": None, "error_preview": None}
 
 
 def write_event(event_type: str, session_id: str, data: dict) -> None:

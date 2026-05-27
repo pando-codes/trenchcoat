@@ -279,18 +279,81 @@ class TestSanitize:
         assert "..." not in result
 
     def test_result_none(self):
-        assert telemetry.sanitize_tool_result(None) == {"size": 0}
+        result = telemetry.sanitize_tool_result(None)
+        assert result["size"] == 0
+        assert result["is_error"] is None
+        assert result["error_preview"] is None
 
     def test_result_str(self):
-        assert telemetry.sanitize_tool_result("hello") == {"size": 5}
+        result = telemetry.sanitize_tool_result("hello")
+        assert result["size"] == 5
+        # Plain string responses give us no way to determine error state.
+        assert result["is_error"] is None
+        assert result["error_preview"] is None
 
     def test_result_dict(self):
         result = telemetry.sanitize_tool_result({"a": 1, "b": 2})
         assert result["size"] > 0
+        # No is_error key on the response → unknown.
+        assert result["is_error"] is None
+        assert result["error_preview"] is None
 
     def test_result_never_includes_content(self):
         result = telemetry.sanitize_tool_result("secret content")
         assert "secret" not in str(result)
+
+    # --- is_error / error_preview behaviour ---
+
+    def test_result_dict_with_is_error_true_reads_content(self):
+        result = telemetry.sanitize_tool_result(
+            {"is_error": True, "content": "Command failed: file not found"}
+        )
+        assert result["is_error"] is True
+        assert result["error_preview"] == "Command failed: file not found"
+
+    def test_result_dict_with_is_error_false_returns_no_preview(self):
+        result = telemetry.sanitize_tool_result({"is_error": False, "content": "ok"})
+        assert result["is_error"] is False
+        assert result["error_preview"] is None
+
+    def test_result_dict_without_is_error_field_is_unknown(self):
+        result = telemetry.sanitize_tool_result({"content": "ok"})
+        assert result["is_error"] is None
+        assert result["error_preview"] is None
+
+    def test_result_string_has_unknown_is_error(self):
+        result = telemetry.sanitize_tool_result("hello")
+        assert result["is_error"] is None
+        assert result["error_preview"] is None
+
+    def test_result_dict_with_is_error_true_reads_error_key(self):
+        result = telemetry.sanitize_tool_result({"is_error": True, "error": "boom"})
+        assert result["is_error"] is True
+        assert result["error_preview"] == "boom"
+
+    def test_result_dict_with_is_error_true_reads_message_key(self):
+        result = telemetry.sanitize_tool_result({"is_error": True, "message": "something broke"})
+        assert result["is_error"] is True
+        assert result["error_preview"] == "something broke"
+
+    def test_result_error_preview_truncated_to_200_chars(self):
+        long_msg = "x" * 500
+        result = telemetry.sanitize_tool_result({"is_error": True, "content": long_msg})
+        assert result["is_error"] is True
+        assert result["error_preview"] is not None
+        assert len(result["error_preview"]) == 200
+        assert result["error_preview"] == "x" * 200
+
+    def test_result_error_preview_prefers_content_over_error(self):
+        result = telemetry.sanitize_tool_result(
+            {"is_error": True, "content": "from content", "error": "from error"}
+        )
+        assert result["error_preview"] == "from content"
+
+    def test_result_is_error_true_with_no_string_fields_yields_none_preview(self):
+        result = telemetry.sanitize_tool_result({"is_error": True, "code": 500})
+        assert result["is_error"] is True
+        assert result["error_preview"] is None
 
 
 # ---------------------------------------------------------------------------
