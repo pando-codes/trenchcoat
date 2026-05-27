@@ -7,6 +7,8 @@ import { computeCost, formatCost, type RateMap } from "@/lib/cost";
 import type { SessionSummary } from "@/types/analytics";
 import type { TelemetryEvent } from "@/types/events";
 import { getProfile } from "@/lib/services/user-profile.service";
+import { OutcomeSignals } from "@/components/sessions/outcome-signals";
+import { Timeline } from "@/components/sessions/timeline";
 
 interface SessionDetailPageProps {
   params: Promise<{ id: string }>;
@@ -30,21 +32,6 @@ function formatTimestamp(iso: string, timeZone: string): string {
     second: "2-digit",
     timeZone,
   });
-}
-
-function eventTypeColor(type: string): "default" | "secondary" | "outline" | "destructive" {
-  switch (type) {
-    case "tool_use":
-    case "tool_result":
-      return "default";
-    case "session_start":
-    case "session_end":
-      return "secondary";
-    case "error":
-      return "destructive";
-    default:
-      return "outline";
-  }
 }
 
 export default async function SessionDetailPage({ params }: SessionDetailPageProps) {
@@ -150,6 +137,11 @@ export default async function SessionDetailPage({ params }: SessionDetailPagePro
           </Link>
         </div>
       )}
+
+      <OutcomeSignals
+        stopReason={typedSession.stop_reason}
+        events={typedEvents}
+      />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <Card>
@@ -309,50 +301,7 @@ export default async function SessionDetailPage({ params }: SessionDetailPagePro
         </Card>
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Event Timeline</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {typedEvents.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No events recorded.</p>
-          ) : (
-            <div className="relative space-y-0">
-              {typedEvents.map((event, index) => (
-                <div
-                  key={event.id}
-                  className="relative flex gap-4 pb-6 last:pb-0"
-                >
-                  {index < typedEvents.length - 1 && (
-                    <div className="absolute left-[11px] top-6 h-full w-px bg-border" />
-                  )}
-                  <div className="relative z-10 mt-1 size-[22px] shrink-0 rounded-full border-2 border-border bg-background" />
-                  <div className="flex flex-1 flex-col gap-1">
-                    <div className="flex items-center gap-2">
-                      <Badge variant={eventTypeColor(event.event_type)}>
-                        {event.event_type}
-                      </Badge>
-                      {event.tool_name && (
-                        <span className="text-sm font-medium">
-                          {event.tool_name}
-                        </span>
-                      )}
-                      {event.duration_ms !== null && (
-                        <span className="text-xs text-muted-foreground">
-                          {event.duration_ms}ms
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      {formatTimestamp(event.timestamp, userTimezone)} (seq: {event.seq})
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <Timeline events={typedEvents} userTimezone={userTimezone} />
     </div>
   );
 }
