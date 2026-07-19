@@ -81,8 +81,13 @@ def parse_edge_label(text) -> tuple[str | None, str]:
     label = match.group(1).lower()
     if label not in EDGE_LABELS:
         return None, text
-    cleaned = (text[: match.start()] + text[match.end() :]).strip()
-    return label, cleaned
+    before = text[: match.start()].rstrip(" \t")
+    after = text[match.end() :].lstrip(" \t")
+    if before and after:
+        cleaned = f"{before} {after}"
+    else:
+        cleaned = before + after
+    return label, cleaned.strip()
 
 
 def _now_iso() -> str:

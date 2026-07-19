@@ -432,8 +432,25 @@ class TestParseEdgeLabel:
     def test_matches_mid_prompt(self):
         got, rest = telemetry.parse_edge_label("please [tc:critique] this patch")
         assert got == "critique"
-        assert "[tc:" not in rest
-        assert "this patch" in rest
+        assert rest == "please this patch"
+
+    def test_preserves_newlines_in_multiline_prompt(self):
+        got, rest = telemetry.parse_edge_label(
+            "[tc:verify] first line\n\n  indented second"
+        )
+        assert got == "verify"
+        assert rest == "first line\n\n  indented second"
+
+    def test_malformed_markers_are_ignored(self):
+        for bad in (
+            "[tc:] hello",
+            "[tc verify] hello",
+            "[tc:verify hello",
+            "tc:verify] hello",
+        ):
+            got, rest = telemetry.parse_edge_label(bad)
+            assert got is None, f"{bad!r} should not parse"
+            assert rest == bad, f"{bad!r} text must be unchanged"
 
     def test_unknown_label_is_ignored_and_text_untouched(self):
         got, rest = telemetry.parse_edge_label("[tc:bogus] hello")
