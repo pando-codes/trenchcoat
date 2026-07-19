@@ -10,7 +10,7 @@ export interface SpawnGraphNode {
   costHeat: number; // 0..1 normalized against max weight
   onCriticalPath: boolean;
 }
-export interface SpawnGraphEdge { id: string; source: string; target: string; }
+export interface SpawnGraphEdge { id: string; source: string; target: string; label: string | null; }
 export interface SpawnGraph {
   nodes: SpawnGraphNode[];
   edges: SpawnGraphEdge[];
@@ -77,6 +77,7 @@ export function buildSpawnGraph(tree: SessionTreeNode[], opts: BuildOpts = {}): 
       id: `${n.parent_session_id}->${n.session_id}`,
       source: n.parent_session_id as string,
       target: n.session_id,
+      label: n.edge_label ?? null,
     }));
 
   return { nodes, edges, truncated: hiddenCount > 0, hiddenCount };
