@@ -906,6 +906,40 @@ class TestHookIntegration:
         ends = [e for e in self._read_events(tmp_path) if e["event"] == "tool_end"]
         assert ends and "agent_id" not in ends[0]["data"]
 
+    def test_agent_edge_label_lands_on_start_and_end(self, tmp_path):
+        self._run_hook(tmp_path, "pre_tool_use.py", {
+            "session_id": "test-s", "tool_name": "Agent",
+            "tool_input": {"description": "d", "prompt": "[tc:verify] check the patch"},
+        })
+        self._run_hook(tmp_path, "post_tool_use.py", {
+            "session_id": "test-s", "tool_name": "Agent",
+            "tool_input": {"description": "d", "prompt": "[tc:verify] check the patch"},
+            "tool_response": "ok",
+        })
+        events = self._read_events(tmp_path)
+        start = next(e for e in events if e["event"] == "tool_start")
+        end = next(e for e in events if e["event"] == "tool_end")
+        assert start["data"]["edge_label"] == "verify"
+        assert end["data"]["edge_label"] == "verify"
+        assert "[tc:" not in (start["data"].get("input_preview") or ""), \
+            "marker must be stripped from the privacy preview"
+
+    def test_agent_without_marker_has_no_edge_label(self, tmp_path):
+        self._run_hook(tmp_path, "pre_tool_use.py", {
+            "session_id": "test-s", "tool_name": "Agent",
+            "tool_input": {"description": "d", "prompt": "no marker here"},
+        })
+        start = next(e for e in self._read_events(tmp_path) if e["event"] == "tool_start")
+        assert "edge_label" not in start["data"]
+
+    def test_marker_ignored_for_non_agent_tool(self, tmp_path):
+        self._run_hook(tmp_path, "pre_tool_use.py", {
+            "session_id": "test-s", "tool_name": "Bash",
+            "tool_input": {"command": "echo [tc:verify]"},
+        })
+        start = next(e for e in self._read_events(tmp_path) if e["event"] == "tool_start")
+        assert "edge_label" not in start["data"]
+
 
 # ---------------------------------------------------------------------------
 # Active context helpers

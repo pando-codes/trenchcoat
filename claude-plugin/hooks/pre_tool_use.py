@@ -10,7 +10,7 @@ from telemetry import (
     read_hook_input, is_enabled, load_config, write_event,
     sanitize_tool_input, push_pending, generate_correlation_id,
     write_active_context, read_active_context,
-    write_agent_spawn_context,
+    write_agent_spawn_context, parse_edge_label,
 )
 
 
@@ -42,9 +42,19 @@ def main():
         tool_data["spawner_type"] = spawner_type
 
     if tool_name == "Agent":
+        edge_label, cleaned_prompt = parse_edge_label(tool_input.get("prompt"))
+        if edge_label:
+            # Rebuild the preview from input with the marker removed so it
+            # neither leaks nor consumes the truncation budget.
+            cleaned_input = dict(tool_input)
+            cleaned_input["prompt"] = cleaned_prompt
+            tool_data["input_preview"] = sanitize_tool_input(cleaned_input, config)
+            tool_data["edge_label"] = edge_label
+
         agent_id = generate_correlation_id()
         tool_data["agent_id"] = agent_id
-        push_pending(session_id, tool_name, correlation_id, agent_id=agent_id)
+        push_pending(session_id, tool_name, correlation_id,
+                     agent_id=agent_id, edge_label=edge_label)
         write_event("tool_start", session_id, tool_data)
         write_agent_spawn_context(
             parent_session_id=session_id,
