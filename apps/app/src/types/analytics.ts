@@ -59,6 +59,9 @@ export interface AgentStat {
   total_input_tokens: number | null;
   total_output_tokens: number | null;
   total_cost_usd: number | null;
+  p50_latency_ms: number | null;
+  p99_latency_ms: number | null;
+  latency_sample_count: number;
 }
 
 export interface SkillStat {
@@ -121,4 +124,6 @@ export interface AgentTimeseriesPoint {
   input_tokens: number;
   output_tokens: number;
   cost_usd: number;
+  p50_latency_ms: number | null;
+  latency_sample_count: number;
 }

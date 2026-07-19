@@ -213,6 +213,9 @@ export async function getTopAgents(
     total_input_tokens: (row.total_input_tokens as number | null) ?? null,
     total_output_tokens: (row.total_output_tokens as number | null) ?? null,
     total_cost_usd: (row.total_cost_usd as number | null) ?? null,
+    p50_latency_ms: (row.p50_latency_ms as number | null) ?? null,
+    p99_latency_ms: (row.p99_latency_ms as number | null) ?? null,
+    latency_sample_count: (row.latency_sample_count as number) ?? 0,
   }));
 
   return { success: true, data: agents };
@@ -249,6 +252,8 @@ export async function getAgentTimeseries(
     input_tokens: (row.input_tokens as number) ?? 0,
     output_tokens: (row.output_tokens as number) ?? 0,
     cost_usd: (row.cost_usd as number) ?? 0,
+    p50_latency_ms: (row.p50_latency_ms as number | null) ?? null,
+    latency_sample_count: (row.latency_sample_count as number) ?? 0,
   }));
 
   return { success: true, data: points };
