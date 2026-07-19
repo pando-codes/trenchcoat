@@ -477,7 +477,11 @@ def write_agent_spawn_context(
     """Write spawn context for the child process to read at session_start.
 
     Not session-scoped: the child process has a different session_id and reads
-    this file by path. Safe because Claude Code spawns one subagent at a time.
+    this file by path. Known limitation: this is a single global file, so
+    concurrent (parallel) Agent spawns within one session overwrite each
+    other's context — the last writer wins and earlier siblings may read the
+    wrong parent/spawner attribution. Serial spawns (one subagent at a time)
+    are unaffected.
     """
     TRENCHCOAT_DIR.mkdir(parents=True, exist_ok=True)
     ctx: dict = {

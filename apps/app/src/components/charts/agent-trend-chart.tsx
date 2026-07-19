@@ -32,7 +32,7 @@ export function AgentTrendChart({
             borderRadius: "0.375rem",
             color: "var(--color-popover-foreground)",
           }}
-          formatter={(v: number | undefined) => [v ?? 0, label]}
+          formatter={(v: number | undefined) => [v ?? "--", label]}
         />
         <Line type="monotone" dataKey={dataKey} strokeWidth={2} dot={false} />
       </LineChart>

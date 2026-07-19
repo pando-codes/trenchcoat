@@ -108,6 +108,8 @@ Fires immediately before a tool executes (via the `PreToolUse` hook).
 
 > `spawner_type` is currently always `"skill"` (or absent) everywhere the plugin emits it — on `tool_use`/`tool_result` events and on `session_start`/`sessions` records alike. The database schema also permits `"agent"`, but the plugin never produces that value; don't filter on `spawner_type == "agent"`, it never appears. Agent spawn lineage is carried instead by `parent_session_id` and `agent_id` on the `session_start` event (see above) and the `sessions` table — not by `spawner_type`.
 
+> **Caveat:** `agent_id` correlation assumes at most one `Agent` spawn in flight at a time per session. With concurrent (parallel) `Agent` spawns in a single session, the plugin's pending-tool matching and spawn-context handoff are not agent-scoped, so `agent_id` attribution — and any latency or edge label derived from it — may be ambiguous between the sibling spawns. Serial spawns are unaffected.
+
 ### `tool_result`
 
 Fires after a tool completes (via the `PostToolUse` hook).
@@ -217,6 +219,8 @@ The plugin looks for a `[tc:<label>]` marker in the prompt passed to the `Agent`
 2. Stripped from the prompt text before the prompt is truncated into `input_preview`, so the marker itself never appears in the stored preview and doesn't consume the truncation budget.
 
 Markers that don't match one of the three known labels are left in place and ignored — no `edge_label` field is emitted. The convention only applies to the `Agent` tool; a `[tc:...]` marker in any other tool's input has no effect.
+
+> **Caveat — parallel spawns:** edge label attachment relies on the same single-agent-in-flight assumption as `agent_id` correlation (above). With multiple `Agent` spawns running concurrently in one session, an `edge_label` may attach to the wrong sibling edge. Serial spawns (one subagent at a time) are unaffected.
 
 ## Schema stability
 

@@ -152,6 +152,7 @@ Required coverage:
 - **Duplicate `agent_id`** (theoretically possible across sessions): the join is scoped by `user_id` and `session_id` to prevent cross-session bleed.
 - **Marker in a prompt that is not an Agent spawn:** ignored — parsing runs only for `tool_name == "Agent"`.
 - **Percentiles from tiny samples:** `latency_sample_count` is returned so the UI can suppress or annotate percentiles below a small threshold.
+- **Parallel Agent spawns in one session:** `pop_pending`/`peek_pending_by_tool` in `claude-plugin/lib/telemetry.py` match pending entries on `tool_name` only (LIFO, no `agent_id` disambiguation), and `write_agent_spawn_context` writes a single global file per parent session rather than one per spawned agent. With N parallel spawns, `agent_id` correlation is ambiguous: per-agent latency may be mis-attributed between concurrently-running agents, and an edge label may attach to the wrong sibling edge. Serial spawns (one subagent at a time) are unaffected.
 
 ## 8. Open questions for planning
 
@@ -163,3 +164,4 @@ Required coverage:
 
 - **Spec C — Eval workflows:** run tagging (eval id + variant), variant comparison, external accuracy-score ingest, stable versioned agent identity.
 - Carry-forward from Spec A, still open: wire or remove the unconsumed `get_entity_rollup.estimated_cost_usd`; the drill-down's spec'd-but-unbuilt tool-fingerprint and recent-invocations sections.
+- **Per-`agent_id`-keyed pending/spawn-context redesign:** replace the `tool_name`-only LIFO pending stack and the single global agent-spawn-context file with structures keyed by `agent_id`, so parallel (concurrent) Agent spawns within one session get correct latency attribution and edge labels instead of only serial spawns being safe. Own slice — touches `pop_pending`, `peek_pending_by_tool`, and `write_agent_spawn_context` in `claude-plugin/lib/telemetry.py`.

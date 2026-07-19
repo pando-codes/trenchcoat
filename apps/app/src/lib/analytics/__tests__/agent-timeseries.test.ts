@@ -4,8 +4,8 @@ import { summariseAgentTimeseries } from "../agent-timeseries";
 describe("summariseAgentTimeseries", () => {
   it("totals invocations, tokens, cost and derives avg cost/call", () => {
     const s = summariseAgentTimeseries([
-      { bucket: "2025-04-01", invocations: 2, input_tokens: 100, output_tokens: 20, cost_usd: 0.10 },
-      { bucket: "2025-04-02", invocations: 3, input_tokens: 200, output_tokens: 30, cost_usd: 0.20 },
+      { bucket: "2025-04-01", invocations: 2, input_tokens: 100, output_tokens: 20, cost_usd: 0.10, p50_latency_ms: null, latency_sample_count: 0 },
+      { bucket: "2025-04-02", invocations: 3, input_tokens: 200, output_tokens: 30, cost_usd: 0.20, p50_latency_ms: null, latency_sample_count: 0 },
     ]);
     expect(s.totalInvocations).toBe(5);
     expect(s.totalInputTokens).toBe(300);
