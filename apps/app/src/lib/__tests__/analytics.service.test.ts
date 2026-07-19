@@ -5,6 +5,7 @@ import {
   getTopTools,
   getHourlyHeatmap,
   getTopAgents,
+  getAgentTimeseries,
 } from "../services/analytics.service";
 import { createMockSupabase } from "./helpers/supabase-mock";
 
@@ -215,6 +216,33 @@ describe("getTopAgents", () => {
       get_top_agents: { data: null, error: { message: "boom" } },
     });
     const result = await getTopAgents(supabase, USER_ID, FROM, TO, 50);
+    expect(result.success).toBe(false);
+    if (!result.success) expect(result.error.code).toBe("RPC_FAILED");
+  });
+});
+
+// --- getAgentTimeseries ---
+
+describe("getAgentTimeseries", () => {
+  it("maps timeseries rows on success", async () => {
+    const rows = [
+      { bucket: "2025-04-01", invocations: 3, input_tokens: 30000, output_tokens: 4000, cost_usd: 0.12 },
+    ];
+    const supabase = createMockSupabase({}, { get_agent_timeseries: { data: rows } });
+    const result = await getAgentTimeseries(supabase, USER_ID, "searcher", FROM, TO);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data).toHaveLength(1);
+      expect(result.data[0].cost_usd).toBe(0.12);
+      expect(result.data[0].invocations).toBe(3);
+    }
+  });
+
+  it("returns RPC_FAILED on error", async () => {
+    const supabase = createMockSupabase({}, {
+      get_agent_timeseries: { data: null, error: { message: "boom" } },
+    });
+    const result = await getAgentTimeseries(supabase, USER_ID, "searcher", FROM, TO);
     expect(result.success).toBe(false);
     if (!result.success) expect(result.error.code).toBe("RPC_FAILED");
   });

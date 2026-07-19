@@ -111,3 +111,11 @@ export interface EntityRollup {
   input_tokens: number;
   output_tokens: number;
 }
+
+export interface AgentTimeseriesPoint {
+  bucket: string;
+  invocations: number;
+  input_tokens: number;
+  output_tokens: number;
+  cost_usd: number;
+}

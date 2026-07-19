@@ -5,6 +5,7 @@ import type {
   ToolUsageStat,
   HourlyHeatmapEntry,
   AgentStat,
+  AgentTimeseriesPoint,
 } from "@/types/analytics";
 import type { ServiceResult } from "./types";
 
@@ -214,4 +215,40 @@ export async function getTopAgents(
   }));
 
   return { success: true, data: agents };
+}
+
+// ---------------------------------------------------------------------------
+// Agent timeseries
+// ---------------------------------------------------------------------------
+
+export async function getAgentTimeseries(
+  supabase: SupabaseClient,
+  userId: string,
+  agentType: string,
+  from: string,
+  to: string
+): Promise<ServiceResult<AgentTimeseriesPoint[]>> {
+  const { data, error } = await supabase.rpc("get_agent_timeseries", {
+    p_user_id: userId,
+    p_agent_type: agentType,
+    p_from: from,
+    p_to: to,
+  });
+
+  if (error) {
+    return {
+      success: false,
+      error: { code: "RPC_FAILED", message: "Failed to get agent timeseries", details: error.message },
+    };
+  }
+
+  const points: AgentTimeseriesPoint[] = ((data as Record<string, unknown>[]) ?? []).map((row) => ({
+    bucket: row.bucket as string,
+    invocations: row.invocations as number,
+    input_tokens: (row.input_tokens as number) ?? 0,
+    output_tokens: (row.output_tokens as number) ?? 0,
+    cost_usd: (row.cost_usd as number) ?? 0,
+  }));
+
+  return { success: true, data: points };
 }
