@@ -6,6 +6,7 @@ import {
   getHourlyHeatmap,
   getTopAgents,
   getAgentTimeseries,
+  getSessionTree,
 } from "../services/analytics.service";
 import { createMockSupabase } from "./helpers/supabase-mock";
 
@@ -243,6 +244,35 @@ describe("getAgentTimeseries", () => {
       get_agent_timeseries: { data: null, error: { message: "boom" } },
     });
     const result = await getAgentTimeseries(supabase, USER_ID, "searcher", FROM, TO);
+    expect(result.success).toBe(false);
+    if (!result.success) expect(result.error.code).toBe("RPC_FAILED");
+  });
+});
+
+// --- getSessionTree ---
+
+describe("getSessionTree", () => {
+  it("maps tree nodes including duration and cost", async () => {
+    const rows = [
+      { session_id: "root", parent_session_id: null, spawner_id: null, spawner_type: null,
+        depth: 0, started_at: "2025-04-01T00:00:00Z", ended_at: "2025-04-01T00:01:00Z",
+        duration_ms: 60000, tool_count: 4, skill_count: 0, subagent_count: 2,
+        input_tokens: 1000, output_tokens: 200, estimated_cost_usd: 0.05 },
+    ];
+    const supabase = createMockSupabase({}, { get_session_tree: { data: rows } });
+    const result = await getSessionTree(supabase, USER_ID, "root");
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data[0].duration_ms).toBe(60000);
+      expect(result.data[0].estimated_cost_usd).toBe(0.05);
+    }
+  });
+
+  it("returns RPC_FAILED on error", async () => {
+    const supabase = createMockSupabase({}, {
+      get_session_tree: { data: null, error: { message: "boom" } },
+    });
+    const result = await getSessionTree(supabase, USER_ID, "root");
     expect(result.success).toBe(false);
     if (!result.success) expect(result.error.code).toBe("RPC_FAILED");
   });

@@ -6,6 +6,7 @@ import type {
   HourlyHeatmapEntry,
   AgentStat,
   AgentTimeseriesPoint,
+  SessionTreeNode,
 } from "@/types/analytics";
 import type { ServiceResult } from "./types";
 
@@ -251,4 +252,28 @@ export async function getAgentTimeseries(
   }));
 
   return { success: true, data: points };
+}
+
+// ---------------------------------------------------------------------------
+// Session tree
+// ---------------------------------------------------------------------------
+
+export async function getSessionTree(
+  supabase: SupabaseClient,
+  userId: string,
+  sessionId: string
+): Promise<ServiceResult<SessionTreeNode[]>> {
+  const { data, error } = await supabase.rpc("get_session_tree", {
+    p_user_id: userId,
+    p_session_id: sessionId,
+  });
+
+  if (error) {
+    return {
+      success: false,
+      error: { code: "RPC_FAILED", message: "Failed to get session tree", details: error.message },
+    };
+  }
+
+  return { success: true, data: (data as SessionTreeNode[]) ?? [] };
 }

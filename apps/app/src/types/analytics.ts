@@ -102,6 +102,8 @@ export interface SessionTreeNode {
   subagent_count: number;
   input_tokens: number;
   output_tokens: number;
+  duration_ms: number;
+  estimated_cost_usd: number;
 }
 
 export interface EntityRollup {
@@ -110,6 +112,7 @@ export interface EntityRollup {
   total_subagents: number;
   input_tokens: number;
   output_tokens: number;
+  estimated_cost_usd: number;
 }
 
 export interface AgentTimeseriesPoint {
