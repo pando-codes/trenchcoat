@@ -30,9 +30,12 @@ def main():
 
     correlation_id = None
     duration_ms    = None
+    agent_id       = None
+
     if pending:
         correlation_id = pending.get("correlation_id")
         started_ns     = pending.get("started_at")
+        agent_id       = pending.get("agent_id")
         if started_ns:
             duration_ms = (time.monotonic_ns() - started_ns) / 1_000_000
 
@@ -46,6 +49,9 @@ def main():
         "is_error":      result_info.get("is_error"),
         "error_preview": result_info.get("error_preview"),
     }
+
+    if agent_id:
+        event_data["agent_id"] = agent_id
 
     ctx = read_active_context(session_id)
     if ctx:

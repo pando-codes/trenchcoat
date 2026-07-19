@@ -801,6 +801,45 @@ class TestHookIntegration:
         assert len(tool_ends) == 1
         assert "spawner_id" not in tool_ends[0]["data"]
 
+    def _read_events(self, tmp_path):
+        tc_dir = tmp_path / ".claude" / "trenchcoat"
+        lines = []
+        for f in sorted(tc_dir.glob("events-*.jsonl")):
+            lines.extend(json.loads(l) for l in f.read_text().splitlines() if l.strip())
+        return lines
+
+    def test_agent_tool_end_carries_agent_id(self, tmp_path):
+        """PreToolUse(Agent) mints agent_id; PostToolUse must copy it onto tool_end."""
+        self._run_hook(tmp_path, "pre_tool_use.py", {
+            "session_id": "test-s", "tool_name": "Agent",
+            "tool_input": {"description": "d", "prompt": "do the thing"},
+        })
+        r = self._run_hook(tmp_path, "post_tool_use.py", {
+            "session_id": "test-s", "tool_name": "Agent",
+            "tool_input": {"description": "d", "prompt": "do the thing"},
+            "tool_response": "ok",
+        })
+        assert r.returncode == 0, f"stderr: {r.stderr}"
+
+        events = self._read_events(tmp_path)
+        starts = [e for e in events if e["event"] == "tool_start"]
+        ends = [e for e in events if e["event"] == "tool_end"]
+        assert starts and ends
+        assert starts[0]["data"].get("agent_id"), "tool_start should mint agent_id"
+        assert ends[0]["data"].get("agent_id") == starts[0]["data"]["agent_id"], \
+            "tool_end must carry the same agent_id as tool_start"
+
+    def test_non_agent_tool_end_has_no_agent_id(self, tmp_path):
+        self._run_hook(tmp_path, "pre_tool_use.py", {
+            "session_id": "test-s", "tool_name": "Bash", "tool_input": {"command": "echo hi"},
+        })
+        self._run_hook(tmp_path, "post_tool_use.py", {
+            "session_id": "test-s", "tool_name": "Bash",
+            "tool_input": {"command": "echo hi"}, "tool_response": "hi",
+        })
+        ends = [e for e in self._read_events(tmp_path) if e["event"] == "tool_end"]
+        assert ends and "agent_id" not in ends[0]["data"]
+
 
 # ---------------------------------------------------------------------------
 # Active context helpers
