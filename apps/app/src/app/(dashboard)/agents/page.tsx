@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { parseDateRange } from "@/lib/date-range";
@@ -11,7 +12,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { AgentCallsChart } from "@/components/charts/agent-calls-chart";
-import type { AgentStat } from "@/types/analytics";
+import { getTopAgents } from "@/lib/services/analytics.service";
+import { formatUsd, formatTokens, avgCostPerCall } from "@/lib/format/agents";
 
 export default async function AgentsPage({
   searchParams,
@@ -31,12 +33,7 @@ export default async function AgentsPage({
   const { p_from, p_to } = parseDateRange(from, to);
 
   const [agentsResult, dailyResult] = await Promise.all([
-    supabase.rpc("get_top_agents", {
-      p_user_id: user.id,
-      p_from,
-      p_to,
-      p_limit: 50,
-    }),
+    getTopAgents(supabase, user.id, p_from, p_to, 50),
     supabase
       .from("daily_aggregates")
       .select("date, agent_calls")
@@ -46,18 +43,7 @@ export default async function AgentsPage({
       .order("date", { ascending: true }),
   ]);
 
-  const agents: AgentStat[] = (
-    (agentsResult.data as Record<string, unknown>[]) ?? []
-  ).map((row) => ({
-    agent_type: row.agent_type as string,
-    count: row.count as number,
-    avg_tool_count: (row.avg_tool_count as number | null) ?? null,
-    avg_turns: (row.avg_turns as number | null) ?? null,
-    trend: (row.trend as number | null) ?? null,
-    total_input_tokens: (row.total_input_tokens as number | null) ?? null,
-    total_output_tokens: (row.total_output_tokens as number | null) ?? null,
-    total_cost_usd: (row.total_cost_usd as number | null) ?? null,
-  }));
+  const agents = agentsResult.success ? agentsResult.data : [];
 
   const dailyData: { date: string; agent_calls: number }[] = (
     (dailyResult.data as { date: string; agent_calls: number }[]) ?? []
@@ -91,6 +77,8 @@ export default async function AgentsPage({
               <TableRow>
                 <TableHead>Agent Type</TableHead>
                 <TableHead className="text-right">Calls</TableHead>
+                <TableHead className="text-right">Avg Cost</TableHead>
+                <TableHead className="text-right">Tokens (in/out)</TableHead>
                 <TableHead className="text-right">Avg Tools/Call</TableHead>
                 <TableHead className="text-right">Avg Turns</TableHead>
                 <TableHead className="text-right">Trend</TableHead>
@@ -100,7 +88,7 @@ export default async function AgentsPage({
               {agents.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={5}
+                    colSpan={7}
                     className="text-center text-muted-foreground"
                   >
                     No agent data found.
@@ -110,9 +98,18 @@ export default async function AgentsPage({
                 agents.map((stat) => (
                   <TableRow key={stat.agent_type}>
                     <TableCell className="font-medium">
-                      {stat.agent_type || "general-purpose"}
+                      <Link href={`/agents/${encodeURIComponent(stat.agent_type || "general-purpose")}`}
+                            className="hover:underline">
+                        {stat.agent_type || "general-purpose"}
+                      </Link>
                     </TableCell>
                     <TableCell className="text-right">{stat.count}</TableCell>
+                    <TableCell className="text-right">
+                      {formatUsd(avgCostPerCall(stat.total_cost_usd, stat.count))}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {formatTokens(stat.total_input_tokens)} / {formatTokens(stat.total_output_tokens)}
+                    </TableCell>
                     <TableCell className="text-right">
                       {stat.avg_tool_count?.toFixed(1) ?? "--"}
                     </TableCell>
