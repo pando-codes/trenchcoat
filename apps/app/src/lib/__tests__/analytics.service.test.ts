@@ -323,3 +323,17 @@ describe("getSessionTree", () => {
     if (!result.success) expect(result.error.code).toBe("RPC_FAILED");
   });
 });
+
+describe("getSessionTree edge_label", () => {
+  it("passes edge_label through", async () => {
+    const rows = [{
+      session_id: "child", parent_session_id: "root", spawner_id: "ag-1", spawner_type: "agent",
+      depth: 1, started_at: "2025-04-01T00:00:00Z", ended_at: null, duration_ms: 10,
+      tool_count: 0, skill_count: 0, subagent_count: 0,
+      input_tokens: 0, output_tokens: 0, estimated_cost_usd: 0, edge_label: "verify",
+    }];
+    const supabase = createMockSupabase({}, { get_session_tree: { data: rows } });
+    const result = await getSessionTree(supabase, USER_ID, "root");
+    if (result.success) expect(result.data[0].edge_label).toBe("verify");
+  });
+});

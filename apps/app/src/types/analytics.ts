@@ -107,6 +107,7 @@ export interface SessionTreeNode {
   output_tokens: number;
   duration_ms: number;
   estimated_cost_usd: number;
+  edge_label: string | null;
 }
 
 export interface EntityRollup {
