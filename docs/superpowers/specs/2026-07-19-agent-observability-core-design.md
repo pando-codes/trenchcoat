@@ -23,7 +23,7 @@ Verified against the codebase (2026-07-19):
 | Per-agent cost/tokens | **Computed** by `get_top_agents` RPC (`total_input_tokens`, `total_output_tokens`, `total_cost_usd`) but **dropped** by the Agents page UI |
 | Per-agent drill-down | **Missing** — no `agents/[type]` route; clicking an agent does nothing |
 | Per-agent time-series (cost/tokens/latency over time) | **Missing / un-served** — `daily_aggregates` has only a scalar `agent_calls` count, no per-agent dimension |
-| Per-agent latency | **Missing** — only avg turns / avg tools today |
+| Per-agent latency | **Missing AND not cleanly derivable** — `subagent_stop` carries `agent_type` but no duration; the `Agent` tool_end carries `duration_ms` but no `agent_type`. No shared join key. **Deferred to Spec B** (needs a one-line capture change: stamp `agent_type` onto the Agent tool_end). |
 | Spawn-tree data model | **Exists** — `sessions.parent_session_id` / `spawner_id` / `spawner_type`; RPCs `get_session_tree`, `get_entity_rollup` |
 | Cost on the tree | **Missing** — `get_entity_rollup` returns tokens only (its own spec promised `estimated_cost_usd`); `get_session_tree` has no cost |
 | Graph/tree visualization | **Missing** — no react-flow/d3/custom viz anywhere; `get_session_tree` and `get_entity_rollup` are **dead, unused RPCs** |
@@ -53,11 +53,11 @@ Verified against the codebase (2026-07-19):
 
 **Agent identity.** For Spec A an "agent" is keyed by the `agent_type` string, scoped to the user (`(user_id, agent_type)`). This matches every existing agent query. A stable, version-aware agent identity is a Spec C concern and is explicitly *not* introduced here.
 
-**Agents page (`apps/app/src/app/(dashboard)/agents/page.tsx`).** Extend the existing "Top Agents" table — no rewrite. Columns become: Agent Type · Invocations · **Avg Cost** · **Avg Tokens (in/out)** · Avg Tools/Call · Avg Turns · **p50 / p99 Latency** · Trend. Cost/token values already arrive from `get_top_agents`; latency is the one new field (see 4.3). Each row links to `/agents/<agent_type>`.
+**Agents page (`apps/app/src/app/(dashboard)/agents/page.tsx`).** Extend the existing "Top Agents" table — no rewrite. Columns become: Agent Type · Invocations · **Avg Cost** · **Avg Tokens (in/out)** · Avg Tools/Call · Avg Turns · Trend. Cost/token values already arrive from `get_top_agents` (currently discarded). Each row links to `/agents/<agent_type>`. (Per-agent latency is deferred to Spec B — see 4.3.)
 
 **Drill-down (`apps/app/src/app/(dashboard)/agents/[type]/page.tsx`, new).** Server component for one agent_type over the active date range:
-- **Header stat tiles:** invocations, total + avg cost, avg tokens, p50/p99 latency, error/retry rate (if derivable; else omit — YAGNI).
-- **Time-series** (the regression-spotting view): cost/day, tokens/day, and latency/day as small multiples, from `get_agent_timeseries`.
+- **Header stat tiles:** invocations, total + avg cost, avg tokens, avg tools/call.
+- **Time-series** (the regression-spotting view): cost/day and tokens/day as small multiples, from `get_agent_timeseries`.
 - **Tool fingerprint:** the agent's tool-call distribution (avg calls per tool), reusing the existing tool-breakdown shape.
 - **Recent invocations:** list of sessions where this agent ran, each linking to session detail (and thus the graph).
 
@@ -80,14 +80,14 @@ Follow `dataviz` skill conventions for all charts (small multiples, sparklines, 
 
 ### 4.3 Cross-cutting data decisions
 
-- **Latency sourcing (needs verification in planning).** Primary: per-agent latency = the subagent's own session `duration_ms` (already on `sessions`). This requires associating `agent_type` (which lives only in `events.data` on `subagent_stop`) to a session row. **Verify** whether `subagent_stop.session_id` references the child (subagent) session or the parent; if it maps only to the parent, **fall back** to the `Task` tool_result `duration_ms` — the Pre/PostToolUse correlation already computes a `duration_ms` for the spawning Task call, which is a valid wall-clock proxy for the subagent. Pick one in planning; do not build both.
+- **Latency (RESOLVED during planning → deferred to Spec B).** Both candidate sources were checked against the hook code: `subagent_stop` carries `agent_type` but no duration, and the `Agent` tool_start/tool_end carry `duration_ms` + `correlation_id` but never `agent_type`. There is no shared key to attribute "how long" to "which agent" without a fragile temporal-proximity guess. Rather than ship a misleading number in an eval tool, **per-agent latency is deferred to Spec B**, which owns a one-line capture change (stamp `agent_type` onto the Agent `tool_end` event). Note this is *only* about per-agent-type latency aggregation — the **graph** still gets latency, because graph nodes are sessions and `sessions.duration_ms` is available (used for cost-heat's latency-toggle and the critical path).
 - **Cost.** Reuse the existing `computeCost` / `model_pricing` join pattern verbatim (`get_top_agents`, `apps/app/src/lib/cost.ts`). No new pricing logic.
 - **No materialization.** `get_agent_timeseries` computes on-read from `events` (bucketed by day), mirroring `get_top_agents`. Confirm the existing `events` indexes (esp. `idx_events_spawner_id` and the `subagent_stop` access path) keep this acceptable for a ~90-day range; add a covering index only if planning shows a regression.
 
 ## 5. Components & interfaces
 
 **New / changed RPCs (SQL migrations)**
-- `get_agent_timeseries(p_user_id uuid, p_agent_type text, p_from date, p_to date, p_bucket text default 'day') → table(bucket date, invocations int, input_tokens int, output_tokens int, cost_usd numeric, p50_latency_ms int, p99_latency_ms int)` — **new**.
+- `get_agent_timeseries(p_user_id uuid, p_agent_type text, p_from date, p_to date) → table(bucket date, invocations int, input_tokens bigint, output_tokens bigint, cost_usd numeric)` — **new**. (No latency field — deferred to Spec B per 4.3.)
 - `get_session_tree(...)` — **extend** return with `estimated_cost_usd`, `duration_ms` per node.
 - `get_entity_rollup(...)` — **fix** to include `estimated_cost_usd`.
 
@@ -134,11 +134,11 @@ existing hooks → events / sessions (already populated, no change)
 
 ## 9. Open questions to resolve in planning
 
-1. **Latency source** — child-session `duration_ms` vs. Task tool_result `duration_ms` (see 4.3). One decision, verified against real data, before building.
+1. ~~Latency source~~ — **Resolved:** no clean per-agent source exists; deferred to Spec B (see 4.3).
 2. **Graph library** — confirm `@xyflow/react` + `dagre` clears the app's CSP/bundle budget; fallback is a lightweight custom SVG dagre layout if react-flow is too heavy.
 3. **On-read performance** — validate `get_agent_timeseries` over 90 days on a realistically large `events` table; decide whether a covering index is warranted.
 
 ## 10. Follow-on (not this spec)
 
-- **Spec B — Edge semantics:** opt-in edge labeling (agents declare `delegate` / `verify` / `critique` on a spawn), parsed capture-side, enriching graph edges. Endorsed; sequenced after this core.
+- **Spec B — Edge semantics + latency capture:** opt-in edge labeling (agents declare `delegate` / `verify` / `critique` on a spawn), parsed capture-side, enriching graph edges. **Also owns the latency-enabling capture change** pulled out of Spec A: stamp `agent_type` onto the Agent `tool_end` event so per-agent latency (p50/p99) becomes derivable, then surface those columns/tiles on the Agents page and drill-down. Endorsed; sequenced after this core.
 - **Spec C — Eval workflows:** run tagging (eval id + variant), variant comparison views, external accuracy-score ingest API, and a stable versioned agent identity to trend an agent across versions.
