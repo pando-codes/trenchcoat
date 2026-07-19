@@ -109,7 +109,9 @@ Agents with zero matched samples return nulls → UI renders `--`, never 0.
 
 ### 4.4 Read-side: edge labels on the graph
 
-A child session records `spawner_id = <agent_id>` with `spawner_type = 'agent'` (set by `write_agent_spawn_context`). So a graph node's inbound edge label is found by joining the node's `spawner_id` to the `edge_label` on the Agent event carrying that `agent_id`.
+**Corrected during implementation.** The original design here assumed a child session records `spawner_id = <agent_id>` with `spawner_type = 'agent'`. Verification disproved both halves: `session_start.py` forwards only `parent_session_id` and the *parent's skill* `spawner_id`, and nothing in the plugin ever writes `spawner_type = 'agent'` (the DB CHECK and TS union permit the value; no writer produces it). A join keyed on `sessions.spawner_id` would therefore never match — the feature would have shipped inert.
+
+The shipped mechanism instead threads the real key: `session_start.py` now records the spawn context's **`agent_id`** onto the `session_start` event, and `get_session_tree` resolves a node's inbound label by finding that node's own `session_start` event, reading its `agent_id`, and joining to the `edge_label` on the Agent tool event carrying the same `agent_id`.
 
 `get_session_tree` gains an `edge_label text` column. Because it returns `TABLE(...)`, this **requires `drop function if exists` first** (precedent: migration 023).
 
