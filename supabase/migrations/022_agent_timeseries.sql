@@ -23,7 +23,7 @@ begin
     left join public.model_pricing mp on mp.model_id = (e.data->>'model')
     where e.user_id    = p_user_id
       and e.event_type = 'subagent_stop'
-      and coalesce(e.data->>'agent_type', 'general-purpose') = p_agent_type
+      and coalesce(nullif(trim(e.data->>'agent_type'), ''), 'general-purpose') = p_agent_type
       and e.timestamp::date between p_from and p_to
     group by e.timestamp::date
   ) t;
