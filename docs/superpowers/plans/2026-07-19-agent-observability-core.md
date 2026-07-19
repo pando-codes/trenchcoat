@@ -754,9 +754,10 @@ create or replace function public.get_session_tree(
     count(e.id) filter (where e.event_type = 'subagent_stop')  as subagent_count,
     coalesce(max(s2.input_tokens),  0)::bigint                 as input_tokens,
     coalesce(max(s2.output_tokens), 0)::bigint                 as output_tokens,
-    round(coalesce(
-      max(s2.input_tokens)  * max(mp.input_cost_per_1m)  / 1000000.0 +
-      max(s2.output_tokens) * max(mp.output_cost_per_1m) / 1000000.0, 0)::numeric, 6) as estimated_cost_usd
+    round((
+      coalesce(max(s2.input_tokens),  0) * coalesce(max(mp.input_cost_per_1m),  0) / 1000000.0 +
+      coalesce(max(s2.output_tokens), 0) * coalesce(max(mp.output_cost_per_1m), 0) / 1000000.0
+    )::numeric, 6) as estimated_cost_usd
   from tree t
   left join public.events e   on e.session_id  = t.session_id and e.user_id = p_user_id
   left join public.sessions s2 on s2.session_id = t.session_id and s2.user_id = p_user_id
