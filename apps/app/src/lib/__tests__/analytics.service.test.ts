@@ -4,6 +4,7 @@ import {
   getDailyActivity,
   getTopTools,
   getHourlyHeatmap,
+  getTopAgents,
 } from "../services/analytics.service";
 import { createMockSupabase } from "./helpers/supabase-mock";
 
@@ -188,5 +189,33 @@ describe("getHourlyHeatmap", () => {
     const result = await getHourlyHeatmap(supabase, USER_ID, FROM, TO);
     expect(result.success).toBe(false);
     if (!result.success) expect(result.error.code).toBe("QUERY_FAILED");
+  });
+});
+
+// --- getTopAgents ---
+
+describe("getTopAgents", () => {
+  it("maps agent rows including cost and tokens", async () => {
+    const rows = [
+      { agent_type: "searcher", count: 12, avg_tool_count: 6, avg_turns: 4,
+        trend: 45.0, total_input_tokens: 90000, total_output_tokens: 12000, total_cost_usd: 0.42 },
+    ];
+    const supabase = createMockSupabase({}, { get_top_agents: { data: rows } });
+    const result = await getTopAgents(supabase, USER_ID, FROM, TO, 50);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data[0].agent_type).toBe("searcher");
+      expect(result.data[0].total_cost_usd).toBe(0.42);
+      expect(result.data[0].total_input_tokens).toBe(90000);
+    }
+  });
+
+  it("returns RPC_FAILED on error", async () => {
+    const supabase = createMockSupabase({}, {
+      get_top_agents: { data: null, error: { message: "boom" } },
+    });
+    const result = await getTopAgents(supabase, USER_ID, FROM, TO, 50);
+    expect(result.success).toBe(false);
+    if (!result.success) expect(result.error.code).toBe("RPC_FAILED");
   });
 });
