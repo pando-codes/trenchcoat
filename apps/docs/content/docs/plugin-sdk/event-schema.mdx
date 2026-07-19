@@ -51,6 +51,10 @@ Fires when a new Claude Code session begins. Always the first event in a session
 | `model` | string | The Claude model active at session start. |
 | `cwd` | string | Working directory where Claude Code was launched. |
 | `git_branch` | string \| null | Current git branch, if the working directory is a git repository. |
+| `parent_session_id` | string | *Optional.* Present when this session was spawned as a subagent — the `session_id` of the session that spawned it. |
+| `agent_id` | string | *Optional.* Present when this session was spawned via the `Agent` tool — the same `agent_id` minted on the parent session's spawning `tool_use`/`tool_result` pair. This is what carries agent spawn lineage into the session graph; see the note below. |
+| `spawner_id` | string | *Optional.* The skill activation ID of the active Skill invocation that was in effect when this session was spawned, if any. |
+| `spawner_type` | string | *Optional.* Currently always `"skill"` when present. |
 
 ### `session_end`
 
@@ -102,7 +106,7 @@ Fires immediately before a tool executes (via the `PreToolUse` hook).
 | `agent_id` | string | *Agent tool only.* Unique ID minted for this subagent spawn; carried onto the matching `tool_result` and the subagent's own `subagent_stop` event. |
 | `edge_label` | string | *Agent tool only, optional, plugin ≥ 1.2.0.* One of `delegate`, `verify`, `critique`, parsed from a `[tc:...]` marker in the Task prompt. See [Edge labels](#edge-labels) below. |
 
-> Agent spawn lineage (`spawner_type: "agent"`) is tracked separately, on session records — the `session_start` event and the `sessions` table — not on `tool_use`/`tool_result` events. Don't filter tool events by `spawner_type == "agent"`; it never appears there.
+> `spawner_type` is currently always `"skill"` (or absent) everywhere the plugin emits it — on `tool_use`/`tool_result` events and on `session_start`/`sessions` records alike. The database schema also permits `"agent"`, but the plugin never produces that value; don't filter on `spawner_type == "agent"`, it never appears. Agent spawn lineage is carried instead by `parent_session_id` and `agent_id` on the `session_start` event (see above) and the `sessions` table — not by `spawner_type`.
 
 ### `tool_result`
 

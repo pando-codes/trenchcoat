@@ -940,6 +940,36 @@ class TestHookIntegration:
         start = next(e for e in self._read_events(tmp_path) if e["event"] == "tool_start")
         assert "edge_label" not in start["data"]
 
+    def test_session_start_records_agent_id_from_spawn_context(self, tmp_path):
+        """PreToolUse(Agent) in the parent session mints agent_id and writes the
+        cross-process spawn context; SessionStart for the CHILD session must
+        copy that agent_id onto its session_start event so the graph's
+        edge_label join (session_start.agent_id == tool_use.agent_id) has
+        something to match against.
+        """
+        self._run_hook(tmp_path, "pre_tool_use.py", {
+            "session_id": "parent-s", "tool_name": "Agent",
+            "tool_input": {"description": "d", "prompt": "[tc:delegate] do the thing"},
+        })
+        parent_start = next(
+            e for e in self._read_events(tmp_path) if e["event"] == "tool_start"
+        )
+        parent_agent_id = parent_start["data"]["agent_id"]
+        assert parent_agent_id, "parent tool_start should mint agent_id"
+
+        r = self._run_hook(tmp_path, "session_start.py", {
+            "session_id": "child-s", "cwd": "/tmp",
+        })
+        assert r.returncode == 0, f"stderr: {r.stderr}"
+
+        child_starts = [
+            e for e in self._read_events(tmp_path)
+            if e["event"] == "session_start" and e["session_id"] == "child-s"
+        ]
+        assert len(child_starts) == 1
+        assert child_starts[0]["data"].get("agent_id") == parent_agent_id, \
+            "session_start for the child session must carry the parent's agent_id"
+
 
 # ---------------------------------------------------------------------------
 # Active context helpers

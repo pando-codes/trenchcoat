@@ -52,11 +52,16 @@ create or replace function public.get_session_tree(
   left join public.model_pricing mp on mp.model_id = s2.model
   left join lateral (
     select ev.data->>'edge_label' as edge_label
-    from public.events ev
-    where ev.user_id = p_user_id
+    from public.events ss_ev
+    join public.events ev
+      on  ev.user_id    = p_user_id
       and ev.event_type in ('tool_use', 'tool_result')
-      and ev.data->>'agent_id' = t.spawner_id
+      and ev.data->>'agent_id' = ss_ev.data->>'agent_id'
       and ev.data->>'edge_label' is not null
+    where ss_ev.user_id    = p_user_id
+      and ss_ev.event_type = 'session_start'
+      and ss_ev.session_id = t.session_id
+      and ss_ev.data->>'agent_id' is not null
     limit 1
   ) el on true
   group by t.session_id, t.parent_session_id, t.spawner_id, t.spawner_type,
