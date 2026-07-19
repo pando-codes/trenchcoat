@@ -18,6 +18,7 @@ function node(p: Partial<SessionTreeNode> & { session_id: string }): SessionTree
     input_tokens: p.input_tokens ?? 0,
     output_tokens: p.output_tokens ?? 0,
     estimated_cost_usd: p.estimated_cost_usd ?? 0,
+    edge_label: p.edge_label ?? null,
   };
 }
 
@@ -66,5 +67,18 @@ describe("buildSpawnGraph", () => {
       expect(g.nodes.some((n) => n.id === e.source)).toBe(true);
       expect(g.nodes.some((n) => n.id === e.target)).toBe(true);
     }
+  });
+
+  it("carries a node's edge_label onto its inbound edge", () => {
+    const tree = [
+      node({ session_id: "root", depth: 0 }),
+      node({ session_id: "a", parent_session_id: "root", depth: 1, edge_label: "verify" }),
+      node({ session_id: "b", parent_session_id: "root", depth: 1 }),
+    ];
+    const g = buildSpawnGraph(tree);
+    const ea = g.edges.find((e) => e.target === "a")!;
+    const eb = g.edges.find((e) => e.target === "b")!;
+    expect(ea.label).toBe("verify");
+    expect(eb.label).toBeNull();
   });
 });

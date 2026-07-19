@@ -26,6 +26,8 @@ def main():
     event_data: dict = {"cwd": cwd}
     if spawn_ctx:
         event_data["parent_session_id"] = spawn_ctx["parent_session_id"]
+        if spawn_ctx.get("agent_id"):
+            event_data["agent_id"] = spawn_ctx["agent_id"]
         if spawn_ctx.get("spawner_id"):
             event_data["spawner_id"]   = spawn_ctx["spawner_id"]
             event_data["spawner_type"] = spawn_ctx["spawner_type"]

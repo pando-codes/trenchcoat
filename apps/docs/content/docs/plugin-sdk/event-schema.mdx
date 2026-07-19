@@ -51,6 +51,10 @@ Fires when a new Claude Code session begins. Always the first event in a session
 | `model` | string | The Claude model active at session start. |
 | `cwd` | string | Working directory where Claude Code was launched. |
 | `git_branch` | string \| null | Current git branch, if the working directory is a git repository. |
+| `parent_session_id` | string | *Optional.* Present when this session was spawned as a subagent — the `session_id` of the session that spawned it. |
+| `agent_id` | string | *Optional.* Present when this session was spawned via the `Agent` tool — the same `agent_id` minted on the parent session's spawning `tool_use`/`tool_result` pair. This is what carries agent spawn lineage into the session graph; see the note below. |
+| `spawner_id` | string | *Optional.* The skill activation ID of the active Skill invocation that was in effect when this session was spawned, if any. |
+| `spawner_type` | string | *Optional.* Currently always `"skill"` when present. |
 
 ### `session_end`
 
@@ -86,7 +90,8 @@ Fires immediately before a tool executes (via the `PreToolUse` hook).
   "timestamp": "2026-05-12T14:25:10.220Z",
   "data": {
     "tool_name": "Bash",
-    "tool_input_preview": "ls -la /Users/alice/projects"
+    "correlation_id": "9f86d081b8ac",
+    "input_preview": "ls -la /Users/alice/projects"
   }
 }
 ```
@@ -94,7 +99,16 @@ Fires immediately before a tool executes (via the `PreToolUse` hook).
 | Field | Type | Description |
 |---|---|---|
 | `tool_name` | string | The name of the tool being invoked (e.g., `Bash`, `Edit`, `Read`). |
-| `tool_input_preview` | string | A truncated preview of the tool input. Long inputs are trimmed to 500 characters. |
+| `correlation_id` | string | Opaque ID that ties this `tool_use` event to its matching `tool_result` event. |
+| `input_preview` | string \| null | A truncated preview of the tool input. Long inputs are trimmed to 100 characters by default (configurable via `privacy.tool_input_preview_chars` in `config.json`). |
+| `spawner_id` | string | *Optional.* The skill activation ID of the active Skill invocation this tool call happened under, if any. |
+| `spawner_type` | string | *Optional.* Currently always `"skill"` — present only when the tool call happened inside an active Skill invocation, paired with `spawner_id`. |
+| `agent_id` | string | *Agent tool only.* Unique ID minted for this subagent spawn; carried onto the matching `tool_result` and the subagent's own `subagent_stop` event. |
+| `edge_label` | string | *Agent tool only, optional, plugin ≥ 1.2.0.* One of `delegate`, `verify`, `critique`, parsed from a `[tc:...]` marker in the Task prompt. See [Edge labels](#edge-labels) below. |
+
+> `spawner_type` is currently always `"skill"` (or absent) everywhere the plugin emits it — on `tool_use`/`tool_result` events and on `session_start`/`sessions` records alike. The database schema also permits `"agent"`, but the plugin never produces that value; don't filter on `spawner_type == "agent"`, it never appears. Agent spawn lineage is carried instead by `parent_session_id` and `agent_id` on the `session_start` event (see above) and the `sessions` table — not by `spawner_type`.
+
+> **Caveat:** `agent_id` correlation assumes at most one `Agent` spawn in flight at a time per session. With concurrent (parallel) `Agent` spawns in a single session, the plugin's pending-tool matching and spawn-context handoff are not agent-scoped, so `agent_id` attribution — and any latency or edge label derived from it — may be ambiguous between the sibling spawns. Serial spawns are unaffected.
 
 ### `tool_result`
 
@@ -107,8 +121,11 @@ Fires after a tool completes (via the `PostToolUse` hook).
   "timestamp": "2026-05-12T14:25:10.854Z",
   "data": {
     "tool_name": "Bash",
+    "correlation_id": "9f86d081b8ac",
+    "duration_ms": 634,
+    "result_size": 1428,
     "is_error": false,
-    "duration_ms": 634
+    "error_preview": null
   }
 }
 ```
@@ -116,8 +133,15 @@ Fires after a tool completes (via the `PostToolUse` hook).
 | Field | Type | Description |
 |---|---|---|
 | `tool_name` | string | The name of the tool that completed. |
-| `is_error` | boolean | Whether the tool returned an error result. |
-| `duration_ms` | integer | Wall-clock time from tool invocation to result, in milliseconds. |
+| `correlation_id` | string \| null | Matches the `correlation_id` of the originating `tool_use` event, when one could be correlated. |
+| `duration_ms` | number \| null | Wall-clock time from tool invocation to result, in milliseconds. |
+| `result_size` | integer | Size in characters of the serialized tool result. |
+| `is_error` | boolean \| null | Whether the tool returned an error result. `null` when the result shape doesn't affirmatively indicate success or failure. |
+| `error_preview` | string \| null | Short (≤200 char) excerpt of the error content, populated only when `is_error` is `true`. |
+| `spawner_id` | string | *Optional.* Same meaning as on `tool_use`. |
+| `spawner_type` | string | *Optional.* Same meaning as on `tool_use` — currently always `"skill"` when present. |
+| `agent_id` | string | *Agent tool only.* Same `agent_id` minted on the matching `tool_use` event. |
+| `edge_label` | string | *Agent tool only, optional, plugin ≥ 1.2.0.* Same edge label recorded on the matching `tool_use` event, if any. |
 
 ### `subagent_stop`
 
@@ -129,18 +153,30 @@ Fires when a subagent spawned by the main Claude session completes.
   "session_id": "a1b2c3d4-...",
   "timestamp": "2026-05-12T14:31:45.010Z",
   "data": {
-    "subagent_id": "f9e8d7c6-b5a4-3210-fedc-ba9876543210",
+    "agent_type": "general-purpose",
+    "reason": "completed",
+    "tool_counts": { "Read": 4, "Bash": 2 },
+    "tool_count_total": 6,
+    "turns": 5,
+    "input_tokens": 8210,
+    "output_tokens": 1340,
     "model": "claude-haiku-4-5",
-    "tokens_used": 12480
+    "agent_id": "3c9a1e7f2b04"
   }
 }
 ```
 
 | Field | Type | Description |
 |---|---|---|
-| `subagent_id` | string (UUID) | Unique identifier for this subagent invocation. |
-| `model` | string | The model the subagent ran on (may differ from the parent session model). |
-| `tokens_used` | integer | Tokens consumed by this subagent across its lifetime. |
+| `agent_type` | string | The subagent type that ran (e.g., `general-purpose`), taken from the hook's `agent_type` field; defaults to `general-purpose` if absent. |
+| `reason` | string | The stop reason reported by Claude Code for this subagent. |
+| `tool_counts` | object | Map of tool name → invocation count, parsed from the subagent's transcript. |
+| `tool_count_total` | integer | Total number of tool calls made by the subagent. |
+| `turns` | integer | Number of assistant turns in the subagent's transcript. |
+| `input_tokens` | integer | Cumulative input tokens across the subagent's turns. |
+| `output_tokens` | integer | Cumulative output tokens across the subagent's turns. |
+| `model` | string \| null | The model the subagent ran on, parsed from its transcript. |
+| `agent_id` | string | *Optional.* The `agent_id` minted when this subagent was spawned (matches the `agent_id` on the spawning `tool_use`/`tool_result` pair), when it can be recovered from the pending stack. |
 
 ### `assistant_stop`
 
@@ -164,6 +200,27 @@ Fires each time the assistant finishes generating a response (via the `Stop` hoo
 | `stop_reason` | string | Why the assistant stopped. Common values: `end_turn`, `max_tokens`, `stop_sequence`. |
 | `tokens_used` | integer | Tokens used in this assistant turn (input + output combined). |
 | `model` | string | The model that generated this response. |
+
+## Edge labels
+
+*Requires plugin ≥ 1.2.0.*
+
+When one agent spawns another via the `Agent` tool, the spawning agent can annotate the *reason* for the spawn by embedding a marker anywhere in the Task prompt:
+
+```
+[tc:delegate]
+[tc:verify]
+[tc:critique]
+```
+
+The plugin looks for a `[tc:<label>]` marker in the prompt passed to the `Agent` tool. If the label matches one of the three known values (`delegate`, `verify`, `critique`, case-insensitive), it is:
+
+1. Recorded as the `edge_label` field on both the `tool_use` and the matching `tool_result` event for that `Agent` invocation.
+2. Stripped from the prompt text before the prompt is truncated into `input_preview`, so the marker itself never appears in the stored preview and doesn't consume the truncation budget.
+
+Markers that don't match one of the three known labels are left in place and ignored — no `edge_label` field is emitted. The convention only applies to the `Agent` tool; a `[tc:...]` marker in any other tool's input has no effect.
+
+> **Caveat — parallel spawns:** edge label attachment relies on the same single-agent-in-flight assumption as `agent_id` correlation (above). With multiple `Agent` spawns running concurrently in one session, an `edge_label` may attach to the wrong sibling edge. Serial spawns (one subagent at a time) are unaffected.
 
 ## Schema stability
 

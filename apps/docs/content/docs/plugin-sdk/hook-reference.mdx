@@ -3,7 +3,7 @@ title: Hook Reference
 description: A reference for the Claude Code hooks the Trenchcoat plugin registers and how events are batched and flushed.
 ---
 
-Claude Code hooks are shell commands that fire automatically at specific points in the agent lifecycle. The Trenchcoat plugin uses four hook types to capture telemetry without interrupting your workflow. This page describes each hook, when it fires, what it captures, and how the resulting events get delivered to Trenchcoat.
+Claude Code hooks are shell commands that fire automatically at specific points in the agent lifecycle. The Trenchcoat plugin uses eight hook types to capture telemetry without interrupting your workflow. This page describes each hook, when it fires, what it captures, and how the resulting events get delivered to Trenchcoat.
 
 ## What are Claude Code hooks?
 
@@ -11,31 +11,36 @@ Claude Code's hook system lets plugins register executable scripts that run when
 
 ## Registered hooks
 
-The Trenchcoat plugin registers the following hooks at install time:
+The Trenchcoat plugin registers the following hooks (`claude-plugin/hooks/hooks.json`) at install time:
 
 | Hook type | Trigger | Script | What it captures |
 |---|---|---|---|
+| `SessionStart` | When a session begins | `hooks/session_start.py` | Session metadata |
+| `SessionEnd` | When a session ends | `hooks/session_end.py` | Session metadata, duration |
 | `PreToolUse` | Before any tool runs | `hooks/pre_tool_use.py` | Tool name, truncated input |
 | `PostToolUse` | After any tool completes | `hooks/post_tool_use.py` | Tool name, success/error, duration |
-| `Stop` (assistant) | When Claude finishes generating | `hooks/stop.py` | Stop reason, token count, model |
-| `Stop` (subagent) | When a subagent completes | `hooks/stop.py` | Subagent ID, model, token count |
-| `Notification` | On session start and session end | `hooks/notification.py` | Session metadata, duration, cost |
+| `UserPromptSubmit` | When the user submits a prompt | `hooks/user_prompt_submit.py` | Prompt metadata |
+| `Stop` | When the main assistant finishes generating | `hooks/stop.py` | Stop reason, token count, model |
+| `SubagentStop` | When a subagent completes | `hooks/subagent_stop.py` | Agent type, stop reason, tool counts, tokens, model |
+| `PreCompact` | Before context compaction | `hooks/pre_compact.py` | Compaction metadata |
+
+`SubagentStop` has its own dedicated script, `hooks/subagent_stop.py` — it is not folded into `stop.py`. `stop.py` only handles the main-assistant `Stop` event.
 
 ### PreToolUse
 
-Fires immediately before Claude Code hands off control to a tool. The hook receives the tool name and raw input as environment variables. The plugin truncates the input to 500 characters before queuing the event, so sensitive content in long inputs is not fully transmitted.
+Fires immediately before Claude Code hands off control to a tool. The hook receives the tool name and raw input as **JSON on stdin** (see `telemetry.read_hook_input`), not as environment variables. The plugin truncates the input preview to 100 characters by default (configurable via `privacy.tool_input_preview_chars` in `config.json`) before queuing the event, so sensitive content in long inputs is not fully transmitted.
 
 ### PostToolUse
 
-Fires after the tool returns a result. The hook receives the tool name, whether the result was an error, and the elapsed wall-clock time in milliseconds. This is used to populate the **Tool Usage** view in the dashboard, including error rates and p95 latency by tool.
+Fires after the tool returns a result. The hook receives the tool name, the raw tool response (from which it derives `result_size`, `is_error`, and `error_preview`), and the elapsed wall-clock time in milliseconds. This is used to populate the **Tool Usage** view in the dashboard, including error rates and p95 latency by tool.
 
-### Stop (assistant and subagent)
+### Stop (main assistant)
 
-Claude Code fires a `Stop` hook both when the main assistant finishes a turn and when a subagent finishes its work. The same `hooks/stop.py` script handles both cases — it inspects the `CLAUDE_STOP_TYPE` environment variable (`assistant` or `subagent`) to determine which event type to emit.
+Claude Code fires a `Stop` hook when the main assistant finishes a turn. This is handled by `hooks/stop.py`.
 
-### Notification
+### SubagentStop
 
-Claude Code sends `Notification` events for session lifecycle milestones. The plugin listens for `session_start` and `session_end` notifications and maps them to the corresponding Trenchcoat event types.
+Claude Code fires a separate `SubagentStop` hook when a subagent finishes its work. This is handled by its own script, `hooks/subagent_stop.py`, which additionally parses the subagent's transcript (`parse_agent_transcript`) to derive tool-use counts, turn count, token counts, and model.
 
 ## Hook script location
 
@@ -43,10 +48,14 @@ All hook scripts are installed to:
 
 ```
 ~/.claude/plugins/trenchcoat/hooks/
+  session_start.py
+  session_end.py
   pre_tool_use.py
   post_tool_use.py
+  user_prompt_submit.py
   stop.py
-  notification.py
+  subagent_stop.py
+  pre_compact.py
 ```
 
 You can inspect these files directly. They are plain Python scripts and contain comments explaining each step. Modifying them is supported but not recommended — plugin updates will overwrite local edits.

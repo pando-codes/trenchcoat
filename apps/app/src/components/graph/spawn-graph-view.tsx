@@ -45,6 +45,9 @@ export function SpawnGraphView({ tree }: { tree: SessionTreeNode[] }) {
     }));
     const rawEdges: Edge[] = graph.edges.map((e) => ({
       id: e.id, source: e.source, target: e.target, animated: false,
+      label: e.label ?? undefined,
+      labelStyle: { fontSize: 10, fill: "var(--color-muted-foreground)" },
+      labelBgStyle: { fill: "var(--color-background)" },
     }));
     return { nodes: layout(rawNodes, rawEdges), edges: rawEdges };
   }, [graph]);

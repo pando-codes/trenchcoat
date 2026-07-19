@@ -222,6 +222,37 @@ describe("getTopAgents", () => {
   });
 });
 
+describe("getTopAgents latency fields", () => {
+  it("maps latency fields through", async () => {
+    const rows = [{
+      agent_type: "searcher", count: 12, avg_tool_count: 6, avg_turns: 4, trend: null,
+      total_input_tokens: 100, total_output_tokens: 20, total_cost_usd: 0.42,
+      p50_latency_ms: 1200, p99_latency_ms: 4300, latency_sample_count: 12,
+    }];
+    const supabase = createMockSupabase({}, { get_top_agents: { data: rows } });
+    const result = await getTopAgents(supabase, USER_ID, FROM, TO, 50);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data[0].p50_latency_ms).toBe(1200);
+      expect(result.data[0].p99_latency_ms).toBe(4300);
+      expect(result.data[0].latency_sample_count).toBe(12);
+    }
+  });
+
+  it("defaults missing latency to null/0 (old plugin data)", async () => {
+    const rows = [{
+      agent_type: "old", count: 3, avg_tool_count: 1, avg_turns: 1, trend: null,
+      total_input_tokens: 0, total_output_tokens: 0, total_cost_usd: 0,
+    }];
+    const supabase = createMockSupabase({}, { get_top_agents: { data: rows } });
+    const result = await getTopAgents(supabase, USER_ID, FROM, TO, 50);
+    if (result.success) {
+      expect(result.data[0].p50_latency_ms).toBeNull();
+      expect(result.data[0].latency_sample_count).toBe(0);
+    }
+  });
+});
+
 // --- getAgentTimeseries ---
 
 describe("getAgentTimeseries", () => {
@@ -246,6 +277,21 @@ describe("getAgentTimeseries", () => {
     const result = await getAgentTimeseries(supabase, USER_ID, "searcher", FROM, TO);
     expect(result.success).toBe(false);
     if (!result.success) expect(result.error.code).toBe("RPC_FAILED");
+  });
+});
+
+describe("getAgentTimeseries latency fields", () => {
+  it("maps p50 latency and sample count", async () => {
+    const rows = [{
+      bucket: "2025-04-01", invocations: 3, input_tokens: 10, output_tokens: 2,
+      cost_usd: 0.05, p50_latency_ms: 900, latency_sample_count: 3,
+    }];
+    const supabase = createMockSupabase({}, { get_agent_timeseries: { data: rows } });
+    const result = await getAgentTimeseries(supabase, USER_ID, "searcher", FROM, TO);
+    if (result.success) {
+      expect(result.data[0].p50_latency_ms).toBe(900);
+      expect(result.data[0].latency_sample_count).toBe(3);
+    }
   });
 });
 
@@ -275,5 +321,19 @@ describe("getSessionTree", () => {
     const result = await getSessionTree(supabase, USER_ID, "root");
     expect(result.success).toBe(false);
     if (!result.success) expect(result.error.code).toBe("RPC_FAILED");
+  });
+});
+
+describe("getSessionTree edge_label", () => {
+  it("passes edge_label through", async () => {
+    const rows = [{
+      session_id: "child", parent_session_id: "root", spawner_id: "ag-1", spawner_type: "agent",
+      depth: 1, started_at: "2025-04-01T00:00:00Z", ended_at: null, duration_ms: 10,
+      tool_count: 0, skill_count: 0, subagent_count: 0,
+      input_tokens: 0, output_tokens: 0, estimated_cost_usd: 0, edge_label: "verify",
+    }];
+    const supabase = createMockSupabase({}, { get_session_tree: { data: rows } });
+    const result = await getSessionTree(supabase, USER_ID, "root");
+    if (result.success) expect(result.data[0].edge_label).toBe("verify");
   });
 });

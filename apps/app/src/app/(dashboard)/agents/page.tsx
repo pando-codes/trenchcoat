@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/table";
 import { AgentCallsChart } from "@/components/charts/agent-calls-chart";
 import { getTopAgents } from "@/lib/services/analytics.service";
-import { formatUsd, formatTokens, avgCostPerCall } from "@/lib/format/agents";
+import { formatUsd, formatTokens, avgCostPerCall, formatLatency } from "@/lib/format/agents";
 
 export default async function AgentsPage({
   searchParams,
@@ -67,6 +67,13 @@ export default async function AgentsPage({
         </CardContent>
       </Card>
 
+      {agents.length > 0 && agents.every((a) => a.latency_sample_count === 0) && (
+        <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm">
+          Per-agent latency needs Trenchcoat plugin v1.2.0 or newer. Update the plugin to start
+          capturing it — existing data is unaffected.
+        </div>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle>Top Agents</CardTitle>
@@ -79,6 +86,7 @@ export default async function AgentsPage({
                 <TableHead className="text-right">Calls</TableHead>
                 <TableHead className="text-right">Avg Cost</TableHead>
                 <TableHead className="text-right">Tokens (in/out)</TableHead>
+                <TableHead className="text-right">Latency p50 / p99</TableHead>
                 <TableHead className="text-right">Avg Tools/Call</TableHead>
                 <TableHead className="text-right">Avg Turns</TableHead>
                 <TableHead className="text-right">Trend</TableHead>
@@ -88,7 +96,7 @@ export default async function AgentsPage({
               {agents.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={7}
+                    colSpan={8}
                     className="text-center text-muted-foreground"
                   >
                     No agent data found.
@@ -109,6 +117,11 @@ export default async function AgentsPage({
                     </TableCell>
                     <TableCell className="text-right">
                       {formatTokens(stat.total_input_tokens)} / {formatTokens(stat.total_output_tokens)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {formatLatency(stat.p50_latency_ms, stat.latency_sample_count)}
+                      {" / "}
+                      {formatLatency(stat.p99_latency_ms, stat.latency_sample_count)}
                     </TableCell>
                     <TableCell className="text-right">
                       {stat.avg_tool_count?.toFixed(1) ?? "--"}

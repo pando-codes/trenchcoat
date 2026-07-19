@@ -418,6 +418,72 @@ class TestSessionIndex:
 # push_pending / pop_pending
 # ---------------------------------------------------------------------------
 
+class TestParseEdgeLabel:
+    def test_parses_each_valid_label(self):
+        for label in ("delegate", "verify", "critique"):
+            got, rest = telemetry.parse_edge_label(f"[tc:{label}] go do it")
+            assert got == label
+            assert "[tc:" not in rest
+
+    def test_is_case_insensitive(self):
+        got, _ = telemetry.parse_edge_label("[TC:Verify] check this")
+        assert got == "verify"
+
+    def test_matches_mid_prompt(self):
+        got, rest = telemetry.parse_edge_label("please [tc:critique] this patch")
+        assert got == "critique"
+        assert rest == "please this patch"
+
+    def test_preserves_newlines_in_multiline_prompt(self):
+        got, rest = telemetry.parse_edge_label(
+            "[tc:verify] first line\n\n  indented second"
+        )
+        assert got == "verify"
+        assert rest == "first line\n\n  indented second"
+
+    def test_malformed_markers_are_ignored(self):
+        for bad in (
+            "[tc:] hello",
+            "[tc verify] hello",
+            "[tc:verify hello",
+            "tc:verify] hello",
+        ):
+            got, rest = telemetry.parse_edge_label(bad)
+            assert got is None, f"{bad!r} should not parse"
+            assert rest == bad, f"{bad!r} text must be unchanged"
+
+    def test_unknown_label_is_ignored_and_text_untouched(self):
+        got, rest = telemetry.parse_edge_label("[tc:bogus] hello")
+        assert got is None
+        assert rest == "[tc:bogus] hello"
+
+    def test_no_marker_returns_none_and_original_text(self):
+        got, rest = telemetry.parse_edge_label("just a prompt")
+        assert got is None
+        assert rest == "just a prompt"
+
+    def test_first_match_wins(self):
+        got, _ = telemetry.parse_edge_label("[tc:verify] then [tc:delegate]")
+        assert got == "verify"
+
+    def test_handles_none_and_non_string(self):
+        assert telemetry.parse_edge_label(None) == (None, "")
+        assert telemetry.parse_edge_label(123)[0] is None
+
+
+class TestPendingEdgeLabel:
+    def test_push_with_edge_label_roundtrip(self, isolated_telemetry):
+        telemetry.push_pending("s1", "Agent", "corr-1", agent_id="ag-1", edge_label="verify")
+        entry = telemetry.pop_pending("s1", "Agent")
+        assert entry["edge_label"] == "verify"
+        assert entry["agent_id"] == "ag-1"
+
+    def test_push_without_edge_label_has_no_key(self, isolated_telemetry):
+        telemetry.push_pending("s1", "Agent", "corr-1")
+        entry = telemetry.pop_pending("s1", "Agent")
+        assert "edge_label" not in entry
+
+
 class TestPendingStack:
     def test_push_then_pop_roundtrip(self, isolated_telemetry):
         telemetry.push_pending("s1", "Bash", "corr-abc")
@@ -800,6 +866,109 @@ class TestHookIntegration:
         tool_ends = [e for e in events if e["event"] == "tool_end"]
         assert len(tool_ends) == 1
         assert "spawner_id" not in tool_ends[0]["data"]
+
+    def _read_events(self, tmp_path):
+        tc_dir = tmp_path / ".claude" / "trenchcoat"
+        lines = []
+        for f in sorted(tc_dir.glob("events-*.jsonl")):
+            lines.extend(json.loads(l) for l in f.read_text().splitlines() if l.strip())
+        return lines
+
+    def test_agent_tool_end_carries_agent_id(self, tmp_path):
+        """PreToolUse(Agent) mints agent_id; PostToolUse must copy it onto tool_end."""
+        self._run_hook(tmp_path, "pre_tool_use.py", {
+            "session_id": "test-s", "tool_name": "Agent",
+            "tool_input": {"description": "d", "prompt": "do the thing"},
+        })
+        r = self._run_hook(tmp_path, "post_tool_use.py", {
+            "session_id": "test-s", "tool_name": "Agent",
+            "tool_input": {"description": "d", "prompt": "do the thing"},
+            "tool_response": "ok",
+        })
+        assert r.returncode == 0, f"stderr: {r.stderr}"
+
+        events = self._read_events(tmp_path)
+        starts = [e for e in events if e["event"] == "tool_start"]
+        ends = [e for e in events if e["event"] == "tool_end"]
+        assert starts and ends
+        assert starts[0]["data"].get("agent_id"), "tool_start should mint agent_id"
+        assert ends[0]["data"].get("agent_id") == starts[0]["data"]["agent_id"], \
+            "tool_end must carry the same agent_id as tool_start"
+
+    def test_non_agent_tool_end_has_no_agent_id(self, tmp_path):
+        self._run_hook(tmp_path, "pre_tool_use.py", {
+            "session_id": "test-s", "tool_name": "Bash", "tool_input": {"command": "echo hi"},
+        })
+        self._run_hook(tmp_path, "post_tool_use.py", {
+            "session_id": "test-s", "tool_name": "Bash",
+            "tool_input": {"command": "echo hi"}, "tool_response": "hi",
+        })
+        ends = [e for e in self._read_events(tmp_path) if e["event"] == "tool_end"]
+        assert ends and "agent_id" not in ends[0]["data"]
+
+    def test_agent_edge_label_lands_on_start_and_end(self, tmp_path):
+        self._run_hook(tmp_path, "pre_tool_use.py", {
+            "session_id": "test-s", "tool_name": "Agent",
+            "tool_input": {"description": "d", "prompt": "[tc:verify] check the patch"},
+        })
+        self._run_hook(tmp_path, "post_tool_use.py", {
+            "session_id": "test-s", "tool_name": "Agent",
+            "tool_input": {"description": "d", "prompt": "[tc:verify] check the patch"},
+            "tool_response": "ok",
+        })
+        events = self._read_events(tmp_path)
+        start = next(e for e in events if e["event"] == "tool_start")
+        end = next(e for e in events if e["event"] == "tool_end")
+        assert start["data"]["edge_label"] == "verify"
+        assert end["data"]["edge_label"] == "verify"
+        assert "[tc:" not in (start["data"].get("input_preview") or ""), \
+            "marker must be stripped from the privacy preview"
+
+    def test_agent_without_marker_has_no_edge_label(self, tmp_path):
+        self._run_hook(tmp_path, "pre_tool_use.py", {
+            "session_id": "test-s", "tool_name": "Agent",
+            "tool_input": {"description": "d", "prompt": "no marker here"},
+        })
+        start = next(e for e in self._read_events(tmp_path) if e["event"] == "tool_start")
+        assert "edge_label" not in start["data"]
+
+    def test_marker_ignored_for_non_agent_tool(self, tmp_path):
+        self._run_hook(tmp_path, "pre_tool_use.py", {
+            "session_id": "test-s", "tool_name": "Bash",
+            "tool_input": {"command": "echo [tc:verify]"},
+        })
+        start = next(e for e in self._read_events(tmp_path) if e["event"] == "tool_start")
+        assert "edge_label" not in start["data"]
+
+    def test_session_start_records_agent_id_from_spawn_context(self, tmp_path):
+        """PreToolUse(Agent) in the parent session mints agent_id and writes the
+        cross-process spawn context; SessionStart for the CHILD session must
+        copy that agent_id onto its session_start event so the graph's
+        edge_label join (session_start.agent_id == tool_use.agent_id) has
+        something to match against.
+        """
+        self._run_hook(tmp_path, "pre_tool_use.py", {
+            "session_id": "parent-s", "tool_name": "Agent",
+            "tool_input": {"description": "d", "prompt": "[tc:delegate] do the thing"},
+        })
+        parent_start = next(
+            e for e in self._read_events(tmp_path) if e["event"] == "tool_start"
+        )
+        parent_agent_id = parent_start["data"]["agent_id"]
+        assert parent_agent_id, "parent tool_start should mint agent_id"
+
+        r = self._run_hook(tmp_path, "session_start.py", {
+            "session_id": "child-s", "cwd": "/tmp",
+        })
+        assert r.returncode == 0, f"stderr: {r.stderr}"
+
+        child_starts = [
+            e for e in self._read_events(tmp_path)
+            if e["event"] == "session_start" and e["session_id"] == "child-s"
+        ]
+        assert len(child_starts) == 1
+        assert child_starts[0]["data"].get("agent_id") == parent_agent_id, \
+            "session_start for the child session must carry the parent's agent_id"
 
 
 # ---------------------------------------------------------------------------

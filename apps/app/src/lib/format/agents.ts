@@ -13,3 +13,8 @@ export function avgCostPerCall(total: number | null, count: number): number | nu
   if (total === null || count <= 0) return null;
   return total / count;
 }
+
+export function formatLatency(ms: number | null, sampleCount: number): string {
+  if (ms === null || Number.isNaN(ms) || sampleCount <= 0) return "--";
+  return ms >= 1000 ? `${(ms / 1000).toFixed(1)}s` : `${Math.round(ms)}ms`;
+}

@@ -13,7 +13,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { ModelCost, AgentStat } from "@/types/analytics";
+import type { ModelCost } from "@/types/analytics";
+import { getTopAgents } from "@/lib/services/analytics.service";
 
 function formatTokens(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
@@ -41,7 +42,7 @@ export default async function CostPage({
   const [dailyCostResult, modelCostResult, agentsResult] = await Promise.all([
     supabase.rpc("get_daily_cost", { p_user_id: user.id, p_from, p_to }),
     supabase.rpc("get_cost_by_model", { p_user_id: user.id, p_from, p_to }),
-    supabase.rpc("get_top_agents", { p_user_id: user.id, p_from, p_to, p_limit: 20 }),
+    getTopAgents(supabase, user.id, p_from, p_to, 20),
   ]);
 
   const dailyCost = mapDailyCost((dailyCostResult.data as Record<string, unknown>[]) ?? []);
@@ -54,18 +55,7 @@ export default async function CostPage({
       total_cost_usd: (row.total_cost_usd as number | null) ?? 0,
     })
   );
-  const agents: AgentStat[] = ((agentsResult.data as Record<string, unknown>[]) ?? []).map(
-    (row) => ({
-      agent_type: row.agent_type as string,
-      count: row.count as number,
-      avg_tool_count: (row.avg_tool_count as number | null) ?? null,
-      avg_turns: (row.avg_turns as number | null) ?? null,
-      trend: (row.trend as number | null) ?? null,
-      total_input_tokens: (row.total_input_tokens as number | null) ?? null,
-      total_output_tokens: (row.total_output_tokens as number | null) ?? null,
-      total_cost_usd: (row.total_cost_usd as number | null) ?? null,
-    })
-  );
+  const agents = agentsResult.success ? agentsResult.data : [];
 
   return (
     <div className="flex flex-col gap-6 p-6">
