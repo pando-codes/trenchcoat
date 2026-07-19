@@ -7,6 +7,8 @@ import { computeCost, formatCost, type RateMap } from "@/lib/cost";
 import type { SessionSummary } from "@/types/analytics";
 import type { TelemetryEvent } from "@/types/events";
 import { getProfile } from "@/lib/services/user-profile.service";
+import { getSessionTree } from "@/lib/services/analytics.service";
+import { SpawnGraphView } from "@/components/graph/spawn-graph-view";
 
 interface SessionDetailPageProps {
   params: Promise<{ id: string }>;
@@ -129,6 +131,13 @@ export default async function SessionDetailPage({ params }: SessionDetailPagePro
     (typedSession.model as string | null) ?? null,
     rates
   );
+
+  // The page only tracks the current session's own id and its immediate parent
+  // (see parentSessionId above) — it has no resolved "true root" id. Fetch the
+  // spawn tree rooted at the current session; get_session_tree recurses downward
+  // from p_session_id, so this covers the current session and all its descendants.
+  const treeResult = await getSessionTree(supabase, user.id, typedSession.session_id);
+  const tree = treeResult.success ? treeResult.data : [];
 
   return (
     <div className="flex flex-col gap-6 p-6">
@@ -305,6 +314,17 @@ export default async function SessionDetailPage({ params }: SessionDetailPagePro
                 );
               })}
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {tree.length > 1 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Spawn graph</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <SpawnGraphView tree={tree} />
           </CardContent>
         </Card>
       )}

@@ -21,5 +21,8 @@
     "dev:docs": "bun run --filter @trenchcoat/docs dev",
     "build": "bun run --filter '*' build",
     "lint": "bun run --filter '*' lint"
+  },
+  "devDependencies": {
+    "@socketsecurity/bun-security-scanner": "^1.1.2"
   }
 }
