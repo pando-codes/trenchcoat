@@ -97,10 +97,12 @@ Fires immediately before a tool executes (via the `PreToolUse` hook).
 | `tool_name` | string | The name of the tool being invoked (e.g., `Bash`, `Edit`, `Read`). |
 | `correlation_id` | string | Opaque ID that ties this `tool_use` event to its matching `tool_result` event. |
 | `input_preview` | string \| null | A truncated preview of the tool input. Long inputs are trimmed to 100 characters by default (configurable via `privacy.tool_input_preview_chars` in `config.json`). |
-| `spawner_id` | string | *Optional.* The `agent_id` (or skill activation ID) of the agent/skill this tool call happened under, if any. |
-| `spawner_type` | string | *Optional.* Either `"agent"` or `"skill"`, paired with `spawner_id`. |
+| `spawner_id` | string | *Optional.* The skill activation ID of the active Skill invocation this tool call happened under, if any. |
+| `spawner_type` | string | *Optional.* Currently always `"skill"` — present only when the tool call happened inside an active Skill invocation, paired with `spawner_id`. |
 | `agent_id` | string | *Agent tool only.* Unique ID minted for this subagent spawn; carried onto the matching `tool_result` and the subagent's own `subagent_stop` event. |
 | `edge_label` | string | *Agent tool only, optional, plugin ≥ 1.2.0.* One of `delegate`, `verify`, `critique`, parsed from a `[tc:...]` marker in the Task prompt. See [Edge labels](#edge-labels) below. |
+
+> Agent spawn lineage (`spawner_type: "agent"`) is tracked separately, on session records — the `session_start` event and the `sessions` table — not on `tool_use`/`tool_result` events. Don't filter tool events by `spawner_type == "agent"`; it never appears there.
 
 ### `tool_result`
 
@@ -131,7 +133,7 @@ Fires after a tool completes (via the `PostToolUse` hook).
 | `is_error` | boolean \| null | Whether the tool returned an error result. `null` when the result shape doesn't affirmatively indicate success or failure. |
 | `error_preview` | string \| null | Short (≤200 char) excerpt of the error content, populated only when `is_error` is `true`. |
 | `spawner_id` | string | *Optional.* Same meaning as on `tool_use`. |
-| `spawner_type` | string | *Optional.* Same meaning as on `tool_use`. |
+| `spawner_type` | string | *Optional.* Same meaning as on `tool_use` — currently always `"skill"` when present. |
 | `agent_id` | string | *Agent tool only.* Same `agent_id` minted on the matching `tool_use` event. |
 | `edge_label` | string | *Agent tool only, optional, plugin ≥ 1.2.0.* Same edge label recorded on the matching `tool_use` event, if any. |
 
