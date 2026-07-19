@@ -11,6 +11,7 @@ Design goals:
 import fcntl
 import json
 import os
+import re
 import sys
 import time
 import uuid
@@ -60,6 +61,28 @@ _EVENT_TYPE_MAP = {
 
 # Module-level sequence counter (per-process)
 _seq_counter = 0
+
+# Edge label configuration
+EDGE_LABELS = ("delegate", "verify", "critique")
+_EDGE_MARKER_RE = re.compile(r"\[tc:([A-Za-z]{1,16})\]", re.IGNORECASE)
+
+
+def parse_edge_label(text) -> tuple[str | None, str]:
+    """Extract a [tc:<label>] edge marker from text.
+
+    Returns (label, text_without_marker). Only the three known labels are
+    recognized; anything else is ignored and the text is returned unchanged.
+    """
+    if not isinstance(text, str):
+        return None, "" if text is None else str(text)
+    match = _EDGE_MARKER_RE.search(text)
+    if not match:
+        return None, text
+    label = match.group(1).lower()
+    if label not in EDGE_LABELS:
+        return None, text
+    cleaned = (text[: match.start()] + text[match.end() :]).strip()
+    return label, cleaned
 
 
 def _now_iso() -> str:
@@ -336,7 +359,7 @@ def update_session_index(session_id: str, data: dict) -> None:
 
 # --- Pre/Post correlation ---
 
-def push_pending(session_id: str, tool_name: str, correlation_id: str, agent_id: str | None = None) -> None:
+def push_pending(session_id: str, tool_name: str, correlation_id: str, agent_id: str | None = None, edge_label: str | None = None) -> None:
     """Push a tool_start to the pending stack for later correlation."""
     PENDING_DIR.mkdir(parents=True, exist_ok=True)
     pending_file = PENDING_DIR / f"{session_id}.json"
@@ -356,6 +379,8 @@ def push_pending(session_id: str, tool_name: str, correlation_id: str, agent_id:
     }
     if agent_id:
         entry["agent_id"] = agent_id
+    if edge_label:
+        entry["edge_label"] = edge_label
 
     stack.append(entry)
     pending_file.write_text(json.dumps(stack) + "\n")

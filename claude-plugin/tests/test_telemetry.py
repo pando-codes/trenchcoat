@@ -418,6 +418,55 @@ class TestSessionIndex:
 # push_pending / pop_pending
 # ---------------------------------------------------------------------------
 
+class TestParseEdgeLabel:
+    def test_parses_each_valid_label(self):
+        for label in ("delegate", "verify", "critique"):
+            got, rest = telemetry.parse_edge_label(f"[tc:{label}] go do it")
+            assert got == label
+            assert "[tc:" not in rest
+
+    def test_is_case_insensitive(self):
+        got, _ = telemetry.parse_edge_label("[TC:Verify] check this")
+        assert got == "verify"
+
+    def test_matches_mid_prompt(self):
+        got, rest = telemetry.parse_edge_label("please [tc:critique] this patch")
+        assert got == "critique"
+        assert "[tc:" not in rest
+        assert "this patch" in rest
+
+    def test_unknown_label_is_ignored_and_text_untouched(self):
+        got, rest = telemetry.parse_edge_label("[tc:bogus] hello")
+        assert got is None
+        assert rest == "[tc:bogus] hello"
+
+    def test_no_marker_returns_none_and_original_text(self):
+        got, rest = telemetry.parse_edge_label("just a prompt")
+        assert got is None
+        assert rest == "just a prompt"
+
+    def test_first_match_wins(self):
+        got, _ = telemetry.parse_edge_label("[tc:verify] then [tc:delegate]")
+        assert got == "verify"
+
+    def test_handles_none_and_non_string(self):
+        assert telemetry.parse_edge_label(None) == (None, "")
+        assert telemetry.parse_edge_label(123)[0] is None
+
+
+class TestPendingEdgeLabel:
+    def test_push_with_edge_label_roundtrip(self, isolated_telemetry):
+        telemetry.push_pending("s1", "Agent", "corr-1", agent_id="ag-1", edge_label="verify")
+        entry = telemetry.pop_pending("s1", "Agent")
+        assert entry["edge_label"] == "verify"
+        assert entry["agent_id"] == "ag-1"
+
+    def test_push_without_edge_label_has_no_key(self, isolated_telemetry):
+        telemetry.push_pending("s1", "Agent", "corr-1")
+        entry = telemetry.pop_pending("s1", "Agent")
+        assert "edge_label" not in entry
+
+
 class TestPendingStack:
     def test_push_then_pop_roundtrip(self, isolated_telemetry):
         telemetry.push_pending("s1", "Bash", "corr-abc")
