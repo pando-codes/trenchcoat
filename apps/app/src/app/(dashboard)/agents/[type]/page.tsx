@@ -5,7 +5,7 @@ import { parseDateRange } from "@/lib/date-range";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getAgentTimeseries } from "@/lib/services/analytics.service";
 import { summariseAgentTimeseries } from "@/lib/analytics/agent-timeseries";
-import { formatUsd, formatTokens } from "@/lib/format/agents";
+import { formatUsd, formatTokens, formatLatency } from "@/lib/format/agents";
 import { AgentTrendChart } from "@/components/charts/agent-trend-chart";
 
 export default async function AgentDetailPage({
@@ -40,6 +40,7 @@ export default async function AgentDetailPage({
         <Stat label="Avg Cost/Call" value={formatUsd(summary.avgCostPerCall)} />
         <Stat label="Tokens (in/out)"
               value={`${formatTokens(summary.totalInputTokens)} / ${formatTokens(summary.totalOutputTokens)}`} />
+        <Stat label="Median Latency" value={formatLatency(summary.medianLatencyMs, summary.latencySampleCount)} />
       </div>
 
       {points.length === 0 ? (
@@ -56,6 +57,12 @@ export default async function AgentDetailPage({
             <CardHeader><CardTitle>Invocations per day</CardTitle></CardHeader>
             <CardContent><AgentTrendChart data={points} dataKey="invocations" label="calls" /></CardContent>
           </Card>
+          {summary.latencySampleCount > 0 && (
+            <Card>
+              <CardHeader><CardTitle>Latency (p50) per day</CardTitle></CardHeader>
+              <CardContent><AgentTrendChart data={points} dataKey="p50_latency_ms" label="ms" /></CardContent>
+            </Card>
+          )}
         </div>
       )}
     </div>

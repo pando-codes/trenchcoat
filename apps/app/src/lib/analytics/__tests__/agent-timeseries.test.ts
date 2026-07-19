@@ -19,4 +19,24 @@ describe("summariseAgentTimeseries", () => {
     expect(s.totalInvocations).toBe(0);
     expect(s.avgCostPerCall).toBeNull();
   });
+
+  it("summarises latency across buckets with samples", () => {
+    const s = summariseAgentTimeseries([
+      { bucket: "d1", invocations: 1, input_tokens: 0, output_tokens: 0, cost_usd: 0,
+        p50_latency_ms: 1000, latency_sample_count: 2 },
+      { bucket: "d2", invocations: 1, input_tokens: 0, output_tokens: 0, cost_usd: 0,
+        p50_latency_ms: 2000, latency_sample_count: 2 },
+    ]);
+    expect(s.latencySampleCount).toBe(4);
+    expect(s.medianLatencyMs).toBeCloseTo(1500); // sample-weighted mean of bucket medians
+  });
+
+  it("returns null latency when no samples exist", () => {
+    const s = summariseAgentTimeseries([
+      { bucket: "d1", invocations: 1, input_tokens: 0, output_tokens: 0, cost_usd: 0,
+        p50_latency_ms: null, latency_sample_count: 0 },
+    ]);
+    expect(s.medianLatencyMs).toBeNull();
+    expect(s.latencySampleCount).toBe(0);
+  });
 });
