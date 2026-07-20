@@ -178,6 +178,80 @@ describe("GET /api/v1/admin/sync-pricing", () => {
     expect(row.output_cost_per_1m).toBe(15);
   });
 
+  // --- Cache pricing ---
+
+  it("converts cache costs to per-1M when LiteLLM provides them", async () => {
+    const singleModel = {
+      "claude-test": {
+        input_cost_per_token: 0.000003,
+        output_cost_per_token: 0.000015,
+        cache_creation_input_token_cost: 0.00000125,
+        cache_read_input_token_cost: 0.0000001,
+      },
+    };
+    let capturedRows: unknown[] = [];
+    mockAdminRef.client = {
+      from: () => ({
+        upsert: (rows: unknown[]) => {
+          capturedRows = rows;
+          return {
+            then: (resolve: (v: { data: null; error: null }) => void) =>
+              resolve({ data: null, error: null }),
+          };
+        },
+      }),
+    } as unknown as ReturnType<typeof createMockSupabase>;
+
+    mockFetch.mockResolvedValue(
+      new Response(JSON.stringify(singleModel), { status: 200 })
+    );
+    await GET(req(`Bearer ${SECRET}`));
+
+    expect(capturedRows).toHaveLength(1);
+    const row = capturedRows[0] as {
+      cache_creation_cost_per_1m: number;
+      cache_read_cost_per_1m: number;
+    };
+    expect(row.cache_creation_cost_per_1m).toBe(1.25);
+    expect(row.cache_read_cost_per_1m).toBe(0.1);
+  });
+
+  it("sets cache costs to null (not 0) when LiteLLM has no cache cost for a model", async () => {
+    const singleModel = {
+      "claude-test": {
+        input_cost_per_token: 0.000003,
+        output_cost_per_token: 0.000015,
+      },
+    };
+    let capturedRows: unknown[] = [];
+    mockAdminRef.client = {
+      from: () => ({
+        upsert: (rows: unknown[]) => {
+          capturedRows = rows;
+          return {
+            then: (resolve: (v: { data: null; error: null }) => void) =>
+              resolve({ data: null, error: null }),
+          };
+        },
+      }),
+    } as unknown as ReturnType<typeof createMockSupabase>;
+
+    mockFetch.mockResolvedValue(
+      new Response(JSON.stringify(singleModel), { status: 200 })
+    );
+    await GET(req(`Bearer ${SECRET}`));
+
+    expect(capturedRows).toHaveLength(1);
+    const row = capturedRows[0] as {
+      cache_creation_cost_per_1m: number | null;
+      cache_read_cost_per_1m: number | null;
+    };
+    expect(row.cache_creation_cost_per_1m).toBeNull();
+    expect(row.cache_read_cost_per_1m).toBeNull();
+    expect(row.cache_creation_cost_per_1m).not.toBe(0);
+    expect(row.cache_read_cost_per_1m).not.toBe(0);
+  });
+
   it("skips models missing input or output cost", async () => {
     const partialPricing = {
       "claude-incomplete": { input_cost_per_token: 0.000003 }, // no output cost

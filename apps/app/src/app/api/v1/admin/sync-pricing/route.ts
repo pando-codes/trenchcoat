@@ -12,7 +12,12 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  let pricing: Record<string, { input_cost_per_token?: number; output_cost_per_token?: number }>;
+  let pricing: Record<string, {
+    input_cost_per_token?: number;
+    output_cost_per_token?: number;
+    cache_creation_input_token_cost?: number;
+    cache_read_input_token_cost?: number;
+  }>;
   try {
     const res = await fetch(LITELLM_URL, { next: { revalidate: 0 } });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -28,6 +33,14 @@ export async function GET(req: NextRequest) {
       model_id,
       input_cost_per_1m: Number((v.input_cost_per_token! * 1_000_000).toFixed(6)),
       output_cost_per_1m: Number((v.output_cost_per_token! * 1_000_000).toFixed(6)),
+      cache_creation_cost_per_1m:
+        v.cache_creation_input_token_cost != null
+          ? Number((v.cache_creation_input_token_cost * 1_000_000).toFixed(6))
+          : null,
+      cache_read_cost_per_1m:
+        v.cache_read_input_token_cost != null
+          ? Number((v.cache_read_input_token_cost * 1_000_000).toFixed(6))
+          : null,
       updated_at: new Date().toISOString(),
     }));
 
