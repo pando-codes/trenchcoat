@@ -131,7 +131,7 @@ The session-tree fetch is removed from the page. `get_session_tree` stays in the
 ## 5. Error handling & edge cases
 
 - **Orphaned `parent_agent_id`** (parent row absent — e.g. batch split): the recursive CTE roots only at `parent_agent_id is null`, so such a node would vanish. The RPC must therefore also root at agents whose parent is not present in the session's agent set, and those render as additional roots rather than disappearing.
-- **Cycles** (should be impossible, but a corrupt id could create one): the recursive CTE needs a depth cap to avoid infinite recursion.
+- **Cycles** (should be impossible, but a corrupt id could create one): the recursive CTE carries a depth cap as a safeguard. **Empirically verified against Postgres 17:** a *pure* cycle is excluded entirely rather than recursing — every member has a parent present in the scoped set, so none qualifies as a root and none enters the anchor. The cap therefore only engages for a cycle reachable from a legitimate root, or a chain deeper than 50. Cycle members vanish from the graph silently; acceptable since this requires corrupt ids.
 - **Agent with no `subagent_start`** (pre-1.3.0 or a dropped event): still created by the `tool_result`/`subagent_stop` path, with a null `started_at`.
 - **Sessions with no agents:** the graph card is not rendered; no empty box.
 - **Null pricing:** cost contributes 0, never crashes.
