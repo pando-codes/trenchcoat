@@ -855,6 +855,15 @@ class TestHookIntegration:
         ev = next(e for e in self._read_events(tmp_path) if e["event"] == "subagent_stop")
         assert "agent_id" not in ev["data"]
 
+    def test_subagent_start_emits_agent_identity(self, tmp_path):
+        r = self._run_hook(tmp_path, "subagent_start.py", {
+            "session_id": "st-1", "agent_id": "ag-new", "agent_type": "Explore",
+        })
+        assert r.returncode == 0, f"stderr: {r.stderr}"
+        ev = next(e for e in self._read_events(tmp_path) if e["event"] == "subagent_start")
+        assert ev["data"]["agent_id"] == "ag-new"
+        assert ev["data"]["agent_type"] == "Explore"
+
     def test_user_prompt_submit_exits_zero(self, tmp_path):
         r = self._run_hook(tmp_path, "user_prompt_submit.py", {
             "session_id": "test-s", "prompt": "Hello Claude",
