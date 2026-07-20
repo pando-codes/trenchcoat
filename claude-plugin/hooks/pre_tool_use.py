@@ -10,7 +10,7 @@ from telemetry import (
     read_hook_input, is_enabled, load_config, write_event,
     sanitize_tool_input, push_pending, generate_correlation_id,
     write_active_context, read_active_context,
-    write_agent_spawn_context, parse_edge_label, base_agent_fields,
+    parse_edge_label, base_agent_fields,
 )
 
 
@@ -61,12 +61,6 @@ def main():
         push_pending(session_id, tool_name, correlation_id,
                      tool_use_id=tool_use_id, agent_id=agent_id, edge_label=edge_label)
         write_event("tool_start", session_id, tool_data)
-        write_agent_spawn_context(
-            parent_session_id=session_id,
-            agent_id=agent_id,
-            spawner_id=spawner_id,
-            spawner_type=spawner_type,
-        )
 
     elif tool_name == "Skill":
         activation_id = generate_correlation_id()

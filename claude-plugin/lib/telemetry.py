@@ -455,21 +455,6 @@ def pop_pending(session_id: str, tool_name: str,
     return _mutate_pending(session_id, mutate)
 
 
-def peek_pending_by_tool(session_id: str, tool_name: str) -> dict | None:
-    """Return the most recent pending entry matching tool_name without popping it."""
-    pending_file = PENDING_DIR / f"{session_id}.json"
-    if not pending_file.exists():
-        return None
-    try:
-        stack = json.loads(pending_file.read_text())
-    except (json.JSONDecodeError, OSError):
-        return None
-    for entry in reversed(stack):
-        if entry.get("tool_name") == tool_name:
-            return entry
-    return None
-
-
 def generate_correlation_id() -> str:
     return uuid.uuid4().hex[:12]
 
@@ -502,54 +487,6 @@ def read_active_context(session_id: str) -> dict | None:
 def clear_active_context(session_id: str) -> None:
     """Remove the active spawner context for a session."""
     ctx_file = TRENCHCOAT_DIR / f".active_context_{session_id}.json"
-    try:
-        ctx_file.unlink(missing_ok=True)
-    except OSError:
-        pass
-
-
-# --- Agent spawn context (cross-process, not session-scoped) ---
-
-def write_agent_spawn_context(
-    parent_session_id: str,
-    agent_id: str,
-    spawner_id: str | None,
-    spawner_type: str | None,
-) -> None:
-    """Write spawn context for the child process to read at session_start.
-
-    Not session-scoped: the child process has a different session_id and reads
-    this file by path. Known limitation: this is a single global file, so
-    concurrent (parallel) Agent spawns within one session overwrite each
-    other's context — the last writer wins and earlier siblings may read the
-    wrong parent/spawner attribution. Serial spawns (one subagent at a time)
-    are unaffected.
-    """
-    TRENCHCOAT_DIR.mkdir(parents=True, exist_ok=True)
-    ctx: dict = {
-        "parent_session_id": parent_session_id,
-        "agent_id": agent_id,
-    }
-    if spawner_id:
-        ctx["spawner_id"] = spawner_id
-        ctx["spawner_type"] = spawner_type
-    (TRENCHCOAT_DIR / ".agent_spawn_context.json").write_text(json.dumps(ctx))
-
-
-def read_agent_spawn_context() -> dict | None:
-    """Return the agent spawn context, or None if not present."""
-    ctx_file = TRENCHCOAT_DIR / ".agent_spawn_context.json"
-    if not ctx_file.exists():
-        return None
-    try:
-        return json.loads(ctx_file.read_text())
-    except (json.JSONDecodeError, OSError):
-        return None
-
-
-def clear_agent_spawn_context() -> None:
-    """Remove the agent spawn context file."""
-    ctx_file = TRENCHCOAT_DIR / ".agent_spawn_context.json"
     try:
         ctx_file.unlink(missing_ok=True)
     except OSError:

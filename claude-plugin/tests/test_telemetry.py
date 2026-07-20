@@ -574,31 +574,14 @@ class TestPendingByToolUseId:
 
 
 # ---------------------------------------------------------------------------
-# peek_pending_by_tool
+# peek_pending_by_tool — deleted (zero callers repo-wide; its only caller was
+# removed).
 # ---------------------------------------------------------------------------
 
-class TestPeekPendingByTool:
-    def test_peek_returns_entry_without_removing(self, isolated_telemetry):
-        telemetry.push_pending("s1", "Agent", "corr-abc", agent_id="agt-1")
-        peeked = telemetry.peek_pending_by_tool("s1", "Agent")
-        assert peeked is not None
-        assert peeked["agent_id"] == "agt-1"
-        # Entry still present after peek
-        popped = telemetry.pop_pending("s1", "Agent")
-        assert popped is not None
-
-    def test_peek_returns_none_when_no_match(self, isolated_telemetry):
-        telemetry.push_pending("s1", "Bash", "corr-xyz")
-        assert telemetry.peek_pending_by_tool("s1", "Agent") is None
-
-    def test_peek_returns_none_for_missing_session(self, isolated_telemetry):
-        assert telemetry.peek_pending_by_tool("no-session", "Agent") is None
-
-    def test_peek_returns_most_recent_match(self, isolated_telemetry):
-        telemetry.push_pending("s1", "Agent", "corr-1", agent_id="agt-old")
-        telemetry.push_pending("s1", "Agent", "corr-2", agent_id="agt-new")
-        peeked = telemetry.peek_pending_by_tool("s1", "Agent")
-        assert peeked["agent_id"] == "agt-new"
+class TestPeekPendingByToolRemoved:
+    def test_peek_pending_by_tool_is_gone(self):
+        assert not hasattr(telemetry, "peek_pending_by_tool"), \
+            "peek_pending_by_tool should be deleted"
 
 
 # ---------------------------------------------------------------------------
@@ -1116,35 +1099,16 @@ class TestHookIntegration:
         start = next(e for e in self._read_events(tmp_path) if e["event"] == "tool_start")
         assert "edge_label" not in start["data"]
 
-    def test_session_start_records_agent_id_from_spawn_context(self, tmp_path):
-        """PreToolUse(Agent) in the parent session mints agent_id and writes the
-        cross-process spawn context; SessionStart for the CHILD session must
-        copy that agent_id onto its session_start event so the graph's
-        edge_label join (session_start.agent_id == tool_use.agent_id) has
-        something to match against.
+    def test_session_start_no_longer_emits_spawn_parentage(self, tmp_path):
+        """Subagents never fire SessionStart (they share the parent's session_id
+        and never start a session), so nothing ever reads the spawn-context file.
+        SessionStart must not emit parent_session_id/agent_id — that dead path
+        is deleted.
         """
-        self._run_hook(tmp_path, "pre_tool_use.py", {
-            "session_id": "parent-s", "tool_name": "Agent",
-            "tool_input": {"description": "d", "prompt": "[tc:delegate] do the thing"},
-        })
-        parent_start = next(
-            e for e in self._read_events(tmp_path) if e["event"] == "tool_start"
-        )
-        parent_agent_id = parent_start["data"]["agent_id"]
-        assert parent_agent_id, "parent tool_start should mint agent_id"
-
-        r = self._run_hook(tmp_path, "session_start.py", {
-            "session_id": "child-s", "cwd": "/tmp",
-        })
-        assert r.returncode == 0, f"stderr: {r.stderr}"
-
-        child_starts = [
-            e for e in self._read_events(tmp_path)
-            if e["event"] == "session_start" and e["session_id"] == "child-s"
-        ]
-        assert len(child_starts) == 1
-        assert child_starts[0]["data"].get("agent_id") == parent_agent_id, \
-            "session_start for the child session must carry the parent's agent_id"
+        self._run_hook(tmp_path, "session_start.py", {"session_id": "d-s", "cwd": "/tmp"})
+        start = next(e for e in self._read_events(tmp_path) if e["event"] == "session_start")
+        assert "parent_session_id" not in start["data"]
+        assert "agent_id" not in start["data"]
 
     def test_session_start_records_eval_tags_from_env(self, tmp_path):
         self._run_hook(tmp_path, "session_start.py", {"session_id": "e-s", "cwd": "/tmp"},
@@ -1311,32 +1275,12 @@ class TestActiveContext:
 
 
 # ---------------------------------------------------------------------------
-# Agent spawn context helpers
+# Agent spawn context helpers — deleted (dead code; SessionStart never fires
+# for subagents, so nothing ever read this cross-process file).
 # ---------------------------------------------------------------------------
 
-class TestAgentSpawnContext:
-    def test_write_then_read_roundtrip(self, isolated_telemetry):
-        telemetry.write_agent_spawn_context("parent-s1", "agt-abc", "act-xyz", "skill")
-        ctx = telemetry.read_agent_spawn_context()
-        assert ctx is not None
-        assert ctx["parent_session_id"] == "parent-s1"
-        assert ctx["agent_id"] == "agt-abc"
-        assert ctx["spawner_id"] == "act-xyz"
-        assert ctx["spawner_type"] == "skill"
-
-    def test_write_without_spawner(self, isolated_telemetry):
-        telemetry.write_agent_spawn_context("parent-s1", "agt-abc", None, None)
-        ctx = telemetry.read_agent_spawn_context()
-        assert ctx["parent_session_id"] == "parent-s1"
-        assert "spawner_id" not in ctx
-
-    def test_read_returns_none_when_absent(self, isolated_telemetry):
-        assert telemetry.read_agent_spawn_context() is None
-
-    def test_clear_removes_file(self, isolated_telemetry):
-        telemetry.write_agent_spawn_context("p", "a", None, None)
-        telemetry.clear_agent_spawn_context()
-        assert telemetry.read_agent_spawn_context() is None
-
-    def test_clear_safe_when_absent(self, isolated_telemetry):
-        telemetry.clear_agent_spawn_context()  # must not raise
+class TestAgentSpawnContextRemoved:
+    def test_spawn_context_helpers_are_gone(self):
+        for name in ("write_agent_spawn_context", "read_agent_spawn_context",
+                     "clear_agent_spawn_context"):
+            assert not hasattr(telemetry, name), f"{name} should be deleted"

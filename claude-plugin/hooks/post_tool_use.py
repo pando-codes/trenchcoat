@@ -10,7 +10,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "lib"))
 from telemetry import (
     read_hook_input, is_enabled, write_event,
     sanitize_tool_result, sanitize_agent_result, pop_pending, read_active_context,
-    clear_agent_spawn_context, base_agent_fields,
+    base_agent_fields,
 )
 
 
@@ -89,10 +89,6 @@ def main():
             event_data["agent_result"] = agent_result
 
     write_event("tool_end", session_id, event_data)
-
-    if tool_name == "Agent":
-        # Guard: clear spawn context in case the child process crashed before reading it.
-        clear_agent_spawn_context()
 
 
 if __name__ == "__main__":
