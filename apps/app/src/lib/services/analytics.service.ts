@@ -8,6 +8,7 @@ import type {
   AgentTimeseriesPoint,
   SessionTreeNode,
   AgentTreeNode,
+  SessionCost,
 } from "@/types/analytics";
 import type { ServiceResult } from "./types";
 
@@ -306,4 +307,30 @@ export async function getAgentTree(
   }
 
   return { success: true, data: (data as AgentTreeNode[]) ?? [] };
+}
+
+// ---------------------------------------------------------------------------
+// Session cost
+// ---------------------------------------------------------------------------
+
+export async function getSessionCosts(
+  supabase: SupabaseClient,
+  userId: string,
+  sessionIds: string[]
+): Promise<ServiceResult<SessionCost[]>> {
+  if (sessionIds.length === 0) return { success: true, data: [] };
+
+  const { data, error } = await supabase.rpc("get_session_cost", {
+    p_user_id: userId,
+    p_session_ids: sessionIds,
+  });
+
+  if (error) {
+    return {
+      success: false,
+      error: { code: "RPC_FAILED", message: "Failed to get session costs", details: error.message },
+    };
+  }
+
+  return { success: true, data: (data as SessionCost[]) ?? [] };
 }

@@ -5,7 +5,7 @@ export interface SpawnGraphNode {
   parentId: string | null;
   label: string;
   depth: number;
-  costUsd: number;
+  costUsd: number | null;
   durationMs: number;
   costHeat: number; // 0..1 normalized against max weight
   onCriticalPath: boolean;
@@ -32,7 +32,7 @@ export interface GraphInputNode {
   parentId: string | null;
   label: string;
   depth: number;
-  costUsd: number;
+  costUsd: number | null;
   durationMs: number;
   edgeLabel: string | null;
   sortKey: string;
@@ -53,7 +53,7 @@ export function buildGraphFromNodes(
   const hiddenCount = ordered.length - kept.length;
   const keptIds = new Set(kept.map((n) => n.id));
 
-  const weightOf = (n: GraphInputNode) => (weight === "cost" ? n.costUsd : n.durationMs);
+  const weightOf = (n: GraphInputNode) => (weight === "cost" ? n.costUsd ?? 0 : n.durationMs);
   const maxWeight = kept.reduce((m, n) => Math.max(m, weightOf(n)), 0);
 
   // Critical path: longest cumulative duration from a root to a leaf.

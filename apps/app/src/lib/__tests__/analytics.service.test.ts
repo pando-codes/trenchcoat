@@ -8,6 +8,7 @@ import {
   getAgentTimeseries,
   getSessionTree,
   getAgentTree,
+  getSessionCosts,
 } from "../services/analytics.service";
 import { createMockSupabase } from "./helpers/supabase-mock";
 
@@ -362,6 +363,51 @@ describe("getAgentTree", () => {
       get_agent_tree: { data: null, error: { message: "boom" } },
     });
     const result = await getAgentTree(supabase, USER_ID, "sess-1");
+    expect(result.success).toBe(false);
+    if (!result.success) expect(result.error.code).toBe("RPC_FAILED");
+  });
+});
+
+// --- getSessionCosts ---
+
+describe("getSessionCosts", () => {
+  it("returns cost rows from the RPC on success", async () => {
+    const rows = [
+      {
+        session_id: "sc-cached",
+        input_tokens: 1000000,
+        output_tokens: 1000000,
+        cache_creation_tokens: 1000000,
+        cache_read_tokens: 1000000,
+        cost_usd: 22.05,
+      },
+      {
+        session_id: "sc-legacy",
+        input_tokens: 1000000,
+        output_tokens: 1000000,
+        cache_creation_tokens: null,
+        cache_read_tokens: null,
+        cost_usd: 18.0,
+      },
+    ];
+    const supabase = createMockSupabase({}, { get_session_cost: { data: rows } });
+    const result = await getSessionCosts(supabase, USER_ID, ["sc-cached", "sc-legacy"]);
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data).toEqual(rows);
+  });
+
+  it("returns an empty array without calling the RPC for no ids", async () => {
+    const supabase = createMockSupabase({}, {});
+    const result = await getSessionCosts(supabase, USER_ID, []);
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data).toEqual([]);
+  });
+
+  it("returns RPC_FAILED on RPC error", async () => {
+    const supabase = createMockSupabase({}, {
+      get_session_cost: { data: null, error: { message: "rpc failed" } },
+    });
+    const result = await getSessionCosts(supabase, USER_ID, ["x"]);
     expect(result.success).toBe(false);
     if (!result.success) expect(result.error.code).toBe("RPC_FAILED");
   });

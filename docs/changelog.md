@@ -1,5 +1,16 @@
 # Changelog
 
+## [2026-07-20] — Cache-Aware Session Cost
+
+### Changed
+- Session cost is now cache-aware end to end: the plugin (1.3.3) captures cache
+  tokens from the transcript, `sessions` stores them, and all session-surface
+  pricing runs through the single `price_tokens` SQL function. Session detail
+  gains a Cache card and an Agents table sourced from the `agents` table
+  (status, model, tool count, cache tokens). Unpriced models now render `--`
+  rather than `$0.00`. The Cost and Agents pages remain cache-blind and are
+  labelled as such.
+
 ## [2026-05-21] — Sessions Timeline + Outcome Signals
 
 ### Added

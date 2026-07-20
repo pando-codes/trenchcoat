@@ -26,6 +26,8 @@ def main():
         "reason": reason,
         "input_tokens": transcript.get("input_tokens", 0),
         "output_tokens": transcript.get("output_tokens", 0),
+        "cache_creation_tokens": transcript.get("cache_creation_tokens"),
+        "cache_read_tokens": transcript.get("cache_read_tokens"),
         "model": transcript.get("model"),
     })
 

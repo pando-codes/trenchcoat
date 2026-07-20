@@ -97,7 +97,10 @@ function agent(p: Partial<AgentTreeNode> & { agent_id: string }): AgentTreeNode 
     output_tokens: p.output_tokens ?? 0,
     cache_creation_tokens: p.cache_creation_tokens ?? 0,
     cache_read_tokens: p.cache_read_tokens ?? 0,
-    estimated_cost_usd: p.estimated_cost_usd ?? 0,
+    estimated_cost_usd: p.estimated_cost_usd === undefined ? 0 : p.estimated_cost_usd,
+    status: p.status ?? null,
+    model: p.model ?? null,
+    tool_count: p.tool_count ?? null,
   };
 }
 
@@ -136,5 +139,16 @@ describe("buildAgentGraph", () => {
     expect(g.nodes.find((n) => n.id === "a")!.costHeat).toBeCloseTo(1);
     expect(g.nodes.filter((n) => n.onCriticalPath).map((n) => n.id).sort())
       .toEqual(["a", "root"]);
+  });
+
+  it("treats an unpriced agent as zero-weight without dropping it", () => {
+    const g = buildAgentGraph([
+      agent({ agent_id: "a", depth: 0, duration_ms: 10, estimated_cost_usd: null }),
+      agent({ agent_id: "b", parent_agent_id: "a", depth: 1, duration_ms: 10, estimated_cost_usd: 0.5 }),
+    ]);
+    expect(g.nodes).toHaveLength(2);
+    const unpriced = g.nodes.find((n) => n.id === "a")!;
+    expect(unpriced.costUsd).toBeNull();
+    expect(unpriced.costHeat).toBe(0);
   });
 });

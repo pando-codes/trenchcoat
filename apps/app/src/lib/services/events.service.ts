@@ -129,12 +129,16 @@ export async function ingestEvents(
       const outputTokens = (e.data?.output_tokens as number | null) ?? null;
       const model = (e.data?.model as string | null) ?? null;
       const reason = (e.data?.reason as string | null) ?? null;
+      const cacheCreationTokens = (e.data?.cache_creation_tokens as number | null) ?? null;
+      const cacheReadTokens = (e.data?.cache_read_tokens as number | null) ?? null;
 
       const update: Record<string, unknown> = {};
       if (inputTokens !== null) update.input_tokens = inputTokens;
       if (outputTokens !== null) update.output_tokens = outputTokens;
       if (model !== null) update.model = model;
       if (reason !== null) update.stop_reason = reason;
+      if (cacheCreationTokens !== null) update.cache_creation_tokens = cacheCreationTokens;
+      if (cacheReadTokens !== null) update.cache_read_tokens = cacheReadTokens;
 
       if (Object.keys(update).length > 0) {
         await adminClient

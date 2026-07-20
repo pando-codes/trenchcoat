@@ -576,6 +576,8 @@ def parse_agent_transcript(transcript_path: str) -> dict:
     turns = 0
     input_tokens = 0
     output_tokens = 0
+    cache_creation_tokens = 0
+    cache_read_tokens = 0
     model = None
 
     try:
@@ -600,6 +602,8 @@ def parse_agent_transcript(transcript_path: str) -> dict:
             usage = msg.get("usage", {})
             input_tokens += int(usage.get("input_tokens") or 0)
             output_tokens += int(usage.get("output_tokens") or 0)
+            cache_creation_tokens += int(usage.get("cache_creation_input_tokens") or 0)
+            cache_read_tokens += int(usage.get("cache_read_input_tokens") or 0)
 
             for block in msg.get("content", []):
                 if isinstance(block, dict) and block.get("type") == "tool_use":
@@ -613,6 +617,8 @@ def parse_agent_transcript(transcript_path: str) -> dict:
         "turns": turns,
         "input_tokens": input_tokens,
         "output_tokens": output_tokens,
+        "cache_creation_tokens": cache_creation_tokens,
+        "cache_read_tokens": cache_read_tokens,
         "model": model,
     }
 
