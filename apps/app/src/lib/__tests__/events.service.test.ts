@@ -185,6 +185,64 @@ describe("ingestEvents", () => {
       })
     ).toBe(true);
   });
+
+  // Returns the argument object of every `.update(...)` call the ingest made.
+  function updateArgs(calls: { method: string; args: unknown[] }[]) {
+    return calls
+      .filter((c) => c.method === "update")
+      .map((c) => c.args[0] as Record<string, unknown>);
+  }
+
+  it("promotes cache tokens from assistant_stop onto the session", async () => {
+    const { client, calls } = createSpySupabase({
+      events: OK,
+      sessions: [NOT_FOUND, OK, OK],
+    });
+
+    const events = [
+      makeEvent({
+        seq: 1,
+        event: "assistant_stop",
+        data: {
+          input_tokens: 10,
+          output_tokens: 5,
+          cache_creation_tokens: 32655,
+          cache_read_tokens: 15121,
+          model: "claude-sonnet",
+        },
+      }),
+    ];
+
+    const result = await ingestEvents(client, USER_ID, events);
+    expect(result.success).toBe(true);
+
+    const update = updateArgs(calls).find((u) => u.cache_creation_tokens !== undefined);
+    expect(update).toBeDefined();
+    expect(update!.cache_creation_tokens).toBe(32655);
+    expect(update!.cache_read_tokens).toBe(15121);
+  });
+
+  it("omits cache token columns when the payload lacks them", async () => {
+    const { client, calls } = createSpySupabase({
+      events: OK,
+      sessions: [NOT_FOUND, OK, OK],
+    });
+
+    const events = [
+      makeEvent({
+        seq: 1,
+        event: "assistant_stop",
+        data: { input_tokens: 10, output_tokens: 5, model: "claude-sonnet" },
+      }),
+    ];
+
+    await ingestEvents(client, USER_ID, events);
+
+    for (const u of updateArgs(calls)) {
+      expect(u).not.toHaveProperty("cache_creation_tokens");
+      expect(u).not.toHaveProperty("cache_read_tokens");
+    }
+  });
 });
 
 // --- agent lineage promotion ---
