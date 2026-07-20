@@ -137,17 +137,15 @@ class TestWriteEvent:
         queued = [json.loads(l) for l in queue.read_text().splitlines() if l.strip()]
         assert queued[0]["event"] == "session_start"
 
-    def test_subagent_start_recorded_locally_but_not_queued(self, isolated_telemetry, with_api_key):
-        """subagent_start is not in the SaaS-accepted allowlist. One unknown
-        type fails Zod validation for the WHOLE batch, so it must never enter
-        the push queue — even though local JSONL still records it."""
-        telemetry.write_event("subagent_start", "s1", {"agent_id": "ag-1"})
-
-        local_events = self._read_jsonl(isolated_telemetry)
-        assert local_events[0]["event"] == "subagent_start"
-
+    def test_subagent_start_reaches_push_queue(self, isolated_telemetry, with_api_key):
+        """Ingest now accepts subagent_start, so it must no longer be filtered."""
+        telemetry.write_event("subagent_start", "s1", {
+            "session_id": "q-s", "agent_id": "ag-q", "agent_type": "Explore",
+        })
         queue = isolated_telemetry / ".push_queue.jsonl"
-        assert not queue.exists(), "subagent_start must not be queued for SaaS push"
+        assert queue.exists(), "push queue should exist"
+        types = [json.loads(l)["event"] for l in queue.read_text().splitlines() if l.strip()]
+        assert "subagent_start" in types
 
     def test_tool_start_still_reaches_push_queue_as_tool_use(self, isolated_telemetry, with_api_key):
         """Regression guard alongside the subagent_start filter above — a
@@ -158,6 +156,18 @@ class TestWriteEvent:
         queued = [json.loads(l) for l in queue.read_text().splitlines() if l.strip()]
         assert len(queued) == 1
         assert queued[0]["event"] == "tool_use"
+
+    def test_unknown_event_type_filtered_from_queue(self, isolated_telemetry, with_api_key):
+        """Unknown/unaccepted event types must not reach the push queue, even with API key."""
+        telemetry.write_event("totally_unknown_event", "s1", {"data": "test"})
+
+        # Must be in local JSONL
+        local_events = self._read_jsonl(isolated_telemetry)
+        assert local_events[0]["event"] == "totally_unknown_event"
+
+        # Must NOT be in push queue
+        queue = isolated_telemetry / ".push_queue.jsonl"
+        assert not queue.exists(), "unknown event types must not be queued"
 
     def test_webhook_fired_when_configured(self, isolated_telemetry, without_api_key):
         """Regression: webhook_url must be read from load_config(), not bare 'config'."""
