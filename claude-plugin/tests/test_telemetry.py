@@ -686,6 +686,17 @@ class TestSanitizeAgentResult:
         "description": "SECRET DESCRIPTION", "prompt": "SECRET PROMPT",
         "outputFile": "/tmp/secret-path.output",
     }
+    USAGE = {
+        "status": "completed", "agentId": "ag-u", "totalTokens": 23964,
+        "prompt": "SECRET PROMPT", "content": "SECRET CONTENT",
+        "usage": {
+            "input_tokens": 10, "output_tokens": 68,
+            "cache_creation_input_tokens": 23886, "cache_read_input_tokens": 0,
+            "service_tier": "standard", "inference_geo": "not_available", "speed": "standard",
+            "server_tool_use": {"web_search_requests": 0},
+            "iterations": [{"input_tokens": 10, "output_tokens": 68}],
+        },
+    }
 
     def test_extracts_sync_metrics(self):
         got = telemetry.sanitize_agent_result(self.SYNC)
@@ -719,6 +730,28 @@ class TestSanitizeAgentResult:
         got = telemetry.sanitize_agent_result(self.SYNC)
         assert set(got).issubset(set(telemetry.AGENT_RESULT_FIELDS))
         assert "agentType" not in got, "agentType is present in the fixture but NOT allowlisted"
+
+    def test_flattens_usage_into_four_numeric_fields(self):
+        got = telemetry.sanitize_agent_result(self.USAGE)
+        assert got["usage_input_tokens"] == 10
+        assert got["usage_output_tokens"] == 68
+        assert got["usage_cache_creation_tokens"] == 23886
+        assert got["usage_cache_read_tokens"] == 0
+
+    def test_usage_blob_is_never_stored_wholesale(self):
+        got = telemetry.sanitize_agent_result(self.USAGE)
+        assert "usage" not in got, "the nested usage object must not be passed through"
+        blob = json.dumps(got)
+        for banned in ("iterations", "service_tier", "inference_geo", "speed", "server_tool_use", "SECRET"):
+            assert banned not in blob, f"{banned} leaked: {blob}"
+
+    def test_absent_usage_yields_no_usage_keys(self):
+        got = telemetry.sanitize_agent_result({"status": "completed", "agentId": "ag-x"})
+        assert not any(k.startswith("usage_") for k in got)
+
+    def test_non_numeric_usage_values_are_skipped(self):
+        got = telemetry.sanitize_agent_result({"agentId": "a", "usage": {"input_tokens": "lots"}})
+        assert "usage_input_tokens" not in got
 
 
 class TestBaseAgentFields:

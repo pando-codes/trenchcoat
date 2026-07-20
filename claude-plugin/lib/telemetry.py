@@ -194,6 +194,16 @@ AGENT_RESULT_FIELDS = (
     "totalTokens", "totalToolUseCount", "toolStats", "isAsync",
 )
 
+# Only these four numeric fields are lifted out of the nested `usage` object.
+# The rest of it (iterations, service_tier, inference_geo, speed, server_tool_use)
+# is deliberately dropped — a wholesale copy would breach the allowlist.
+_USAGE_FIELD_MAP = {
+    "input_tokens": "usage_input_tokens",
+    "output_tokens": "usage_output_tokens",
+    "cache_creation_input_tokens": "usage_cache_creation_tokens",
+    "cache_read_input_tokens": "usage_cache_read_tokens",
+}
+
 
 def sanitize_agent_result(tool_response) -> dict:
     """Allowlisted metrics from an Agent tool_response.
@@ -203,7 +213,16 @@ def sanitize_agent_result(tool_response) -> dict:
     """
     if not isinstance(tool_response, dict):
         return {}
-    return {k: tool_response[k] for k in AGENT_RESULT_FIELDS if k in tool_response}
+    out = {k: tool_response[k] for k in AGENT_RESULT_FIELDS if k in tool_response}
+
+    usage = tool_response.get("usage")
+    if isinstance(usage, dict):
+        for src, dst in _USAGE_FIELD_MAP.items():
+            value = usage.get(src)
+            if isinstance(value, (int, float)) and not isinstance(value, bool):
+                out[dst] = value
+
+    return out
 
 
 def write_event(event_type: str, session_id: str, data: dict) -> None:
