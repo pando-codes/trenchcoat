@@ -123,7 +123,19 @@ export interface AgentTreeNode {
   output_tokens: number;
   cache_creation_tokens: number;
   cache_read_tokens: number;
-  estimated_cost_usd: number;
+  estimated_cost_usd: number | null;
+  status: string | null;
+  model: string | null;
+  tool_count: number | null;
+}
+
+export interface SessionCost {
+  session_id: string;
+  input_tokens: number;
+  output_tokens: number;
+  cache_creation_tokens: number | null;
+  cache_read_tokens: number | null;
+  cost_usd: number | null;
 }
 
 export interface EntityRollup {
