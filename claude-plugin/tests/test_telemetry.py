@@ -952,6 +952,48 @@ class TestHookIntegration:
         })
         assert r.returncode == 0, f"stderr: {r.stderr}"
 
+    def test_stop_cache_fields_are_none_when_transcript_missing(self, tmp_path):
+        """Regression: a failed/missing transcript parse must yield None (JSON
+        null) for the cache fields, never 0 — 0 means "captured, genuinely no
+        cache"; None means "never captured". stop.py must not conflate them,
+        the same guard migration 031_agent_tree_cache_cost.sql applies on the
+        agent path via nullif(...).
+        """
+        r = self._run_hook(tmp_path, "stop.py", {
+            "session_id": "no-transcript-s", "stop_hook_reason": "end_turn",
+            "transcript_path": str(tmp_path / "does-not-exist.jsonl"),
+        })
+        assert r.returncode == 0, f"stderr: {r.stderr}"
+        ev = next(e for e in self._read_events(tmp_path) if e["event"] == "stop")
+        assert ev["data"]["cache_creation_tokens"] is None
+        assert ev["data"]["cache_read_tokens"] is None
+        # input/output tokens are explicitly out of scope for this fix — they
+        # keep their pre-existing zero-on-parse-failure behavior.
+        assert ev["data"]["input_tokens"] == 0
+        assert ev["data"]["output_tokens"] == 0
+
+    def test_stop_cache_fields_are_zero_when_transcript_has_no_cache_usage(self, tmp_path):
+        """A successful parse that genuinely saw no cache usage must still
+        report 0, not None — only a failed/missing parse should produce None.
+        """
+        transcript = tmp_path / "transcript.jsonl"
+        transcript.write_text(json.dumps({
+            "type": "assistant",
+            "message": {
+                "model": "claude-sonnet",
+                "usage": {"input_tokens": 10, "output_tokens": 5},
+                "content": [],
+            },
+        }) + "\n")
+        r = self._run_hook(tmp_path, "stop.py", {
+            "session_id": "zero-cache-s", "stop_hook_reason": "end_turn",
+            "transcript_path": str(transcript),
+        })
+        assert r.returncode == 0, f"stderr: {r.stderr}"
+        ev = next(e for e in self._read_events(tmp_path) if e["event"] == "stop")
+        assert ev["data"]["cache_creation_tokens"] == 0
+        assert ev["data"]["cache_read_tokens"] == 0
+
     def test_subagent_stop_exits_zero(self, tmp_path):
         r = self._run_hook(tmp_path, "subagent_stop.py", {
             "session_id": "test-s", "agent_type": "general-purpose",
