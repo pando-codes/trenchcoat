@@ -830,6 +830,62 @@ class TestParseAgentTranscript:
         result = telemetry.parse_agent_transcript(path)
         assert result["turns"] == 1
 
+    def test_sums_cache_tokens(self, tmp_path):
+        entries = [
+            {"type": "assistant", "message": {
+                "model": "claude-sonnet",
+                "usage": {
+                    "input_tokens": 10, "output_tokens": 5,
+                    "cache_creation_input_tokens": 23886,
+                    "cache_read_input_tokens": 0,
+                },
+                "content": [],
+            }},
+            {"type": "assistant", "message": {
+                "model": "claude-sonnet",
+                "usage": {
+                    "input_tokens": 10, "output_tokens": 5,
+                    "cache_creation_input_tokens": 8769,
+                    "cache_read_input_tokens": 15121,
+                },
+                "content": [],
+            }},
+        ]
+        path = self._write_transcript(tmp_path, entries)
+        result = telemetry.parse_agent_transcript(path)
+        assert result["cache_creation_tokens"] == 32655
+        assert result["cache_read_tokens"] == 15121
+
+    def test_cache_tokens_default_to_zero_when_absent(self, tmp_path):
+        entries = [
+            {"type": "assistant", "message": {
+                "model": "m",
+                "usage": {"input_tokens": 10, "output_tokens": 5},
+                "content": [],
+            }},
+        ]
+        path = self._write_transcript(tmp_path, entries)
+        result = telemetry.parse_agent_transcript(path)
+        assert result["cache_creation_tokens"] == 0
+        assert result["cache_read_tokens"] == 0
+
+    def test_cache_tokens_tolerate_null_values(self, tmp_path):
+        entries = [
+            {"type": "assistant", "message": {
+                "model": "m",
+                "usage": {
+                    "input_tokens": 10, "output_tokens": 5,
+                    "cache_creation_input_tokens": None,
+                    "cache_read_input_tokens": None,
+                },
+                "content": [],
+            }},
+        ]
+        path = self._write_transcript(tmp_path, entries)
+        result = telemetry.parse_agent_transcript(path)
+        assert result["cache_creation_tokens"] == 0
+        assert result["cache_read_tokens"] == 0
+
     def test_handles_malformed_lines(self, tmp_path):
         f = tmp_path / "transcript.jsonl"
         f.write_text('not json\n{"type":"assistant","message":{"model":"m","usage":{},"content":[]}}\n')
