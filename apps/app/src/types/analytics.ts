@@ -128,3 +128,25 @@ export interface AgentTimeseriesPoint {
   p50_latency_ms: number | null;
   latency_sample_count: number;
 }
+
+export interface EvalListEntry {
+  eval_id: string;
+  variant_count: number;
+  session_count: number;
+  last_run: string;
+}
+
+export interface EvalScoreSummary {
+  avg: number;
+  count: number;
+}
+
+export interface EvalVariantStat {
+  eval_variant: string;
+  session_count: number;
+  total_input_tokens: number;
+  total_output_tokens: number;
+  total_cost_usd: number;
+  avg_duration_ms: number | null;
+  scores: Record<string, EvalScoreSummary>;
+}
