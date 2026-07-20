@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { parseDateRange } from "@/lib/date-range";
-import { computeCost, formatCost, type RateMap } from "@/lib/cost";
+import { formatCost } from "@/lib/cost";
 import { SessionFilters } from "@/components/dashboard/session-filters";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -13,6 +13,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import type { SessionSummary } from "@/types/analytics";
 import { getProfile } from "@/lib/services/user-profile.service";
+import { getSessionCosts } from "@/lib/services/analytics.service";
 
 interface SessionsPageProps {
   searchParams: Promise<{
@@ -74,7 +75,7 @@ export default async function SessionsPage({ searchParams }: SessionsPageProps) 
   const profileResult = await getProfile(supabase, user.id);
   const userTimezone = profileResult.success ? (profileResult.data?.timezone ?? "UTC") : "UTC";
 
-  const [branchesResult, sessionsResult, pricingResult, childCountsResult] = await Promise.all([
+  const [branchesResult, sessionsResult, childCountsResult] = await Promise.all([
     supabase
       .from("sessions")
       .select("git_branch")
@@ -93,7 +94,6 @@ export default async function SessionsPage({ searchParams }: SessionsPageProps) 
       if (branch) query = query.eq("git_branch", branch);
       return query;
     })(),
-    supabase.from("model_pricing").select("model_id, input_cost_per_1m, output_cost_per_1m"),
     supabase
       .from("sessions")
       .select("parent_session_id")
@@ -112,15 +112,13 @@ export default async function SessionsPage({ searchParams }: SessionsPageProps) 
   const sessions: SessionSummary[] = (sessionsResult.data ?? []) as unknown as SessionSummary[];
   const totalPages = Math.ceil((sessionsResult.count ?? 0) / PAGE_SIZE);
 
-  const rates: RateMap = Object.fromEntries(
-    ((pricingResult.data ?? []) as {
-      model_id: string;
-      input_cost_per_1m: number;
-      output_cost_per_1m: number;
-    }[]).map((r) => [
-      r.model_id,
-      { input_cost_per_1m: r.input_cost_per_1m, output_cost_per_1m: r.output_cost_per_1m },
-    ])
+  const costResult = await getSessionCosts(
+    supabase,
+    viewUserId,
+    sessions.map((s) => s.session_id)
+  );
+  const costById = new Map(
+    (costResult.success ? costResult.data : []).map((c) => [c.session_id, c])
   );
 
   // Map: plugin session_id → DB UUID id (for building parent links)
@@ -223,12 +221,7 @@ export default async function SessionsPage({ searchParams }: SessionsPageProps) 
                       )}
                     </TableCell>
                     <TableCell className="text-right font-mono text-sm">
-                      {formatCost(computeCost(
-                        session.input_tokens  ?? null,
-                        session.output_tokens ?? null,
-                        session.model         ?? null,
-                        rates,
-                      ))}
+                      {formatCost(costById.get(session.session_id)?.cost_usd ?? null)}
                     </TableCell>
                   </TableRow>
                 ))
