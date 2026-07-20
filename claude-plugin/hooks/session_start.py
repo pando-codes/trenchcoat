@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """SessionStart hook — record session begin, read agent spawn context if present."""
 
+import os
 import sys
 from pathlib import Path
 
@@ -31,6 +32,14 @@ def main():
         if spawn_ctx.get("spawner_id"):
             event_data["spawner_id"]   = spawn_ctx["spawner_id"]
             event_data["spawner_type"] = spawn_ctx["spawner_type"]
+
+    eval_id = os.environ.get("TRENCHCOAT_EVAL_ID")
+    if eval_id:
+        event_data["eval_id"] = eval_id[:128]
+
+    eval_variant = os.environ.get("TRENCHCOAT_EVAL_VARIANT")
+    if eval_variant:
+        event_data["eval_variant"] = eval_variant[:128]
 
     write_event("session_start", session_id, event_data)
 

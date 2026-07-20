@@ -154,12 +154,16 @@ export async function ingestEvents(
       const parentSessionId = (e.data?.parent_session_id as string) ?? null;
       const spawnerId = (e.data?.spawner_id as string) ?? null;
       const spawnerType = (e.data?.spawner_type as string) ?? null;
+      const evalId = (e.data?.eval_id as string) ?? null;
+      const evalVariant = (e.data?.eval_variant as string) ?? null;
 
-      if (parentSessionId || spawnerId) {
+      if (parentSessionId || spawnerId || evalId || evalVariant) {
         const update: Record<string, unknown> = {};
         if (parentSessionId) update.parent_session_id = parentSessionId;
         if (spawnerId) update.spawner_id = spawnerId;
         if (spawnerType) update.spawner_type = spawnerType;
+        if (evalId) update.eval_id = evalId;
+        if (evalVariant) update.eval_variant = evalVariant;
 
         await adminClient
           .from("sessions")

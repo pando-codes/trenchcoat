@@ -1,0 +1,94 @@
+---
+title: Evals
+description: Post evaluation scores for Claude Code sessions tagged with an eval run.
+---
+
+## POST /api/v1/evals/scores
+
+Upload a batch of evaluation scores for one or more sessions. Used to record eval results (e.g. from an offline grader) against sessions tagged with `TRENCHCOAT_EVAL_ID` / `TRENCHCOAT_EVAL_VARIANT` — see [Event Schema](/docs/plugin-sdk/event-schema#session_start).
+
+**Required scope:** `write:events`
+
+**Batch limit:** 1–1,000 scores per request.
+
+---
+
+## Request
+
+```bash
+curl -X POST https://app.trenchcoat.io/api/v1/evals/scores \
+  -H "X-API-Key: ct_live_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "scores": [
+      {
+        "session_id": "550e8400-e29b-41d4-a716-446655440000",
+        "metric": "accuracy",
+        "value": 0.92
+      }
+    ]
+  }'
+```
+
+### Request Body
+
+The body must be a JSON object with a single `scores` array.
+
+```json
+{
+  "scores": [
+    {
+      "session_id": "550e8400-e29b-41d4-a716-446655440000",
+      "metric": "accuracy",
+      "value": 0.92
+    }
+  ]
+}
+```
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `session_id` | string | Yes | The Claude Code session this score belongs to. |
+| `metric` | string | Yes | Name of the metric being scored (max 64 characters). |
+| `value` | number | Yes | The metric's value. Must be a finite number. |
+
+`scores` must contain between 1 and 1,000 items.
+
+A `session_id` does not need to already exist in Trenchcoat — scores for a session that hasn't been seen yet are still accepted and stored, and surface once that session's events arrive.
+
+---
+
+## Upsert Behavior
+
+Scores are upserted on the combination of `(user_id, session_id, metric)`. Posting the same `session_id` + `metric` pair again replaces the previously stored value rather than creating a duplicate — there is no need to delete a score before correcting it.
+
+---
+
+## Response
+
+### Success — 201
+
+```json
+{
+  "data": {
+    "inserted": 1
+  }
+}
+```
+
+`inserted` is the number of scores in the request that were upserted.
+
+### Validation Error — 400
+
+Returned when the request body is malformed, `scores` is empty or exceeds 1,000 items, or an individual score fails validation (e.g. `metric` longer than 64 characters, or `value` not a finite number).
+
+```json
+{
+  "error": {
+    "code": "BAD_REQUEST",
+    "message": "scores: Too small: expected array to have >=1 items"
+  }
+}
+```
+
+The entire request is rejected when body-level validation fails; `message` summarizes the offending field(s).

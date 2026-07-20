@@ -670,7 +670,7 @@ class TestHookIntegration:
     def _run_hook(self, tmp_path, hook_name, stdin_data, extra_env=None):
         env = {
             k: v for k, v in os.environ.items()
-            if k not in ("TRENCHCOAT_API_KEY", "TRENCHCOAT_API_URL")
+            if k not in ("TRENCHCOAT_API_KEY", "TRENCHCOAT_API_URL", "TRENCHCOAT_EVAL_ID", "TRENCHCOAT_EVAL_VARIANT")
         }
         env["HOME"] = str(tmp_path)
         if extra_env:
@@ -969,6 +969,39 @@ class TestHookIntegration:
         assert len(child_starts) == 1
         assert child_starts[0]["data"].get("agent_id") == parent_agent_id, \
             "session_start for the child session must carry the parent's agent_id"
+
+    def test_session_start_records_eval_tags_from_env(self, tmp_path):
+        self._run_hook(tmp_path, "session_start.py", {"session_id": "e-s", "cwd": "/tmp"},
+                       extra_env={"TRENCHCOAT_EVAL_ID": "deep-research",
+                                  "TRENCHCOAT_EVAL_VARIANT": "v3"})
+        start = next(e for e in self._read_events(tmp_path) if e["event"] == "session_start")
+        assert start["data"]["eval_id"] == "deep-research"
+        assert start["data"]["eval_variant"] == "v3"
+
+    def test_session_start_without_eval_env_has_no_eval_keys(self, tmp_path):
+        self._run_hook(tmp_path, "session_start.py", {"session_id": "e-s2", "cwd": "/tmp"})
+        start = next(e for e in self._read_events(tmp_path) if e["event"] == "session_start")
+        assert "eval_id" not in start["data"]
+        assert "eval_variant" not in start["data"]
+
+    def test_session_start_truncates_overlong_eval_values(self, tmp_path):
+        self._run_hook(tmp_path, "session_start.py", {"session_id": "e-s3", "cwd": "/tmp"},
+                       extra_env={"TRENCHCOAT_EVAL_ID": "x" * 300})
+        start = next(e for e in self._read_events(tmp_path) if e["event"] == "session_start")
+        assert len(start["data"]["eval_id"]) == 128
+
+    def test_session_start_empty_eval_env_has_no_eval_keys(self, tmp_path):
+        self._run_hook(tmp_path, "session_start.py", {"session_id": "e-s4", "cwd": "/tmp"},
+                       extra_env={"TRENCHCOAT_EVAL_ID": "", "TRENCHCOAT_EVAL_VARIANT": ""})
+        start = next(e for e in self._read_events(tmp_path) if e["event"] == "session_start")
+        assert "eval_id" not in start["data"]
+        assert "eval_variant" not in start["data"]
+
+    def test_session_start_truncates_overlong_eval_variant(self, tmp_path):
+        self._run_hook(tmp_path, "session_start.py", {"session_id": "e-s5", "cwd": "/tmp"},
+                       extra_env={"TRENCHCOAT_EVAL_VARIANT": "v" * 300})
+        start = next(e for e in self._read_events(tmp_path) if e["event"] == "session_start")
+        assert len(start["data"]["eval_variant"]) == 128
 
 
 # ---------------------------------------------------------------------------
