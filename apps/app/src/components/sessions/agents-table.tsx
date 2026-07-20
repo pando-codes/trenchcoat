@@ -44,7 +44,15 @@ export function AgentsTable({ agents }: { agents: AgentTreeNode[] }) {
                 </TableCell>
                 <TableCell>
                   {a.status ? (
-                    <Badge variant={a.status === "completed" ? "secondary" : "destructive"}>
+                    <Badge
+                      variant={
+                        a.status === "completed"
+                          ? "secondary"
+                          : a.status === "running"
+                            ? "outline"
+                            : "destructive"
+                      }
+                    >
                       {a.status}
                     </Badge>
                   ) : (
