@@ -61,6 +61,12 @@ def main():
         "error_preview": result_info.get("error_preview"),
     }
 
+    if tool_name == "Agent":
+        # The Agent tool's error `content` is the agent's own output text.
+        # Capturing it would violate log_prompt_content: False, so keep only
+        # the error flag and size; structured metrics come from agent_result.
+        event_data["error_preview"] = None
+
     if tool_use_id:
         event_data["tool_use_id"] = tool_use_id
 

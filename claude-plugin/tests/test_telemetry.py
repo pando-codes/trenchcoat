@@ -673,6 +673,13 @@ class TestSanitizeAgentResult:
         assert telemetry.sanitize_agent_result("just a string") == {}
         assert telemetry.sanitize_agent_result(None) == {}
 
+    def test_output_keys_are_subset_of_allowlist(self):
+        """Reviewer's Minor: guard against a future widening of the allowlist
+        silently letting an unvetted field (e.g. agentType) through."""
+        got = telemetry.sanitize_agent_result(self.SYNC)
+        assert set(got).issubset(set(telemetry.AGENT_RESULT_FIELDS))
+        assert "agentType" not in got, "agentType is present in the fixture but NOT allowlisted"
+
 
 class TestBaseAgentFields:
     def test_extracts_both_when_present(self):
@@ -1224,6 +1231,36 @@ class TestHookIntegration:
         assert end["data"]["tool_use_id"] == "toolu_A"
         assert end["data"]["correlation_id"] == starts["toolu_A"]["data"]["correlation_id"], \
             "tool_end must carry the correlation_id of ITS OWN tool_start"
+
+    def test_failed_agent_tool_end_does_not_leak_content(self, tmp_path):
+        self._run_hook(tmp_path, "pre_tool_use.py", {
+            "session_id": "leak-s", "tool_name": "Agent", "tool_use_id": "toolu_L",
+            "tool_input": {"description": "d", "prompt": "p"},
+        })
+        self._run_hook(tmp_path, "post_tool_use.py", {
+            "session_id": "leak-s", "tool_name": "Agent", "tool_use_id": "toolu_L",
+            "tool_input": {"description": "d", "prompt": "p"},
+            "tool_response": {"status": "failed", "agentId": "ag-1", "is_error": True,
+                              "content": "SECRET AGENT OUTPUT CONTENT",
+                              "prompt": "SECRET PROMPT"},
+        })
+        end = next(e for e in self._read_events(tmp_path) if e["event"] == "tool_end")
+        assert "SECRET" not in json.dumps(end["data"]), f"content leaked: {end['data']}"
+        assert end["data"]["is_error"] is True, "the error FLAG must still be recorded"
+        assert end["data"]["error_preview"] is None
+
+    def test_non_agent_tool_still_records_error_preview(self, tmp_path):
+        self._run_hook(tmp_path, "pre_tool_use.py", {
+            "session_id": "leak-s2", "tool_name": "Bash", "tool_use_id": "toolu_B",
+            "tool_input": {"command": "false"},
+        })
+        self._run_hook(tmp_path, "post_tool_use.py", {
+            "session_id": "leak-s2", "tool_name": "Bash", "tool_use_id": "toolu_B",
+            "tool_input": {"command": "false"}, "tool_response": {
+                "is_error": True, "content": "command not found: frobnicate"},
+        })
+        end = next(e for e in self._read_events(tmp_path) if e["event"] == "tool_end")
+        assert "frobnicate" in (end["data"]["error_preview"] or "")
 
 
 # ---------------------------------------------------------------------------
