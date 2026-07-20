@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import type { SessionSummary } from "@/types/analytics";
 import { getProfile } from "@/lib/services/user-profile.service";
 import { getSessionCosts } from "@/lib/services/analytics.service";
+import { formatDuration } from "@/lib/format/duration";
 
 interface SessionsPageProps {
   searchParams: Promise<{
@@ -26,14 +27,6 @@ interface SessionsPageProps {
 }
 
 const PAGE_SIZE = 20;
-
-function formatDuration(ms: number | null): string {
-  if (ms === null) return "--";
-  const minutes = Math.floor(ms / 60_000);
-  if (minutes < 60) return `${minutes}m`;
-  const hours = Math.floor(minutes / 60);
-  return `${hours}h ${minutes % 60}m`;
-}
 
 function formatDate(iso: string, timeZone: string): string {
   const d = new Date(iso);

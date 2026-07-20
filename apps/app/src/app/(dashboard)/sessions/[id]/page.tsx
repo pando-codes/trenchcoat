@@ -3,26 +3,21 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { computeCost, formatCost, type RateMap } from "@/lib/cost";
+import { formatCost } from "@/lib/cost";
 import type { SessionSummary } from "@/types/analytics";
 import type { TelemetryEvent } from "@/types/events";
 import { getProfile } from "@/lib/services/user-profile.service";
 import { OutcomeSignals } from "@/components/sessions/outcome-signals";
 import { Timeline } from "@/components/sessions/timeline";
-import { getAgentTree } from "@/lib/services/analytics.service";
+import { getAgentTree, getSessionCosts } from "@/lib/services/analytics.service";
 import { SpawnGraphView } from "@/components/graph/spawn-graph-view";
+import { summariseSessionCache } from "@/lib/analytics/session-cache";
+import { AgentsTable } from "@/components/sessions/agents-table";
+import { formatDuration } from "@/lib/format/duration";
+import { formatTokens } from "@/lib/format/agents";
 
 interface SessionDetailPageProps {
   params: Promise<{ id: string }>;
-}
-
-function formatDuration(ms: number | null): string {
-  if (ms === null) return "--";
-  const minutes = Math.floor(ms / 60_000);
-  if (minutes < 60) return `${minutes}m`;
-  const hours = Math.floor(minutes / 60);
-  const remainingMinutes = minutes % 60;
-  return `${hours}h ${remainingMinutes}m`;
 }
 
 function formatTimestamp(iso: string, timeZone: string): string {
@@ -102,22 +97,14 @@ export default async function SessionDetailPage({ params }: SessionDetailPagePro
 
   const typedEvents: TelemetryEvent[] = (events ?? []) as unknown as TelemetryEvent[];
 
-  const { data: pricingData } = await supabase
-    .from("model_pricing")
-    .select("model_id, input_cost_per_1m, output_cost_per_1m");
-
-  const rates: RateMap = Object.fromEntries(
-    ((pricingData ?? []) as { model_id: string; input_cost_per_1m: number; output_cost_per_1m: number }[]).map(
-      (r) => [r.model_id, { input_cost_per_1m: r.input_cost_per_1m, output_cost_per_1m: r.output_cost_per_1m }]
-    )
+  const costSessionIds = [typedSession.session_id, ...childSessions.map((c) => c.session_id)];
+  const costResult = await getSessionCosts(supabase, user.id, costSessionIds);
+  const costById = new Map(
+    (costResult.success ? costResult.data : []).map((c) => [c.session_id, c])
   );
-
-  const sessionCost = computeCost(
-    (typedSession.input_tokens as number | null) ?? null,
-    (typedSession.output_tokens as number | null) ?? null,
-    (typedSession.model as string | null) ?? null,
-    rates
-  );
+  const sessionCostRow = costById.get(typedSession.session_id);
+  const sessionCost = sessionCostRow?.cost_usd ?? null;
+  const cacheSummary = summariseSessionCache(sessionCostRow);
 
   // The page only tracks the current session's own id and its immediate parent
   // (see parentSessionId above) — it has no resolved "true root" id. Fetch the
@@ -152,7 +139,7 @@ export default async function SessionDetailPage({ params }: SessionDetailPagePro
         events={typedEvents}
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -217,62 +204,39 @@ export default async function SessionDetailPage({ params }: SessionDetailPagePro
             </div>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Cache
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {cacheSummary.captured ? (
+              <>
+                <div className="text-2xl font-bold font-mono">
+                  {cacheSummary.hitRatio === null
+                    ? "--"
+                    : `${Math.round(cacheSummary.hitRatio * 100)}%`}
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {formatTokens(cacheSummary.readTokens)} read ·{" "}
+                  {formatTokens(cacheSummary.creationTokens)} written
+                </p>
+              </>
+            ) : (
+              <>
+                <div className="text-base text-muted-foreground">Not captured</div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Requires plugin 1.3.3+
+                </p>
+              </>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
-      {(() => {
-        const agentEvents = typedEvents.filter((e) => e.event_type === "subagent_stop");
-        if (agentEvents.length === 0) return null;
-        return (
-          <Card>
-            <CardHeader>
-              <CardTitle>Agents</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {agentEvents.map((event) => {
-                  const d = event.data;
-                  const agentType = (d.agent_type as string | null) ?? "subagent";
-                  const toolCountTotal = (d.tool_count_total as number | null) ?? 0;
-                  const turns = (d.turns as number | null) ?? 0;
-                  const toolCounts = (d.tool_counts as Record<string, number> | null) ?? {};
-                  const topTools = Object.entries(toolCounts)
-                    .sort((a, b) => b[1] - a[1])
-                    .slice(0, 3);
-                  const agentCost = computeCost(
-                    (d.input_tokens as number | null) ?? null,
-                    (d.output_tokens as number | null) ?? null,
-                    (d.model as string | null) ?? null,
-                    rates
-                  );
-                  return (
-                    <div key={event.id} className="rounded-lg border p-4">
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium">{agentType}</span>
-                        <div className="flex gap-4 text-sm text-muted-foreground">
-                          <span>{toolCountTotal} tools</span>
-                          <span>{turns} turns</span>
-                          {agentCost !== null && (
-                            <span className="font-mono">{formatCost(agentCost)}</span>
-                          )}
-                        </div>
-                      </div>
-                      {topTools.length > 0 && (
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {topTools.map(([tool, count]) => (
-                            <Badge key={tool} variant="secondary">
-                              {tool} × {count}
-                            </Badge>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
-        );
-      })()}
+      <AgentsTable agents={agents} />
 
       {childSessions.length > 0 && (
         <Card>
@@ -282,12 +246,7 @@ export default async function SessionDetailPage({ params }: SessionDetailPagePro
           <CardContent>
             <div className="space-y-2">
               {childSessions.map((child) => {
-                const childCost = computeCost(
-                  child.input_tokens ?? null,
-                  child.output_tokens ?? null,
-                  child.model ?? null,
-                  rates
-                );
+                const childCost = costById.get(child.session_id)?.cost_usd ?? null;
                 return (
                   <div key={child.id} className="flex items-center justify-between rounded-lg border px-4 py-3">
                     <Link
