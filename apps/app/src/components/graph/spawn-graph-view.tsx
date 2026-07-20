@@ -3,8 +3,8 @@ import { useMemo, useState } from "react";
 import dagre from "dagre";
 import { ReactFlow, Background, Controls, type Node, type Edge } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { buildSpawnGraph, type BuildOpts } from "@/lib/graph/spawn-graph";
-import type { SessionTreeNode } from "@/types/analytics";
+import { buildAgentGraph, type BuildOpts } from "@/lib/graph/spawn-graph";
+import type { AgentTreeNode } from "@/types/analytics";
 import { formatUsd } from "@/lib/format/agents";
 
 const W = 180, H = 52;
@@ -28,9 +28,9 @@ function heatColor(heat: number): string {
   return `hsl(18 90% ${l}%)`;
 }
 
-export function SpawnGraphView({ tree }: { tree: SessionTreeNode[] }) {
+export function SpawnGraphView({ tree }: { tree: AgentTreeNode[] }) {
   const [weight, setWeight] = useState<BuildOpts["weight"]>("cost");
-  const graph = useMemo(() => buildSpawnGraph(tree, { weight }), [tree, weight]);
+  const graph = useMemo(() => buildAgentGraph(tree, { weight }), [tree, weight]);
 
   const { nodes, edges } = useMemo(() => {
     const rawNodes: Node[] = graph.nodes.map((n) => ({
