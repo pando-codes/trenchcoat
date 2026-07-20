@@ -187,6 +187,208 @@ describe("ingestEvents", () => {
   });
 });
 
+// --- agent lineage promotion ---
+
+describe("ingestEvents: agent lineage promotion", () => {
+  it("subagent_start upserts only its owned fields (no ended_at/tokens)", async () => {
+    const { client, calls } = createSpySupabase();
+
+    const event = makeEvent({
+      event: "subagent_start",
+      data: { agent_id: "agent-1", agent_type: "general-purpose" },
+    });
+
+    await ingestEvents(client, USER_ID, [event]);
+
+    const upserts = calls.filter((c) => c.method === "upsert");
+    expect(upserts.length).toBe(1);
+
+    const payload = upserts[0].args[0] as Record<string, unknown>;
+    expect(payload).toMatchObject({
+      user_id: USER_ID,
+      agent_id: "agent-1",
+      agent_type: "general-purpose",
+      session_id: SESSION_ID,
+      started_at: event.ts,
+    });
+    expect(payload).not.toHaveProperty("ended_at");
+    expect(payload).not.toHaveProperty("input_tokens");
+    expect(payload).not.toHaveProperty("output_tokens");
+    expect(payload).not.toHaveProperty("parent_agent_id");
+
+    expect(upserts[0].args[1]).toEqual({ onConflict: "user_id,agent_id" });
+  });
+
+  it("subagent_stop upserts only its owned fields", async () => {
+    const { client, calls } = createSpySupabase();
+
+    const event = makeEvent({
+      event: "subagent_stop",
+      data: {
+        agent_id: "agent-1",
+        agent_type: "general-purpose",
+        input_tokens: 100,
+        output_tokens: 200,
+        model: "claude-3-5-sonnet",
+        tool_count_total: 4,
+      },
+    });
+
+    await ingestEvents(client, USER_ID, [event]);
+
+    const upserts = calls.filter((c) => c.method === "upsert");
+    expect(upserts.length).toBe(1);
+
+    const payload = upserts[0].args[0] as Record<string, unknown>;
+    expect(payload).toMatchObject({
+      user_id: USER_ID,
+      agent_id: "agent-1",
+      agent_type: "general-purpose",
+      session_id: SESSION_ID,
+      ended_at: event.ts,
+      input_tokens: 100,
+      output_tokens: 200,
+      model: "claude-3-5-sonnet",
+      tool_count: 4,
+    });
+    expect(payload).not.toHaveProperty("started_at");
+    expect(payload).not.toHaveProperty("parent_agent_id");
+    expect(payload).not.toHaveProperty("edge_label");
+  });
+
+  it("an Agent tool_result sets parent_agent_id from origin_agent_id, plus edge_label and duration_ms", async () => {
+    const { client, calls } = createSpySupabase();
+
+    const event = makeEvent({
+      event: "tool_result",
+      data: {
+        tool_name: "Agent",
+        agent_result: { agentId: "agent-child", status: "success" },
+        origin_agent_id: "agent-parent",
+        edge_label: "spawn",
+        duration_ms: 1234.6,
+      },
+    });
+
+    await ingestEvents(client, USER_ID, [event]);
+
+    const upserts = calls.filter((c) => c.method === "upsert");
+    expect(upserts.length).toBe(1);
+
+    const payload = upserts[0].args[0] as Record<string, unknown>;
+    expect(payload.agent_id).toBe("agent-child");
+    expect(payload.parent_agent_id).toBe("agent-parent");
+    expect(payload.edge_label).toBe("spawn");
+    expect(payload.duration_ms).toBe(1235);
+    expect(upserts[0].args[1]).toEqual({ onConflict: "user_id,agent_id" });
+  });
+
+  it("parent_agent_id is absent when origin_agent_id is absent (root agent)", async () => {
+    const { client, calls } = createSpySupabase();
+
+    const event = makeEvent({
+      event: "tool_result",
+      data: {
+        tool_name: "Agent",
+        agent_result: { agentId: "agent-root" },
+        duration_ms: 500,
+      },
+    });
+
+    await ingestEvents(client, USER_ID, [event]);
+
+    const upserts = calls.filter((c) => c.method === "upsert");
+    expect(upserts.length).toBe(1);
+
+    const payload = upserts[0].args[0] as Record<string, unknown>;
+    expect(payload.agent_id).toBe("agent-root");
+    expect(payload).not.toHaveProperty("parent_agent_id");
+  });
+
+  it("does not write output_tokens from agent_result.totalTokens (aggregate, not output count)", async () => {
+    const { client, calls } = createSpySupabase();
+
+    const event = makeEvent({
+      event: "tool_result",
+      data: {
+        tool_name: "Agent",
+        agent_result: { agentId: "agent-child", status: "success", totalTokens: 9999 },
+      },
+    });
+
+    await ingestEvents(client, USER_ID, [event]);
+
+    const upserts = calls.filter((c) => c.method === "upsert");
+    expect(upserts.length).toBe(1);
+
+    const payload = upserts[0].args[0] as Record<string, unknown>;
+    expect(payload).not.toHaveProperty("output_tokens");
+  });
+
+  it("skips promotion entirely for an async agent_result with no native agentId, even when a minted data.agent_id is present", async () => {
+    const { client, calls } = createSpySupabase();
+
+    const event = makeEvent({
+      event: "tool_result",
+      data: {
+        tool_name: "Agent",
+        agent_result: { status: "async_launched", isAsync: true },
+        agent_id: "minted-correlation-id-123",
+      },
+    });
+
+    await ingestEvents(client, USER_ID, [event]);
+
+    const upserts = calls.filter((c) => c.method === "upsert");
+    expect(upserts.length).toBe(0);
+  });
+
+  it("a non-Agent tool_result produces no agent upsert", async () => {
+    const { client, calls } = createSpySupabase();
+
+    const event = makeEvent({
+      event: "tool_result",
+      data: { tool_name: "Read" },
+    });
+
+    await ingestEvents(client, USER_ID, [event]);
+
+    const upserts = calls.filter((c) => c.method === "upsert");
+    expect(upserts.length).toBe(0);
+  });
+
+  it("is order-independent: stop-then-start yields the same set of upserts as start-then-stop", async () => {
+    const startEvent = makeEvent({
+      event: "subagent_start",
+      seq: 1,
+      data: { agent_id: "agent-1", agent_type: "general-purpose" },
+    });
+    const stopEvent = makeEvent({
+      event: "subagent_stop",
+      seq: 2,
+      data: { agent_id: "agent-1", agent_type: "general-purpose", input_tokens: 10 },
+    });
+
+    const forward = createSpySupabase();
+    await ingestEvents(forward.client, USER_ID, [startEvent, stopEvent]);
+
+    const reversed = createSpySupabase();
+    await ingestEvents(reversed.client, USER_ID, [stopEvent, startEvent]);
+
+    const upsertsForward = forward.calls
+      .filter((c) => c.method === "upsert")
+      .map((c) => JSON.stringify(c.args[0]))
+      .sort();
+    const upsertsReversed = reversed.calls
+      .filter((c) => c.method === "upsert")
+      .map((c) => JSON.stringify(c.args[0]))
+      .sort();
+
+    expect(upsertsForward.length).toBe(2);
+    expect(upsertsForward).toEqual(upsertsReversed);
+  });
+});
+
 // --- queryEvents ---
 
 describe("queryEvents", () => {

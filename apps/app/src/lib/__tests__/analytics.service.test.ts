@@ -7,6 +7,7 @@ import {
   getTopAgents,
   getAgentTimeseries,
   getSessionTree,
+  getAgentTree,
 } from "../services/analytics.service";
 import { createMockSupabase } from "./helpers/supabase-mock";
 
@@ -335,5 +336,33 @@ describe("getSessionTree edge_label", () => {
     const supabase = createMockSupabase({}, { get_session_tree: { data: rows } });
     const result = await getSessionTree(supabase, USER_ID, "root");
     if (result.success) expect(result.data[0].edge_label).toBe("verify");
+  });
+});
+
+// --- getAgentTree ---
+
+describe("getAgentTree", () => {
+  it("maps agent tree rows", async () => {
+    const rows = [{
+      agent_id: "ag-root", parent_agent_id: null, agent_type: "general-purpose",
+      edge_label: null, depth: 0, started_at: "2026-07-20T00:00:00Z", ended_at: null,
+      duration_ms: 1000, input_tokens: 10, output_tokens: 2, estimated_cost_usd: 0.01,
+    }];
+    const supabase = createMockSupabase({}, { get_agent_tree: { data: rows } });
+    const result = await getAgentTree(supabase, USER_ID, "sess-1");
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data[0].agent_id).toBe("ag-root");
+      expect(result.data[0].parent_agent_id).toBeNull();
+    }
+  });
+
+  it("returns RPC_FAILED on error", async () => {
+    const supabase = createMockSupabase({}, {
+      get_agent_tree: { data: null, error: { message: "boom" } },
+    });
+    const result = await getAgentTree(supabase, USER_ID, "sess-1");
+    expect(result.success).toBe(false);
+    if (!result.success) expect(result.error.code).toBe("RPC_FAILED");
   });
 });

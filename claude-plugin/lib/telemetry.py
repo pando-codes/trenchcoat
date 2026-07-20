@@ -69,7 +69,7 @@ _EVENT_TYPE_MAP = {
 # JSONL (write_event) is unaffected — it records every event type regardless.
 _SAAS_ACCEPTED_EVENT_TYPES = {
     "session_start", "session_end", "tool_use", "tool_result",
-    "prompt_submit", "assistant_stop", "subagent_stop", "pre_compact",
+    "prompt_submit", "assistant_stop", "subagent_start", "subagent_stop", "pre_compact",
     "skill_use", "error",
 }
 

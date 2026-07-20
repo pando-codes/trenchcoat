@@ -110,6 +110,20 @@ export interface SessionTreeNode {
   edge_label: string | null;
 }
 
+export interface AgentTreeNode {
+  agent_id: string;
+  parent_agent_id: string | null;
+  agent_type: string | null;
+  edge_label: string | null;
+  depth: number;
+  started_at: string | null;
+  ended_at: string | null;
+  duration_ms: number;
+  input_tokens: number;
+  output_tokens: number;
+  estimated_cost_usd: number;
+}
+
 export interface EntityRollup {
   total_tools: number;
   total_skills: number;

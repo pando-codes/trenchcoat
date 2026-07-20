@@ -52,6 +52,7 @@ describe("bodySchema — event.event enum", () => {
     "tool_result",
     "prompt_submit",
     "assistant_stop",
+    "subagent_start",
     "subagent_stop",
     "pre_compact",
     "error",

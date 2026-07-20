@@ -5,6 +5,7 @@ export type EventType =
   | "tool_result"
   | "prompt_submit"
   | "assistant_stop"
+  | "subagent_start"
   | "subagent_stop"
   | "pre_compact"
   | "skill_use"

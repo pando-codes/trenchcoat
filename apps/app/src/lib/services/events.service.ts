@@ -175,6 +175,62 @@ export async function ingestEvents(
   }
 
   // -----------------------------------------------------------------------
+  // Promote agent lineage rows. Each event contributes only the columns it
+  // owns, so the three can arrive in any order without clobbering each other.
+  // -----------------------------------------------------------------------
+  for (const e of events) {
+    let agentId: string | null = null;
+    const row: Record<string, unknown> = {};
+
+    if (e.event === "subagent_start") {
+      agentId = (e.data?.agent_id as string) ?? null;
+      if (agentId) {
+        row.session_id = e.session_id;
+        row.started_at = e.ts;
+        const agentType = e.data?.agent_type as string | undefined;
+        if (agentType) row.agent_type = agentType;
+      }
+    } else if (e.event === "subagent_stop") {
+      agentId = (e.data?.agent_id as string) ?? null;
+      if (agentId) {
+        row.session_id = e.session_id;
+        row.ended_at = e.ts;
+        const agentType = e.data?.agent_type as string | undefined;
+        if (agentType) row.agent_type = agentType;
+        if (e.data?.input_tokens != null) row.input_tokens = e.data.input_tokens;
+        if (e.data?.output_tokens != null) row.output_tokens = e.data.output_tokens;
+        if (e.data?.model != null) row.model = e.data.model;
+        if (e.data?.tool_count_total != null) row.tool_count = e.data.tool_count_total;
+      }
+    } else if (e.event === "tool_result" && e.data?.tool_name === "Agent") {
+      const result = (e.data?.agent_result ?? {}) as Record<string, unknown>;
+      // Only the native id (result.agentId) is usable here: subagent_start/stop
+      // key their rows on Claude Code's native agent id, and a locally-minted
+      // fallback id (data.agent_id, for async results that lack agentId) would
+      // never match those rows, producing an orphan agent + phantom edge.
+      agentId = (result.agentId as string) ?? null;
+      if (agentId) {
+        row.session_id = e.session_id;
+        // origin_agent_id is the agent that MADE this spawn call = the parent.
+        // Its absence means the call came from the main thread, i.e. a root.
+        const originAgentId = e.data?.origin_agent_id as string | undefined;
+        if (originAgentId) row.parent_agent_id = originAgentId;
+        if (e.data?.edge_label != null) row.edge_label = e.data.edge_label;
+        if (e.data?.duration_ms != null) row.duration_ms = Math.round(e.data.duration_ms as number);
+        if (result.status != null) row.status = result.status;
+        if (result.resolvedModel != null) row.model = result.resolvedModel;
+      }
+    }
+
+    if (agentId && Object.keys(row).length > 0) {
+      await adminClient
+        .from("agents")
+        .upsert({ user_id: userId, agent_id: agentId, ...row },
+                { onConflict: "user_id,agent_id" });
+    }
+  }
+
+  // -----------------------------------------------------------------------
   // Update daily aggregates for each affected date
   // -----------------------------------------------------------------------
   const affectedDates = new Set<string>();
