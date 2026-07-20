@@ -121,6 +121,8 @@ export interface AgentTreeNode {
   duration_ms: number;
   input_tokens: number;
   output_tokens: number;
+  cache_creation_tokens: number;
+  cache_read_tokens: number;
   estimated_cost_usd: number;
 }
 
