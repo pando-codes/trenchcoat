@@ -9,18 +9,20 @@ export interface SessionCacheSummary {
   hitRatio: number | null;
 }
 
-const NOT_CAPTURED: SessionCacheSummary = {
-  captured: false,
-  creationTokens: 0,
-  readTokens: 0,
-  hitRatio: null,
-};
+function notCaptured(): SessionCacheSummary {
+  return {
+    captured: false,
+    creationTokens: 0,
+    readTokens: 0,
+    hitRatio: null,
+  };
+}
 
 export function summariseSessionCache(cost: SessionCost | undefined): SessionCacheSummary {
-  if (!cost) return NOT_CAPTURED;
+  if (!cost) return notCaptured();
 
   const captured = cost.cache_creation_tokens !== null || cost.cache_read_tokens !== null;
-  if (!captured) return NOT_CAPTURED;
+  if (!captured) return notCaptured();
 
   const creationTokens = cost.cache_creation_tokens ?? 0;
   const readTokens = cost.cache_read_tokens ?? 0;

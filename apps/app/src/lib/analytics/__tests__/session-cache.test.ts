@@ -59,4 +59,12 @@ describe("summariseSessionCache", () => {
     expect(s.creationTokens).toBe(0);
     expect(s.hitRatio).toBeNull();
   });
+
+  it("returns distinct objects for separate not-captured calls to prevent mutation hazards", () => {
+    const s1 = summariseSessionCache(undefined);
+    const s2 = summariseSessionCache(undefined);
+    expect(s1).not.toBe(s2);
+    s1.captured = true;
+    expect(s2.captured).toBe(false);
+  });
 });
