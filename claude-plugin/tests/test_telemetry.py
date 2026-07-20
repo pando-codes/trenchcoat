@@ -137,6 +137,28 @@ class TestWriteEvent:
         queued = [json.loads(l) for l in queue.read_text().splitlines() if l.strip()]
         assert queued[0]["event"] == "session_start"
 
+    def test_subagent_start_recorded_locally_but_not_queued(self, isolated_telemetry, with_api_key):
+        """subagent_start is not in the SaaS-accepted allowlist. One unknown
+        type fails Zod validation for the WHOLE batch, so it must never enter
+        the push queue — even though local JSONL still records it."""
+        telemetry.write_event("subagent_start", "s1", {"agent_id": "ag-1"})
+
+        local_events = self._read_jsonl(isolated_telemetry)
+        assert local_events[0]["event"] == "subagent_start"
+
+        queue = isolated_telemetry / ".push_queue.jsonl"
+        assert not queue.exists(), "subagent_start must not be queued for SaaS push"
+
+    def test_tool_start_still_reaches_push_queue_as_tool_use(self, isolated_telemetry, with_api_key):
+        """Regression guard alongside the subagent_start filter above — a
+        normal, SaaS-accepted event type must still be queued and mapped."""
+        telemetry.write_event("tool_start", "s1", {"tool_name": "Bash"})
+        queue = isolated_telemetry / ".push_queue.jsonl"
+        assert queue.exists()
+        queued = [json.loads(l) for l in queue.read_text().splitlines() if l.strip()]
+        assert len(queued) == 1
+        assert queued[0]["event"] == "tool_use"
+
     def test_webhook_fired_when_configured(self, isolated_telemetry, without_api_key):
         """Regression: webhook_url must be read from load_config(), not bare 'config'."""
         config = {**telemetry.DEFAULT_CONFIG, "webhook_url": "http://wh.test/hook"}
@@ -530,32 +552,83 @@ class TestPendingStack:
         assert "agent_id" not in entry
 
 
+class TestMutatePendingCorruptFile:
+    """A corrupt pending file must be treated as an empty stack, not crash
+    the hook. The old code caught OSError alongside JSONDecodeError; the new
+    .decode() call can also raise UnicodeDecodeError — both must be caught."""
+
+    def _pending_path(self, isolated_telemetry, session_id="s1"):
+        return isolated_telemetry / ".pending" / f"{session_id}.json"
+
+    def test_invalid_json_treated_as_empty_stack(self, isolated_telemetry):
+        self._pending_path(isolated_telemetry).write_text("not valid json{{{")
+        assert telemetry.pop_pending("s1", "Bash") is None
+        # Recovery: pushing after a corrupt read must still work.
+        telemetry.push_pending("s1", "Bash", "corr-recover")
+        entry = telemetry.pop_pending("s1", "Bash")
+        assert entry["correlation_id"] == "corr-recover"
+
+    def test_invalid_utf8_bytes_treated_as_empty_stack(self, isolated_telemetry):
+        pending_file = self._pending_path(isolated_telemetry)
+        pending_file.write_bytes(b"\xff\xfe\x00invalid-utf8")
+        assert telemetry.pop_pending("s1", "Bash") is None
+        telemetry.push_pending("s1", "Bash", "corr-recover2")
+        entry = telemetry.pop_pending("s1", "Bash")
+        assert entry["correlation_id"] == "corr-recover2"
+
+
 # ---------------------------------------------------------------------------
-# peek_pending_by_tool
+# tool_use_id-keyed pending correlation
 # ---------------------------------------------------------------------------
 
-class TestPeekPendingByTool:
-    def test_peek_returns_entry_without_removing(self, isolated_telemetry):
-        telemetry.push_pending("s1", "Agent", "corr-abc", agent_id="agt-1")
-        peeked = telemetry.peek_pending_by_tool("s1", "Agent")
-        assert peeked is not None
-        assert peeked["agent_id"] == "agt-1"
-        # Entry still present after peek
-        popped = telemetry.pop_pending("s1", "Agent")
-        assert popped is not None
+class TestPendingByToolUseId:
+    def test_pops_by_tool_use_id_regardless_of_order(self, isolated_telemetry):
+        """The case LIFO gets wrong: two Agent calls, first-started finishes first."""
+        telemetry.push_pending("s1", "Agent", "corr-a", tool_use_id="toolu_A", agent_id="ag-a")
+        telemetry.push_pending("s1", "Agent", "corr-b", tool_use_id="toolu_B", agent_id="ag-b")
 
-    def test_peek_returns_none_when_no_match(self, isolated_telemetry):
-        telemetry.push_pending("s1", "Bash", "corr-xyz")
-        assert telemetry.peek_pending_by_tool("s1", "Agent") is None
+        first = telemetry.pop_pending("s1", "Agent", tool_use_id="toolu_A")
+        assert first["agent_id"] == "ag-a", "must pop the matching entry, not the LIFO top"
 
-    def test_peek_returns_none_for_missing_session(self, isolated_telemetry):
-        assert telemetry.peek_pending_by_tool("no-session", "Agent") is None
+        second = telemetry.pop_pending("s1", "Agent", tool_use_id="toolu_B")
+        assert second["agent_id"] == "ag-b"
 
-    def test_peek_returns_most_recent_match(self, isolated_telemetry):
-        telemetry.push_pending("s1", "Agent", "corr-1", agent_id="agt-old")
-        telemetry.push_pending("s1", "Agent", "corr-2", agent_id="agt-new")
-        peeked = telemetry.peek_pending_by_tool("s1", "Agent")
-        assert peeked["agent_id"] == "agt-new"
+    def test_falls_back_to_lifo_when_no_tool_use_id(self, isolated_telemetry):
+        telemetry.push_pending("s1", "Bash", "corr-1")
+        telemetry.push_pending("s1", "Bash", "corr-2")
+        assert telemetry.pop_pending("s1", "Bash")["correlation_id"] == "corr-2"
+
+    def test_unknown_tool_use_id_returns_none_without_consuming(self, isolated_telemetry):
+        telemetry.push_pending("s1", "Agent", "corr-a", tool_use_id="toolu_A")
+        assert telemetry.pop_pending("s1", "Agent", tool_use_id="toolu_ZZZ") is None
+        assert telemetry.pop_pending("s1", "Agent", tool_use_id="toolu_A") is not None
+
+    def test_tool_use_id_is_persisted_on_the_entry(self, isolated_telemetry):
+        telemetry.push_pending("s1", "Agent", "corr-a", tool_use_id="toolu_A")
+        assert telemetry.pop_pending("s1", "Agent", tool_use_id="toolu_A")["tool_use_id"] == "toolu_A"
+
+    def test_concurrent_pushes_lose_no_entries(self, isolated_telemetry):
+        """Unlocked read-modify-write loses updates; flock must not."""
+        import threading
+        def push(i):
+            telemetry.push_pending("s1", "Bash", f"corr-{i}", tool_use_id=f"toolu_{i}")
+        threads = [threading.Thread(target=push, args=(i,)) for i in range(25)]
+        for t in threads: t.start()
+        for t in threads: t.join()
+        found = sum(1 for i in range(25)
+                    if telemetry.pop_pending("s1", "Bash", tool_use_id=f"toolu_{i}") is not None)
+        assert found == 25, f"lost {25 - found} entries to a race"
+
+
+# ---------------------------------------------------------------------------
+# peek_pending_by_tool — deleted (zero callers repo-wide; its only caller was
+# removed).
+# ---------------------------------------------------------------------------
+
+class TestPeekPendingByToolRemoved:
+    def test_peek_pending_by_tool_is_gone(self):
+        assert not hasattr(telemetry, "peek_pending_by_tool"), \
+            "peek_pending_by_tool should be deleted"
 
 
 # ---------------------------------------------------------------------------
@@ -584,6 +657,71 @@ class TestCleanupOldEvents:
 
     def test_returns_zero_when_nothing_to_delete(self, isolated_telemetry):
         assert telemetry.cleanup_old_events(retention_days=30) == 0
+
+
+# ---------------------------------------------------------------------------
+# base_agent_fields
+# ---------------------------------------------------------------------------
+
+class TestSanitizeAgentResult:
+    SYNC = {
+        "status": "completed", "agentId": "ag-1", "agentType": "general-purpose",
+        "resolvedModel": "claude-haiku-4-5-20251001",
+        "totalDurationMs": 48262, "totalTokens": 36922, "totalToolUseCount": 15,
+        "toolStats": {"readCount": 2, "bashCount": 6},
+        "prompt": "SECRET PROMPT TEXT", "content": "SECRET CONTENT",
+    }
+    ASYNC = {
+        "isAsync": True, "status": "async_launched", "agentId": "ag-2",
+        "description": "SECRET DESCRIPTION", "prompt": "SECRET PROMPT",
+        "outputFile": "/tmp/secret-path.output",
+    }
+
+    def test_extracts_sync_metrics(self):
+        got = telemetry.sanitize_agent_result(self.SYNC)
+        assert got["agentId"] == "ag-1"
+        assert got["totalTokens"] == 36922
+        assert got["totalDurationMs"] == 48262
+        assert got["toolStats"] == {"readCount": 2, "bashCount": 6}
+        assert got["resolvedModel"] == "claude-haiku-4-5-20251001"
+
+    def test_never_leaks_prompt_content_description_or_path(self):
+        for payload in (self.SYNC, self.ASYNC):
+            got = telemetry.sanitize_agent_result(payload)
+            blob = json.dumps(got)
+            for banned in ("SECRET", "outputFile", "description", "prompt", "content"):
+                assert banned not in blob, f"{banned} leaked: {blob}"
+
+    def test_async_shape_yields_only_present_fields(self):
+        got = telemetry.sanitize_agent_result(self.ASYNC)
+        assert got["agentId"] == "ag-2"
+        assert got["isAsync"] is True
+        assert got["status"] == "async_launched"
+        assert "totalTokens" not in got
+
+    def test_non_dict_response_is_empty(self):
+        assert telemetry.sanitize_agent_result("just a string") == {}
+        assert telemetry.sanitize_agent_result(None) == {}
+
+    def test_output_keys_are_subset_of_allowlist(self):
+        """Reviewer's Minor: guard against a future widening of the allowlist
+        silently letting an unvetted field (e.g. agentType) through."""
+        got = telemetry.sanitize_agent_result(self.SYNC)
+        assert set(got).issubset(set(telemetry.AGENT_RESULT_FIELDS))
+        assert "agentType" not in got, "agentType is present in the fixture but NOT allowlisted"
+
+
+class TestBaseAgentFields:
+    def test_extracts_both_when_present(self):
+        got = telemetry.base_agent_fields({"agent_id": "ag-1", "agent_type": "Explore"})
+        assert got == {"origin_agent_id": "ag-1", "origin_agent_type": "Explore"}
+
+    def test_empty_when_main_thread(self):
+        assert telemetry.base_agent_fields({"session_id": "s"}) == {}
+
+    def test_agent_type_alone_is_not_a_subagent_signal(self):
+        """--agent sessions set agent_type on the MAIN thread; agent_id is the real signal."""
+        assert telemetry.base_agent_fields({"agent_type": "general-purpose"}) == {}
 
 
 # ---------------------------------------------------------------------------
@@ -718,9 +856,43 @@ class TestHookIntegration:
     def test_subagent_stop_exits_zero(self, tmp_path):
         r = self._run_hook(tmp_path, "subagent_stop.py", {
             "session_id": "test-s", "agent_type": "general-purpose",
-            "stop_hook_reason": "end_turn",
+            "stop_hook_active": False,
         })
         assert r.returncode == 0, f"stderr: {r.stderr}"
+
+    def test_subagent_stop_uses_payload_agent_id(self, tmp_path):
+        r = self._run_hook(tmp_path, "subagent_stop.py", {
+            "session_id": "ss-1", "agent_id": "ag-real", "agent_type": "Explore",
+            "stop_hook_active": False,
+        })
+        assert r.returncode == 0, f"stderr: {r.stderr}"
+        ev = next(e for e in self._read_events(tmp_path) if e["event"] == "subagent_stop")
+        assert ev["data"]["agent_id"] == "ag-real"
+
+    def test_subagent_stop_emits_stop_hook_active_not_reason(self, tmp_path):
+        self._run_hook(tmp_path, "subagent_stop.py", {
+            "session_id": "ss-2", "agent_id": "ag-x", "agent_type": "Explore",
+            "stop_hook_active": True,
+        })
+        ev = next(e for e in self._read_events(tmp_path) if e["event"] == "subagent_stop")
+        assert ev["data"]["stop_hook_active"] is True
+        assert "reason" not in ev["data"], "the nonexistent stop_hook_reason key must be gone"
+
+    def test_subagent_stop_without_agent_id_omits_it(self, tmp_path):
+        self._run_hook(tmp_path, "subagent_stop.py", {
+            "session_id": "ss-3", "agent_type": "Explore", "stop_hook_active": False,
+        })
+        ev = next(e for e in self._read_events(tmp_path) if e["event"] == "subagent_stop")
+        assert "agent_id" not in ev["data"]
+
+    def test_subagent_start_emits_agent_identity(self, tmp_path):
+        r = self._run_hook(tmp_path, "subagent_start.py", {
+            "session_id": "st-1", "agent_id": "ag-new", "agent_type": "Explore",
+        })
+        assert r.returncode == 0, f"stderr: {r.stderr}"
+        ev = next(e for e in self._read_events(tmp_path) if e["event"] == "subagent_start")
+        assert ev["data"]["agent_id"] == "ag-new"
+        assert ev["data"]["agent_type"] == "Explore"
 
     def test_user_prompt_submit_exits_zero(self, tmp_path):
         r = self._run_hook(tmp_path, "user_prompt_submit.py", {
@@ -782,6 +954,25 @@ class TestHookIntegration:
         assert len(skill_events) == 1
         assert skill_events[0]["data"]["skill_name"] == "superpowers:brainstorming"
         assert "activation_id" in skill_events[0]["data"]
+
+    def test_pre_tool_use_skill_tool_carries_origin_agent(self, tmp_path):
+        """Skill invoked from inside a subagent must be attributable (spec
+        §3.3: every event) — skill_data needs the same base_agent_fields
+        merge that tool_data already gets, so origin_agent_id/type land on
+        skill_use too, not just on tool_start."""
+        r = self._run_hook(tmp_path, "pre_tool_use.py", {
+            "session_id": "test-s",
+            "tool_name": "Skill",
+            "tool_input": {"skill": "superpowers:brainstorming", "args": "help me plan"},
+            "agent_id": "ag-child", "agent_type": "Explore",
+        })
+        assert r.returncode == 0, f"stderr: {r.stderr}"
+        tc_dir = tmp_path / ".claude" / "trenchcoat"
+        jsonl_files = list(tc_dir.glob("events-*.jsonl"))
+        events = [json.loads(l) for l in jsonl_files[0].read_text().splitlines() if l.strip()]
+        skill_event = next(e for e in events if e["event"] == "skill_use")
+        assert skill_event["data"]["origin_agent_id"] == "ag-child"
+        assert skill_event["data"]["origin_agent_type"] == "Explore"
 
     def test_pre_tool_use_skill_tool_writes_active_context_file(self, tmp_path):
         """Skill tool call → .active_context_{session_id}.json written."""
@@ -895,6 +1086,44 @@ class TestHookIntegration:
         assert ends[0]["data"].get("agent_id") == starts[0]["data"]["agent_id"], \
             "tool_end must carry the same agent_id as tool_start"
 
+    def test_agent_tool_end_prefers_native_agent_id_over_minted(self, tmp_path):
+        """SubagentStop reports Claude Code's NATIVE agent_id, not the locally
+        minted one pre_tool_use.py stamps into the pending stack. When the
+        Agent tool_response carries agentId, tool_end.agent_id must be that
+        native id — otherwise SubagentStop and this tool_end can never join
+        on agent_id (see migrations 024/025)."""
+        self._run_hook(tmp_path, "pre_tool_use.py", {
+            "session_id": "n-s", "tool_name": "Agent", "tool_use_id": "toolu_N",
+            "tool_input": {"description": "d", "prompt": "p"},
+        })
+        self._run_hook(tmp_path, "post_tool_use.py", {
+            "session_id": "n-s", "tool_name": "Agent", "tool_use_id": "toolu_N",
+            "tool_input": {"description": "d", "prompt": "p"},
+            "tool_response": {"status": "completed", "agentId": "native-ag-42"},
+        })
+        events = self._read_events(tmp_path)
+        start = next(e for e in events if e["event"] == "tool_start")
+        end = next(e for e in events if e["event"] == "tool_end")
+        minted_agent_id = start["data"]["agent_id"]
+        assert end["data"]["agent_id"] == "native-ag-42"
+        assert end["data"]["agent_id"] != minted_agent_id
+
+    def test_agent_tool_end_carries_result_metrics(self, tmp_path):
+        self._run_hook(tmp_path, "pre_tool_use.py", {
+            "session_id": "m-s", "tool_name": "Agent", "tool_use_id": "toolu_M",
+            "tool_input": {"description": "d", "prompt": "p"},
+        })
+        self._run_hook(tmp_path, "post_tool_use.py", {
+            "session_id": "m-s", "tool_name": "Agent", "tool_use_id": "toolu_M",
+            "tool_input": {"description": "d", "prompt": "p"},
+            "tool_response": {"status": "completed", "agentId": "ag-9",
+                              "totalTokens": 100, "prompt": "SECRET"},
+        })
+        end = next(e for e in self._read_events(tmp_path) if e["event"] == "tool_end")
+        assert end["data"]["agent_result"]["agentId"] == "ag-9"
+        assert end["data"]["agent_result"]["totalTokens"] == 100
+        assert "SECRET" not in json.dumps(end["data"])
+
     def test_non_agent_tool_end_has_no_agent_id(self, tmp_path):
         self._run_hook(tmp_path, "pre_tool_use.py", {
             "session_id": "test-s", "tool_name": "Bash", "tool_input": {"command": "echo hi"},
@@ -932,6 +1161,24 @@ class TestHookIntegration:
         start = next(e for e in self._read_events(tmp_path) if e["event"] == "tool_start")
         assert "edge_label" not in start["data"]
 
+    def test_tool_events_carry_origin_agent(self, tmp_path):
+        self._run_hook(tmp_path, "pre_tool_use.py", {
+            "session_id": "o-s", "tool_name": "Bash", "tool_use_id": "toolu_O",
+            "tool_input": {"command": "echo hi"},
+            "agent_id": "ag-child", "agent_type": "Explore",
+        })
+        start = next(e for e in self._read_events(tmp_path) if e["event"] == "tool_start")
+        assert start["data"]["origin_agent_id"] == "ag-child"
+        assert start["data"]["origin_agent_type"] == "Explore"
+
+    def test_main_thread_tool_events_have_no_origin_agent(self, tmp_path):
+        self._run_hook(tmp_path, "pre_tool_use.py", {
+            "session_id": "o-s2", "tool_name": "Bash", "tool_use_id": "toolu_P",
+            "tool_input": {"command": "echo hi"},
+        })
+        start = next(e for e in self._read_events(tmp_path) if e["event"] == "tool_start")
+        assert "origin_agent_id" not in start["data"]
+
     def test_marker_ignored_for_non_agent_tool(self, tmp_path):
         self._run_hook(tmp_path, "pre_tool_use.py", {
             "session_id": "test-s", "tool_name": "Bash",
@@ -940,35 +1187,16 @@ class TestHookIntegration:
         start = next(e for e in self._read_events(tmp_path) if e["event"] == "tool_start")
         assert "edge_label" not in start["data"]
 
-    def test_session_start_records_agent_id_from_spawn_context(self, tmp_path):
-        """PreToolUse(Agent) in the parent session mints agent_id and writes the
-        cross-process spawn context; SessionStart for the CHILD session must
-        copy that agent_id onto its session_start event so the graph's
-        edge_label join (session_start.agent_id == tool_use.agent_id) has
-        something to match against.
+    def test_session_start_no_longer_emits_spawn_parentage(self, tmp_path):
+        """Subagents never fire SessionStart (they share the parent's session_id
+        and never start a session), so nothing ever reads the spawn-context file.
+        SessionStart must not emit parent_session_id/agent_id — that dead path
+        is deleted.
         """
-        self._run_hook(tmp_path, "pre_tool_use.py", {
-            "session_id": "parent-s", "tool_name": "Agent",
-            "tool_input": {"description": "d", "prompt": "[tc:delegate] do the thing"},
-        })
-        parent_start = next(
-            e for e in self._read_events(tmp_path) if e["event"] == "tool_start"
-        )
-        parent_agent_id = parent_start["data"]["agent_id"]
-        assert parent_agent_id, "parent tool_start should mint agent_id"
-
-        r = self._run_hook(tmp_path, "session_start.py", {
-            "session_id": "child-s", "cwd": "/tmp",
-        })
-        assert r.returncode == 0, f"stderr: {r.stderr}"
-
-        child_starts = [
-            e for e in self._read_events(tmp_path)
-            if e["event"] == "session_start" and e["session_id"] == "child-s"
-        ]
-        assert len(child_starts) == 1
-        assert child_starts[0]["data"].get("agent_id") == parent_agent_id, \
-            "session_start for the child session must carry the parent's agent_id"
+        self._run_hook(tmp_path, "session_start.py", {"session_id": "d-s", "cwd": "/tmp"})
+        start = next(e for e in self._read_events(tmp_path) if e["event"] == "session_start")
+        assert "parent_session_id" not in start["data"]
+        assert "agent_id" not in start["data"]
 
     def test_session_start_records_eval_tags_from_env(self, tmp_path):
         self._run_hook(tmp_path, "session_start.py", {"session_id": "e-s", "cwd": "/tmp"},
@@ -1002,6 +1230,115 @@ class TestHookIntegration:
                        extra_env={"TRENCHCOAT_EVAL_VARIANT": "v" * 300})
         start = next(e for e in self._read_events(tmp_path) if e["event"] == "session_start")
         assert len(start["data"]["eval_variant"]) == 128
+
+    def test_tool_use_id_emitted_and_matches_across_pair(self, tmp_path):
+        self._run_hook(tmp_path, "pre_tool_use.py", {
+            "session_id": "t-s", "tool_name": "Bash", "tool_use_id": "toolu_X",
+            "tool_input": {"command": "echo hi"},
+        })
+        self._run_hook(tmp_path, "post_tool_use.py", {
+            "session_id": "t-s", "tool_name": "Bash", "tool_use_id": "toolu_X",
+            "tool_input": {"command": "echo hi"}, "tool_response": "hi",
+            "duration_ms": 42,
+        })
+        events = self._read_events(tmp_path)
+        start = next(e for e in events if e["event"] == "tool_start")
+        end = next(e for e in events if e["event"] == "tool_end")
+        assert start["data"]["tool_use_id"] == "toolu_X"
+        assert end["data"]["tool_use_id"] == "toolu_X"
+
+    def test_prefers_native_duration_ms(self, tmp_path):
+        self._run_hook(tmp_path, "pre_tool_use.py", {
+            "session_id": "t-s2", "tool_name": "Bash", "tool_use_id": "toolu_Y",
+            "tool_input": {"command": "echo hi"},
+        })
+        self._run_hook(tmp_path, "post_tool_use.py", {
+            "session_id": "t-s2", "tool_name": "Bash", "tool_use_id": "toolu_Y",
+            "tool_input": {"command": "echo hi"}, "tool_response": "hi",
+            "duration_ms": 1234,
+        })
+        end = next(e for e in self._read_events(tmp_path) if e["event"] == "tool_end")
+        assert end["data"]["duration_ms"] == 1234
+        assert end["data"]["duration_source"] == "native"
+
+    def test_falls_back_to_computed_duration(self, tmp_path):
+        self._run_hook(tmp_path, "pre_tool_use.py", {
+            "session_id": "t-s3", "tool_name": "Bash", "tool_use_id": "toolu_Z",
+            "tool_input": {"command": "echo hi"},
+        })
+        self._run_hook(tmp_path, "post_tool_use.py", {
+            "session_id": "t-s3", "tool_name": "Bash", "tool_use_id": "toolu_Z",
+            "tool_input": {"command": "echo hi"}, "tool_response": "hi",
+        })
+        end = next(e for e in self._read_events(tmp_path) if e["event"] == "tool_end")
+        assert end["data"]["duration_source"] == "computed"
+        assert end["data"]["duration_ms"] is not None
+
+    def test_non_numeric_duration_ms_does_not_lose_the_event(self, tmp_path):
+        """A non-numeric duration_ms must not raise float() BEFORE write_event
+        runs — that would silently drop the whole tool_end for ANY tool. It
+        must fall back to the computed duration (or None) instead."""
+        self._run_hook(tmp_path, "pre_tool_use.py", {
+            "session_id": "t-s4", "tool_name": "Bash", "tool_use_id": "toolu_NAN",
+            "tool_input": {"command": "echo hi"},
+        })
+        r = self._run_hook(tmp_path, "post_tool_use.py", {
+            "session_id": "t-s4", "tool_name": "Bash", "tool_use_id": "toolu_NAN",
+            "tool_input": {"command": "echo hi"}, "tool_response": "hi",
+            "duration_ms": "not-a-number",
+        })
+        assert r.returncode == 0, f"stderr: {r.stderr}"
+        end = next(e for e in self._read_events(tmp_path) if e["event"] == "tool_end")
+        assert end["data"]["duration_source"] != "native"
+
+    def test_out_of_order_agent_pair_correlates_correctly(self, tmp_path):
+        """Two Agent spawns; the FIRST finishes first — LIFO would mispair these."""
+        for tid, prompt in (("toolu_A", "first task"), ("toolu_B", "second task")):
+            self._run_hook(tmp_path, "pre_tool_use.py", {
+                "session_id": "p-s", "tool_name": "Agent", "tool_use_id": tid,
+                "tool_input": {"description": "d", "prompt": prompt},
+            })
+        self._run_hook(tmp_path, "post_tool_use.py", {
+            "session_id": "p-s", "tool_name": "Agent", "tool_use_id": "toolu_A",
+            "tool_input": {"description": "d", "prompt": "first task"},
+            "tool_response": {"agentId": "ag-first", "status": "completed"},
+        })
+        events = self._read_events(tmp_path)
+        starts = {e["data"]["tool_use_id"]: e for e in events if e["event"] == "tool_start"}
+        end = next(e for e in events if e["event"] == "tool_end")
+        assert end["data"]["tool_use_id"] == "toolu_A"
+        assert end["data"]["correlation_id"] == starts["toolu_A"]["data"]["correlation_id"], \
+            "tool_end must carry the correlation_id of ITS OWN tool_start"
+
+    def test_failed_agent_tool_end_does_not_leak_content(self, tmp_path):
+        self._run_hook(tmp_path, "pre_tool_use.py", {
+            "session_id": "leak-s", "tool_name": "Agent", "tool_use_id": "toolu_L",
+            "tool_input": {"description": "d", "prompt": "p"},
+        })
+        self._run_hook(tmp_path, "post_tool_use.py", {
+            "session_id": "leak-s", "tool_name": "Agent", "tool_use_id": "toolu_L",
+            "tool_input": {"description": "d", "prompt": "p"},
+            "tool_response": {"status": "failed", "agentId": "ag-1", "is_error": True,
+                              "content": "SECRET AGENT OUTPUT CONTENT",
+                              "prompt": "SECRET PROMPT"},
+        })
+        end = next(e for e in self._read_events(tmp_path) if e["event"] == "tool_end")
+        assert "SECRET" not in json.dumps(end["data"]), f"content leaked: {end['data']}"
+        assert end["data"]["is_error"] is True, "the error FLAG must still be recorded"
+        assert end["data"]["error_preview"] is None
+
+    def test_non_agent_tool_still_records_error_preview(self, tmp_path):
+        self._run_hook(tmp_path, "pre_tool_use.py", {
+            "session_id": "leak-s2", "tool_name": "Bash", "tool_use_id": "toolu_B",
+            "tool_input": {"command": "false"},
+        })
+        self._run_hook(tmp_path, "post_tool_use.py", {
+            "session_id": "leak-s2", "tool_name": "Bash", "tool_use_id": "toolu_B",
+            "tool_input": {"command": "false"}, "tool_response": {
+                "is_error": True, "content": "command not found: frobnicate"},
+        })
+        end = next(e for e in self._read_events(tmp_path) if e["event"] == "tool_end")
+        assert "frobnicate" in (end["data"]["error_preview"] or "")
 
 
 # ---------------------------------------------------------------------------
@@ -1043,32 +1380,12 @@ class TestActiveContext:
 
 
 # ---------------------------------------------------------------------------
-# Agent spawn context helpers
+# Agent spawn context helpers — deleted (dead code; SessionStart never fires
+# for subagents, so nothing ever read this cross-process file).
 # ---------------------------------------------------------------------------
 
-class TestAgentSpawnContext:
-    def test_write_then_read_roundtrip(self, isolated_telemetry):
-        telemetry.write_agent_spawn_context("parent-s1", "agt-abc", "act-xyz", "skill")
-        ctx = telemetry.read_agent_spawn_context()
-        assert ctx is not None
-        assert ctx["parent_session_id"] == "parent-s1"
-        assert ctx["agent_id"] == "agt-abc"
-        assert ctx["spawner_id"] == "act-xyz"
-        assert ctx["spawner_type"] == "skill"
-
-    def test_write_without_spawner(self, isolated_telemetry):
-        telemetry.write_agent_spawn_context("parent-s1", "agt-abc", None, None)
-        ctx = telemetry.read_agent_spawn_context()
-        assert ctx["parent_session_id"] == "parent-s1"
-        assert "spawner_id" not in ctx
-
-    def test_read_returns_none_when_absent(self, isolated_telemetry):
-        assert telemetry.read_agent_spawn_context() is None
-
-    def test_clear_removes_file(self, isolated_telemetry):
-        telemetry.write_agent_spawn_context("p", "a", None, None)
-        telemetry.clear_agent_spawn_context()
-        assert telemetry.read_agent_spawn_context() is None
-
-    def test_clear_safe_when_absent(self, isolated_telemetry):
-        telemetry.clear_agent_spawn_context()  # must not raise
+class TestAgentSpawnContextRemoved:
+    def test_spawn_context_helpers_are_gone(self):
+        for name in ("write_agent_spawn_context", "read_agent_spawn_context",
+                     "clear_agent_spawn_context"):
+            assert not hasattr(telemetry, name), f"{name} should be deleted"
