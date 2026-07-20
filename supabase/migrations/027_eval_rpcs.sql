@@ -12,7 +12,7 @@ begin
   from (
     select
       s.eval_id,
-      count(distinct s.eval_variant) as variant_count,
+      count(distinct coalesce(s.eval_variant, 'untagged')) as variant_count,
       count(*)                       as session_count,
       max(s.started_at)              as last_run
     from public.sessions s

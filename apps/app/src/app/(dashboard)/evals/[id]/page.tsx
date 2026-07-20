@@ -127,11 +127,7 @@ export default async function EvalComparisonPage({
                                     <span className="text-muted-foreground">--</span>
                                   )}
                                   {delta !== null && (
-                                    <div
-                                      className={`text-xs ${
-                                        delta >= 0 ? "text-emerald-600" : "text-red-500"
-                                      }`}
-                                    >
+                                    <div className="text-xs text-muted-foreground">
                                       {delta >= 0 ? "+" : ""}
                                       {delta.toFixed(2)} vs {baseline?.eval_variant}
                                     </div>
