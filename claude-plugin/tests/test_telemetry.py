@@ -778,9 +778,34 @@ class TestHookIntegration:
     def test_subagent_stop_exits_zero(self, tmp_path):
         r = self._run_hook(tmp_path, "subagent_stop.py", {
             "session_id": "test-s", "agent_type": "general-purpose",
-            "stop_hook_reason": "end_turn",
+            "stop_hook_active": False,
         })
         assert r.returncode == 0, f"stderr: {r.stderr}"
+
+    def test_subagent_stop_uses_payload_agent_id(self, tmp_path):
+        r = self._run_hook(tmp_path, "subagent_stop.py", {
+            "session_id": "ss-1", "agent_id": "ag-real", "agent_type": "Explore",
+            "stop_hook_active": False,
+        })
+        assert r.returncode == 0, f"stderr: {r.stderr}"
+        ev = next(e for e in self._read_events(tmp_path) if e["event"] == "subagent_stop")
+        assert ev["data"]["agent_id"] == "ag-real"
+
+    def test_subagent_stop_emits_stop_hook_active_not_reason(self, tmp_path):
+        self._run_hook(tmp_path, "subagent_stop.py", {
+            "session_id": "ss-2", "agent_id": "ag-x", "agent_type": "Explore",
+            "stop_hook_active": True,
+        })
+        ev = next(e for e in self._read_events(tmp_path) if e["event"] == "subagent_stop")
+        assert ev["data"]["stop_hook_active"] is True
+        assert "reason" not in ev["data"], "the nonexistent stop_hook_reason key must be gone"
+
+    def test_subagent_stop_without_agent_id_omits_it(self, tmp_path):
+        self._run_hook(tmp_path, "subagent_stop.py", {
+            "session_id": "ss-3", "agent_type": "Explore", "stop_hook_active": False,
+        })
+        ev = next(e for e in self._read_events(tmp_path) if e["event"] == "subagent_stop")
+        assert "agent_id" not in ev["data"]
 
     def test_user_prompt_submit_exits_zero(self, tmp_path):
         r = self._run_hook(tmp_path, "user_prompt_submit.py", {
