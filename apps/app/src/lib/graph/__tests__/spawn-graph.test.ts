@@ -1,6 +1,6 @@
 import { describe, it, expect } from "bun:test";
-import { buildSpawnGraph } from "../spawn-graph";
-import type { SessionTreeNode } from "@/types/analytics";
+import { buildSpawnGraph, buildAgentGraph } from "../spawn-graph";
+import type { SessionTreeNode, AgentTreeNode } from "@/types/analytics";
 
 function node(p: Partial<SessionTreeNode> & { session_id: string }): SessionTreeNode {
   return {
@@ -80,5 +80,59 @@ describe("buildSpawnGraph", () => {
     const eb = g.edges.find((e) => e.target === "b")!;
     expect(ea.label).toBe("verify");
     expect(eb.label).toBeNull();
+  });
+});
+
+function agent(p: Partial<AgentTreeNode> & { agent_id: string }): AgentTreeNode {
+  return {
+    agent_id: p.agent_id,
+    parent_agent_id: p.parent_agent_id ?? null,
+    agent_type: p.agent_type ?? null,
+    edge_label: p.edge_label ?? null,
+    depth: p.depth ?? 0,
+    started_at: p.started_at ?? "2026-07-20T00:00:00Z",
+    ended_at: p.ended_at ?? null,
+    duration_ms: p.duration_ms ?? 0,
+    input_tokens: p.input_tokens ?? 0,
+    output_tokens: p.output_tokens ?? 0,
+    estimated_cost_usd: p.estimated_cost_usd ?? 0,
+  };
+}
+
+describe("buildAgentGraph", () => {
+  it("builds nodes and edges from agent lineage", () => {
+    const g = buildAgentGraph([
+      agent({ agent_id: "root", depth: 0, estimated_cost_usd: 0.1, duration_ms: 100 }),
+      agent({ agent_id: "child", parent_agent_id: "root", depth: 1,
+              estimated_cost_usd: 0.4, duration_ms: 90, edge_label: "verify" }),
+    ]);
+    expect(g.nodes.map((n) => n.id).sort()).toEqual(["child", "root"]);
+    expect(g.edges).toHaveLength(1);
+    expect(g.edges[0].source).toBe("root");
+    expect(g.edges[0].target).toBe("child");
+    expect(g.edges[0].label).toBe("verify");
+  });
+
+  it("labels nodes by agent_type, falling back to a short agent id", () => {
+    const g = buildAgentGraph([
+      agent({ agent_id: "abcdef123456", agent_type: "Explore" }),
+      agent({ agent_id: "zyxwvu987654", agent_type: null }),
+    ]);
+    const labels = g.nodes.map((n) => n.label);
+    expect(labels).toContain("Explore");
+    expect(labels.some((l) => l.startsWith("zyxwvu"))).toBe(true);
+  });
+
+  it("normalizes cost heat and marks the critical path", () => {
+    const g = buildAgentGraph([
+      agent({ agent_id: "root", depth: 0, duration_ms: 100, estimated_cost_usd: 0.1 }),
+      agent({ agent_id: "a", parent_agent_id: "root", depth: 1, duration_ms: 90,
+              estimated_cost_usd: 0.4 }),
+      agent({ agent_id: "b", parent_agent_id: "root", depth: 1, duration_ms: 10,
+              estimated_cost_usd: 0.05 }),
+    ]);
+    expect(g.nodes.find((n) => n.id === "a")!.costHeat).toBeCloseTo(1);
+    expect(g.nodes.filter((n) => n.onCriticalPath).map((n) => n.id).sort())
+      .toEqual(["a", "root"]);
   });
 });
