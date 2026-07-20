@@ -1,6 +1,6 @@
 import { describe, it, expect } from "bun:test";
 import { ingestEvents, queryEvents } from "../services/events.service";
-import { createMockSupabase } from "./helpers/supabase-mock";
+import { createMockSupabase, createSpySupabase } from "./helpers/supabase-mock";
 import type { IngestEvent } from "@/types/events";
 
 const USER_ID = "user-abc";
@@ -160,6 +160,30 @@ describe("ingestEvents", () => {
     const stopEvent = makeEvent({ event: "stop", data: {} });
     const result = await ingestEvents(supabase, USER_ID, [stopEvent]);
     expect(result.success).toBe(true);
+  });
+
+  it("promotes eval_id and eval_variant from session_start onto the session", async () => {
+    // select → not found; insert → ok; eval promotion update → ok
+    const { client, calls } = createSpySupabase({
+      events: OK,
+      sessions: [NOT_FOUND, OK, OK],
+    });
+
+    const evalEvent = makeEvent({
+      event: "session_start",
+      data: { eval_id: "deep-research", eval_variant: "v3" },
+    });
+
+    const result = await ingestEvents(client, USER_ID, [evalEvent]);
+    expect(result.success).toBe(true);
+
+    const updateCalls = calls.filter((c) => c.method === "update");
+    expect(
+      updateCalls.some((c) => {
+        const payload = c.args[0] as Record<string, unknown>;
+        return payload.eval_id === "deep-research" && payload.eval_variant === "v3";
+      })
+    ).toBe(true);
   });
 });
 
