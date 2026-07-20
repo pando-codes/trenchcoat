@@ -76,6 +76,7 @@ def main():
         if spawner_id:
             skill_data["spawner_id"]   = spawner_id
             skill_data["spawner_type"] = spawner_type
+        skill_data.update(base_agent_fields(hook_input))
         write_event("skill_use", session_id, skill_data)
         write_active_context(session_id, activation_id, "skill", skill_name)
 

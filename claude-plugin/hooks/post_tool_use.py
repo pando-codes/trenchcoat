@@ -43,9 +43,17 @@ def main():
         edge_label     = pending.get("edge_label")
 
     if native_duration is not None:
-        duration_ms = float(native_duration)
-        duration_source = "native"
-    elif pending and pending.get("started_at"):
+        try:
+            duration_ms = float(native_duration)
+            duration_source = "native"
+        except (TypeError, ValueError):
+            # This key's runtime type has never been observed to be
+            # non-numeric, but if it ever is, fall back rather than losing
+            # the whole tool_end event.
+            duration_ms = None
+            duration_source = None
+
+    if duration_ms is None and pending and pending.get("started_at"):
         duration_ms = (time.monotonic_ns() - pending["started_at"]) / 1_000_000
         duration_source = "computed"
 
@@ -87,6 +95,11 @@ def main():
         agent_result = sanitize_agent_result(tool_response)
         if agent_result:
             event_data["agent_result"] = agent_result
+            # Prefer Claude Code's native agentId so this matches the agent_id
+            # that SubagentStop reports; the minted id is only a local fallback.
+            native_agent_id = agent_result.get("agentId")
+            if native_agent_id:
+                event_data["agent_id"] = native_agent_id
 
     write_event("tool_end", session_id, event_data)
 

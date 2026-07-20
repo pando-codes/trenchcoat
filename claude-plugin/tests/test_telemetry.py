@@ -137,6 +137,28 @@ class TestWriteEvent:
         queued = [json.loads(l) for l in queue.read_text().splitlines() if l.strip()]
         assert queued[0]["event"] == "session_start"
 
+    def test_subagent_start_recorded_locally_but_not_queued(self, isolated_telemetry, with_api_key):
+        """subagent_start is not in the SaaS-accepted allowlist. One unknown
+        type fails Zod validation for the WHOLE batch, so it must never enter
+        the push queue — even though local JSONL still records it."""
+        telemetry.write_event("subagent_start", "s1", {"agent_id": "ag-1"})
+
+        local_events = self._read_jsonl(isolated_telemetry)
+        assert local_events[0]["event"] == "subagent_start"
+
+        queue = isolated_telemetry / ".push_queue.jsonl"
+        assert not queue.exists(), "subagent_start must not be queued for SaaS push"
+
+    def test_tool_start_still_reaches_push_queue_as_tool_use(self, isolated_telemetry, with_api_key):
+        """Regression guard alongside the subagent_start filter above — a
+        normal, SaaS-accepted event type must still be queued and mapped."""
+        telemetry.write_event("tool_start", "s1", {"tool_name": "Bash"})
+        queue = isolated_telemetry / ".push_queue.jsonl"
+        assert queue.exists()
+        queued = [json.loads(l) for l in queue.read_text().splitlines() if l.strip()]
+        assert len(queued) == 1
+        assert queued[0]["event"] == "tool_use"
+
     def test_webhook_fired_when_configured(self, isolated_telemetry, without_api_key):
         """Regression: webhook_url must be read from load_config(), not bare 'config'."""
         config = {**telemetry.DEFAULT_CONFIG, "webhook_url": "http://wh.test/hook"}
@@ -530,6 +552,31 @@ class TestPendingStack:
         assert "agent_id" not in entry
 
 
+class TestMutatePendingCorruptFile:
+    """A corrupt pending file must be treated as an empty stack, not crash
+    the hook. The old code caught OSError alongside JSONDecodeError; the new
+    .decode() call can also raise UnicodeDecodeError — both must be caught."""
+
+    def _pending_path(self, isolated_telemetry, session_id="s1"):
+        return isolated_telemetry / ".pending" / f"{session_id}.json"
+
+    def test_invalid_json_treated_as_empty_stack(self, isolated_telemetry):
+        self._pending_path(isolated_telemetry).write_text("not valid json{{{")
+        assert telemetry.pop_pending("s1", "Bash") is None
+        # Recovery: pushing after a corrupt read must still work.
+        telemetry.push_pending("s1", "Bash", "corr-recover")
+        entry = telemetry.pop_pending("s1", "Bash")
+        assert entry["correlation_id"] == "corr-recover"
+
+    def test_invalid_utf8_bytes_treated_as_empty_stack(self, isolated_telemetry):
+        pending_file = self._pending_path(isolated_telemetry)
+        pending_file.write_bytes(b"\xff\xfe\x00invalid-utf8")
+        assert telemetry.pop_pending("s1", "Bash") is None
+        telemetry.push_pending("s1", "Bash", "corr-recover2")
+        entry = telemetry.pop_pending("s1", "Bash")
+        assert entry["correlation_id"] == "corr-recover2"
+
+
 # ---------------------------------------------------------------------------
 # tool_use_id-keyed pending correlation
 # ---------------------------------------------------------------------------
@@ -908,6 +955,25 @@ class TestHookIntegration:
         assert skill_events[0]["data"]["skill_name"] == "superpowers:brainstorming"
         assert "activation_id" in skill_events[0]["data"]
 
+    def test_pre_tool_use_skill_tool_carries_origin_agent(self, tmp_path):
+        """Skill invoked from inside a subagent must be attributable (spec
+        §3.3: every event) — skill_data needs the same base_agent_fields
+        merge that tool_data already gets, so origin_agent_id/type land on
+        skill_use too, not just on tool_start."""
+        r = self._run_hook(tmp_path, "pre_tool_use.py", {
+            "session_id": "test-s",
+            "tool_name": "Skill",
+            "tool_input": {"skill": "superpowers:brainstorming", "args": "help me plan"},
+            "agent_id": "ag-child", "agent_type": "Explore",
+        })
+        assert r.returncode == 0, f"stderr: {r.stderr}"
+        tc_dir = tmp_path / ".claude" / "trenchcoat"
+        jsonl_files = list(tc_dir.glob("events-*.jsonl"))
+        events = [json.loads(l) for l in jsonl_files[0].read_text().splitlines() if l.strip()]
+        skill_event = next(e for e in events if e["event"] == "skill_use")
+        assert skill_event["data"]["origin_agent_id"] == "ag-child"
+        assert skill_event["data"]["origin_agent_type"] == "Explore"
+
     def test_pre_tool_use_skill_tool_writes_active_context_file(self, tmp_path):
         """Skill tool call → .active_context_{session_id}.json written."""
         r = self._run_hook(tmp_path, "pre_tool_use.py", {
@@ -1019,6 +1085,28 @@ class TestHookIntegration:
         assert starts[0]["data"].get("agent_id"), "tool_start should mint agent_id"
         assert ends[0]["data"].get("agent_id") == starts[0]["data"]["agent_id"], \
             "tool_end must carry the same agent_id as tool_start"
+
+    def test_agent_tool_end_prefers_native_agent_id_over_minted(self, tmp_path):
+        """SubagentStop reports Claude Code's NATIVE agent_id, not the locally
+        minted one pre_tool_use.py stamps into the pending stack. When the
+        Agent tool_response carries agentId, tool_end.agent_id must be that
+        native id — otherwise SubagentStop and this tool_end can never join
+        on agent_id (see migrations 024/025)."""
+        self._run_hook(tmp_path, "pre_tool_use.py", {
+            "session_id": "n-s", "tool_name": "Agent", "tool_use_id": "toolu_N",
+            "tool_input": {"description": "d", "prompt": "p"},
+        })
+        self._run_hook(tmp_path, "post_tool_use.py", {
+            "session_id": "n-s", "tool_name": "Agent", "tool_use_id": "toolu_N",
+            "tool_input": {"description": "d", "prompt": "p"},
+            "tool_response": {"status": "completed", "agentId": "native-ag-42"},
+        })
+        events = self._read_events(tmp_path)
+        start = next(e for e in events if e["event"] == "tool_start")
+        end = next(e for e in events if e["event"] == "tool_end")
+        minted_agent_id = start["data"]["agent_id"]
+        assert end["data"]["agent_id"] == "native-ag-42"
+        assert end["data"]["agent_id"] != minted_agent_id
 
     def test_agent_tool_end_carries_result_metrics(self, tmp_path):
         self._run_hook(tmp_path, "pre_tool_use.py", {
@@ -1185,6 +1273,23 @@ class TestHookIntegration:
         end = next(e for e in self._read_events(tmp_path) if e["event"] == "tool_end")
         assert end["data"]["duration_source"] == "computed"
         assert end["data"]["duration_ms"] is not None
+
+    def test_non_numeric_duration_ms_does_not_lose_the_event(self, tmp_path):
+        """A non-numeric duration_ms must not raise float() BEFORE write_event
+        runs — that would silently drop the whole tool_end for ANY tool. It
+        must fall back to the computed duration (or None) instead."""
+        self._run_hook(tmp_path, "pre_tool_use.py", {
+            "session_id": "t-s4", "tool_name": "Bash", "tool_use_id": "toolu_NAN",
+            "tool_input": {"command": "echo hi"},
+        })
+        r = self._run_hook(tmp_path, "post_tool_use.py", {
+            "session_id": "t-s4", "tool_name": "Bash", "tool_use_id": "toolu_NAN",
+            "tool_input": {"command": "echo hi"}, "tool_response": "hi",
+            "duration_ms": "not-a-number",
+        })
+        assert r.returncode == 0, f"stderr: {r.stderr}"
+        end = next(e for e in self._read_events(tmp_path) if e["event"] == "tool_end")
+        assert end["data"]["duration_source"] != "native"
 
     def test_out_of_order_agent_pair_correlates_correctly(self, tmp_path):
         """Two Agent spawns; the FIRST finishes first — LIFO would mispair these."""

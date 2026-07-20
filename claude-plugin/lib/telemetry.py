@@ -59,6 +59,20 @@ _EVENT_TYPE_MAP = {
     "skill_use": "skill_use",
 }
 
+# Event types (post-_EVENT_TYPE_MAP, i.e. the wire name sent to the SaaS) that
+# the SaaS ingest schema accepts. It validates the request body as
+# z.array(eventSchema), so a single unrecognized type fails Zod validation for
+# the WHOLE batch — and flush_push_queue's partial-success slicing then drops
+# that batch's real events while re-sending ones already delivered. New local
+# event types (e.g. subagent_start) must be added here explicitly before the
+# SaaS accepts them; until then they must never enter the push queue. Local
+# JSONL (write_event) is unaffected — it records every event type regardless.
+_SAAS_ACCEPTED_EVENT_TYPES = {
+    "session_start", "session_end", "tool_use", "tool_result",
+    "prompt_submit", "assistant_stop", "subagent_stop", "pre_compact",
+    "skill_use", "error",
+}
+
 # Module-level sequence counter (per-process)
 _seq_counter = 0
 
@@ -227,10 +241,19 @@ def write_event(event_type: str, session_id: str, data: dict) -> None:
 
 
 def _queue_for_push(event: dict) -> None:
-    """Append event to the push queue for batch flush on session_end."""
+    """Append event to the push queue for batch flush on session_end.
+
+    Only event types the SaaS ingest schema accepts are queued — see
+    _SAAS_ACCEPTED_EVENT_TYPES. Local JSONL (write_event) already recorded
+    this event regardless; this filter applies to the push queue only.
+    """
+    mapped_type = _EVENT_TYPE_MAP.get(event["event"], event["event"])
+    if mapped_type not in _SAAS_ACCEPTED_EVENT_TYPES:
+        return
+
     saas_event = {
         "ts": event["ts"],
-        "event": _EVENT_TYPE_MAP.get(event["event"], event["event"]),
+        "event": mapped_type,
         "session_id": event["session_id"],
         "seq": event["seq"],
         "data": event.get("data", {}),
@@ -393,10 +416,12 @@ def _mutate_pending(session_id: str, mutate):
     try:
         fcntl.flock(fd, fcntl.LOCK_EX)
         os.lseek(fd, 0, os.SEEK_SET)
-        raw = os.read(fd, 10_000_000).decode() or ""
         try:
+            raw = os.read(fd, 10_000_000).decode()
             stack = json.loads(raw) if raw.strip() else []
-        except json.JSONDecodeError:
+        except (json.JSONDecodeError, UnicodeDecodeError, OSError):
+            # A corrupt or unreadable pending file must not crash the hook —
+            # treat it as an empty stack and let the caller rebuild it.
             stack = []
         new_stack, result = mutate(stack)
         data = (json.dumps(new_stack) + "\n").encode()

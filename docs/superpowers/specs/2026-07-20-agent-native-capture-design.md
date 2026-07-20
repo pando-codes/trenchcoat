@@ -74,7 +74,7 @@ A new `subagent_start.py` hook emits `agent_id` + `agent_type` at spawn time, gi
 
 `agentId`, `status`, `resolvedModel`, `totalDurationMs`, `totalTokens`, `totalToolUseCount`, `toolStats`, `isAsync`.
 
-**Allowlist, never passthrough** — `prompt`, `content`, `description`, and `outputFile` are explicitly excluded, preserving the plugin's `log_prompt_content: False` stance. The async result shape differs from the synchronous one (`status: "async_launched"` carries no `totalTokens`/`toolStats`), so every field is optional and absence is normal.
+**Allowlist, never passthrough** — `prompt`, `content`, `description`, and `outputFile` are explicitly excluded from `agent_result`, preserving the plugin's `log_prompt_content: False` stance. The async result shape differs from the synchronous one (`status: "async_launched"` carries no `totalTokens`/`toolStats`), so every field is optional and absence is normal. This "never captured" guarantee is scoped to `agent_result` specifically, not to the Agent tool event pair as a whole: `tool_start.input_preview` still JSON-serializes the full Agent `tool_input`, so the first ~100 characters — covering `description` and the start of the caller's `prompt` — are captured there, governed by the existing `tool_input_preview_chars` privacy setting like any other tool.
 
 This matters beyond convenience: transcript parsing — today's only token source — **fails on ~20% of subagent stops** (`agent_type: ''` with zero tokens/turns). These metrics come straight from the source.
 
