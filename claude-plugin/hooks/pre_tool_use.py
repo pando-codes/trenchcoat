@@ -19,9 +19,10 @@ def main():
     if not is_enabled():
         return
 
-    session_id = hook_input.get("session_id", "unknown")
-    tool_name  = hook_input.get("tool_name", "unknown")
-    tool_input = hook_input.get("tool_input") or {}
+    session_id  = hook_input.get("session_id", "unknown")
+    tool_name   = hook_input.get("tool_name", "unknown")
+    tool_input  = hook_input.get("tool_input") or {}
+    tool_use_id = hook_input.get("tool_use_id")
 
     config         = load_config()
     correlation_id = generate_correlation_id()
@@ -37,6 +38,8 @@ def main():
         "correlation_id": correlation_id,
         "input_preview": sanitize_tool_input(tool_input, config),
     }
+    if tool_use_id:
+        tool_data["tool_use_id"] = tool_use_id
     if spawner_id:
         tool_data["spawner_id"]   = spawner_id
         tool_data["spawner_type"] = spawner_type
@@ -54,7 +57,7 @@ def main():
         agent_id = generate_correlation_id()
         tool_data["agent_id"] = agent_id
         push_pending(session_id, tool_name, correlation_id,
-                     agent_id=agent_id, edge_label=edge_label)
+                     tool_use_id=tool_use_id, agent_id=agent_id, edge_label=edge_label)
         write_event("tool_start", session_id, tool_data)
         write_agent_spawn_context(
             parent_session_id=session_id,
@@ -67,7 +70,7 @@ def main():
         activation_id = generate_correlation_id()
         skill_name    = tool_input.get("skill", "unknown")
         args          = tool_input.get("args", "")
-        push_pending(session_id, tool_name, correlation_id)
+        push_pending(session_id, tool_name, correlation_id, tool_use_id=tool_use_id)
         write_event("tool_start", session_id, tool_data)
         skill_data: dict = {
             "skill_name":   skill_name,
@@ -81,7 +84,7 @@ def main():
         write_active_context(session_id, activation_id, "skill", skill_name)
 
     else:
-        push_pending(session_id, tool_name, correlation_id)
+        push_pending(session_id, tool_name, correlation_id, tool_use_id=tool_use_id)
         write_event("tool_start", session_id, tool_data)
 
 

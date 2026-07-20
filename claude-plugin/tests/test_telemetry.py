@@ -1046,6 +1046,68 @@ class TestHookIntegration:
         start = next(e for e in self._read_events(tmp_path) if e["event"] == "session_start")
         assert len(start["data"]["eval_variant"]) == 128
 
+    def test_tool_use_id_emitted_and_matches_across_pair(self, tmp_path):
+        self._run_hook(tmp_path, "pre_tool_use.py", {
+            "session_id": "t-s", "tool_name": "Bash", "tool_use_id": "toolu_X",
+            "tool_input": {"command": "echo hi"},
+        })
+        self._run_hook(tmp_path, "post_tool_use.py", {
+            "session_id": "t-s", "tool_name": "Bash", "tool_use_id": "toolu_X",
+            "tool_input": {"command": "echo hi"}, "tool_response": "hi",
+            "duration_ms": 42,
+        })
+        events = self._read_events(tmp_path)
+        start = next(e for e in events if e["event"] == "tool_start")
+        end = next(e for e in events if e["event"] == "tool_end")
+        assert start["data"]["tool_use_id"] == "toolu_X"
+        assert end["data"]["tool_use_id"] == "toolu_X"
+
+    def test_prefers_native_duration_ms(self, tmp_path):
+        self._run_hook(tmp_path, "pre_tool_use.py", {
+            "session_id": "t-s2", "tool_name": "Bash", "tool_use_id": "toolu_Y",
+            "tool_input": {"command": "echo hi"},
+        })
+        self._run_hook(tmp_path, "post_tool_use.py", {
+            "session_id": "t-s2", "tool_name": "Bash", "tool_use_id": "toolu_Y",
+            "tool_input": {"command": "echo hi"}, "tool_response": "hi",
+            "duration_ms": 1234,
+        })
+        end = next(e for e in self._read_events(tmp_path) if e["event"] == "tool_end")
+        assert end["data"]["duration_ms"] == 1234
+        assert end["data"]["duration_source"] == "native"
+
+    def test_falls_back_to_computed_duration(self, tmp_path):
+        self._run_hook(tmp_path, "pre_tool_use.py", {
+            "session_id": "t-s3", "tool_name": "Bash", "tool_use_id": "toolu_Z",
+            "tool_input": {"command": "echo hi"},
+        })
+        self._run_hook(tmp_path, "post_tool_use.py", {
+            "session_id": "t-s3", "tool_name": "Bash", "tool_use_id": "toolu_Z",
+            "tool_input": {"command": "echo hi"}, "tool_response": "hi",
+        })
+        end = next(e for e in self._read_events(tmp_path) if e["event"] == "tool_end")
+        assert end["data"]["duration_source"] == "computed"
+        assert end["data"]["duration_ms"] is not None
+
+    def test_out_of_order_agent_pair_correlates_correctly(self, tmp_path):
+        """Two Agent spawns; the FIRST finishes first — LIFO would mispair these."""
+        for tid, prompt in (("toolu_A", "first task"), ("toolu_B", "second task")):
+            self._run_hook(tmp_path, "pre_tool_use.py", {
+                "session_id": "p-s", "tool_name": "Agent", "tool_use_id": tid,
+                "tool_input": {"description": "d", "prompt": prompt},
+            })
+        self._run_hook(tmp_path, "post_tool_use.py", {
+            "session_id": "p-s", "tool_name": "Agent", "tool_use_id": "toolu_A",
+            "tool_input": {"description": "d", "prompt": "first task"},
+            "tool_response": {"agentId": "ag-first", "status": "completed"},
+        })
+        events = self._read_events(tmp_path)
+        starts = {e["data"]["tool_use_id"]: e for e in events if e["event"] == "tool_start"}
+        end = next(e for e in events if e["event"] == "tool_end")
+        assert end["data"]["tool_use_id"] == "toolu_A"
+        assert end["data"]["correlation_id"] == starts["toolu_A"]["data"]["correlation_id"], \
+            "tool_end must carry the correlation_id of ITS OWN tool_start"
+
 
 # ---------------------------------------------------------------------------
 # Active context helpers
