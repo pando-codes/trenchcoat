@@ -67,6 +67,10 @@ export default async function AgentsPage({
         </CardContent>
       </Card>
 
+      <p className="text-sm text-muted-foreground">
+        Cost excludes cache tokens. Per-agent cache-aware cost is on each session&apos;s detail page.
+      </p>
+
       {agents.length > 0 && agents.every((a) => a.latency_sample_count === 0) && (
         <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm">
           Per-agent latency needs Trenchcoat plugin v1.2.0 or newer. Update the plugin to start

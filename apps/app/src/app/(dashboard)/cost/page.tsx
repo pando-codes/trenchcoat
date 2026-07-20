@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { parseDateRange } from "@/lib/date-range";
@@ -63,6 +64,13 @@ export default async function CostPage({
         <h1 className="text-2xl font-semibold tracking-tight">Cost</h1>
         <p className="text-sm text-muted-foreground">
           Token usage and estimated spend by model and agent.
+        </p>
+        <p className="text-sm text-muted-foreground">
+          Excludes cache tokens. Session-level costs on{" "}
+          <Link href="/sessions" className="text-primary underline-offset-4 hover:underline">
+            Sessions
+          </Link>{" "}
+          are cache-aware and will be higher.
         </p>
       </div>
 
