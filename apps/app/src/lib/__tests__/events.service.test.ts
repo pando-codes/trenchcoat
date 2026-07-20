@@ -305,6 +305,44 @@ describe("ingestEvents: agent lineage promotion", () => {
     expect(payload).not.toHaveProperty("parent_agent_id");
   });
 
+  it("does not write output_tokens from agent_result.totalTokens (aggregate, not output count)", async () => {
+    const { client, calls } = createSpySupabase();
+
+    const event = makeEvent({
+      event: "tool_result",
+      data: {
+        tool_name: "Agent",
+        agent_result: { agentId: "agent-child", status: "success", totalTokens: 9999 },
+      },
+    });
+
+    await ingestEvents(client, USER_ID, [event]);
+
+    const upserts = calls.filter((c) => c.method === "upsert");
+    expect(upserts.length).toBe(1);
+
+    const payload = upserts[0].args[0] as Record<string, unknown>;
+    expect(payload).not.toHaveProperty("output_tokens");
+  });
+
+  it("skips promotion entirely for an async agent_result with no native agentId, even when a minted data.agent_id is present", async () => {
+    const { client, calls } = createSpySupabase();
+
+    const event = makeEvent({
+      event: "tool_result",
+      data: {
+        tool_name: "Agent",
+        agent_result: { status: "async_launched", isAsync: true },
+        agent_id: "minted-correlation-id-123",
+      },
+    });
+
+    await ingestEvents(client, USER_ID, [event]);
+
+    const upserts = calls.filter((c) => c.method === "upsert");
+    expect(upserts.length).toBe(0);
+  });
+
   it("a non-Agent tool_result produces no agent upsert", async () => {
     const { client, calls } = createSpySupabase();
 

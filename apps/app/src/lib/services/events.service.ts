@@ -204,7 +204,11 @@ export async function ingestEvents(
       }
     } else if (e.event === "tool_result" && e.data?.tool_name === "Agent") {
       const result = (e.data?.agent_result ?? {}) as Record<string, unknown>;
-      agentId = ((result.agentId as string) ?? (e.data?.agent_id as string)) ?? null;
+      // Only the native id (result.agentId) is usable here: subagent_start/stop
+      // key their rows on Claude Code's native agent id, and a locally-minted
+      // fallback id (data.agent_id, for async results that lack agentId) would
+      // never match those rows, producing an orphan agent + phantom edge.
+      agentId = (result.agentId as string) ?? null;
       if (agentId) {
         row.session_id = e.session_id;
         // origin_agent_id is the agent that MADE this spawn call = the parent.
@@ -215,9 +219,6 @@ export async function ingestEvents(
         if (e.data?.duration_ms != null) row.duration_ms = Math.round(e.data.duration_ms as number);
         if (result.status != null) row.status = result.status;
         if (result.resolvedModel != null) row.model = result.resolvedModel;
-        if (result.totalTokens != null && e.data?.input_tokens == null) {
-          row.output_tokens = result.totalTokens;
-        }
       }
     }
 
