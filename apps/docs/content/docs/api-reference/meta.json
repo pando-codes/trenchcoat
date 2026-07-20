@@ -1,4 +1,4 @@
 {
   "title": "API Reference",
-  "pages": ["authentication", "events", "sessions", "analytics"]
+  "pages": ["authentication", "events", "sessions", "analytics", "evals"]
 }

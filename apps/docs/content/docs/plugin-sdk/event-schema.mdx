@@ -55,6 +55,8 @@ Fires when a new Claude Code session begins. Always the first event in a session
 | `agent_id` | string | *Optional.* Present when this session was spawned via the `Agent` tool — the same `agent_id` minted on the parent session's spawning `tool_use`/`tool_result` pair. This is what carries agent spawn lineage into the session graph; see the note below. |
 | `spawner_id` | string | *Optional.* The skill activation ID of the active Skill invocation that was in effect when this session was spawned, if any. |
 | `spawner_type` | string | *Optional.* Currently always `"skill"` when present. |
+| `eval_id` | string | *Optional.* Sourced from the `TRENCHCOAT_EVAL_ID` environment variable at session start, truncated to 128 characters. Absent when the variable is unset. |
+| `eval_variant` | string | *Optional.* Sourced from the `TRENCHCOAT_EVAL_VARIANT` environment variable at session start, truncated to 128 characters. Absent when the variable is unset. |
 
 ### `session_end`
 
