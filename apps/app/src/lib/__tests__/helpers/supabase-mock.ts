@@ -87,7 +87,7 @@ export function createMockSupabase(
 
   return {
     from: (table: string) => makeChain(dequeue(tables, table)),
-    rpc: (name: string) => {
+    rpc: (name: string, params?: object) => {
       const r = dequeue(rpcs, name);
       return Promise.resolve({ data: r.data ?? null, error: r.error ?? null });
     },
