@@ -175,6 +175,23 @@ def sanitize_tool_result(tool_response) -> dict:
     return {"size": len(text), "is_error": None, "error_preview": None}
 
 
+AGENT_RESULT_FIELDS = (
+    "agentId", "status", "resolvedModel", "totalDurationMs",
+    "totalTokens", "totalToolUseCount", "toolStats", "isAsync",
+)
+
+
+def sanitize_agent_result(tool_response) -> dict:
+    """Allowlisted metrics from an Agent tool_response.
+
+    Strict allowlist — prompt, content, description and outputFile are never
+    captured. Async results carry only a subset, so every field is optional.
+    """
+    if not isinstance(tool_response, dict):
+        return {}
+    return {k: tool_response[k] for k in AGENT_RESULT_FIELDS if k in tool_response}
+
+
 def write_event(event_type: str, session_id: str, data: dict) -> None:
     """Append a single event to today's JSONL file with flock."""
     TRENCHCOAT_DIR.mkdir(parents=True, exist_ok=True)

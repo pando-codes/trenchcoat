@@ -633,6 +633,47 @@ class TestCleanupOldEvents:
 # base_agent_fields
 # ---------------------------------------------------------------------------
 
+class TestSanitizeAgentResult:
+    SYNC = {
+        "status": "completed", "agentId": "ag-1", "agentType": "general-purpose",
+        "resolvedModel": "claude-haiku-4-5-20251001",
+        "totalDurationMs": 48262, "totalTokens": 36922, "totalToolUseCount": 15,
+        "toolStats": {"readCount": 2, "bashCount": 6},
+        "prompt": "SECRET PROMPT TEXT", "content": "SECRET CONTENT",
+    }
+    ASYNC = {
+        "isAsync": True, "status": "async_launched", "agentId": "ag-2",
+        "description": "SECRET DESCRIPTION", "prompt": "SECRET PROMPT",
+        "outputFile": "/tmp/secret-path.output",
+    }
+
+    def test_extracts_sync_metrics(self):
+        got = telemetry.sanitize_agent_result(self.SYNC)
+        assert got["agentId"] == "ag-1"
+        assert got["totalTokens"] == 36922
+        assert got["totalDurationMs"] == 48262
+        assert got["toolStats"] == {"readCount": 2, "bashCount": 6}
+        assert got["resolvedModel"] == "claude-haiku-4-5-20251001"
+
+    def test_never_leaks_prompt_content_description_or_path(self):
+        for payload in (self.SYNC, self.ASYNC):
+            got = telemetry.sanitize_agent_result(payload)
+            blob = json.dumps(got)
+            for banned in ("SECRET", "outputFile", "description", "prompt", "content"):
+                assert banned not in blob, f"{banned} leaked: {blob}"
+
+    def test_async_shape_yields_only_present_fields(self):
+        got = telemetry.sanitize_agent_result(self.ASYNC)
+        assert got["agentId"] == "ag-2"
+        assert got["isAsync"] is True
+        assert got["status"] == "async_launched"
+        assert "totalTokens" not in got
+
+    def test_non_dict_response_is_empty(self):
+        assert telemetry.sanitize_agent_result("just a string") == {}
+        assert telemetry.sanitize_agent_result(None) == {}
+
+
 class TestBaseAgentFields:
     def test_extracts_both_when_present(self):
         got = telemetry.base_agent_fields({"agent_id": "ag-1", "agent_type": "Explore"})
@@ -979,6 +1020,22 @@ class TestHookIntegration:
         assert starts[0]["data"].get("agent_id"), "tool_start should mint agent_id"
         assert ends[0]["data"].get("agent_id") == starts[0]["data"]["agent_id"], \
             "tool_end must carry the same agent_id as tool_start"
+
+    def test_agent_tool_end_carries_result_metrics(self, tmp_path):
+        self._run_hook(tmp_path, "pre_tool_use.py", {
+            "session_id": "m-s", "tool_name": "Agent", "tool_use_id": "toolu_M",
+            "tool_input": {"description": "d", "prompt": "p"},
+        })
+        self._run_hook(tmp_path, "post_tool_use.py", {
+            "session_id": "m-s", "tool_name": "Agent", "tool_use_id": "toolu_M",
+            "tool_input": {"description": "d", "prompt": "p"},
+            "tool_response": {"status": "completed", "agentId": "ag-9",
+                              "totalTokens": 100, "prompt": "SECRET"},
+        })
+        end = next(e for e in self._read_events(tmp_path) if e["event"] == "tool_end")
+        assert end["data"]["agent_result"]["agentId"] == "ag-9"
+        assert end["data"]["agent_result"]["totalTokens"] == 100
+        assert "SECRET" not in json.dumps(end["data"])
 
     def test_non_agent_tool_end_has_no_agent_id(self, tmp_path):
         self._run_hook(tmp_path, "pre_tool_use.py", {
