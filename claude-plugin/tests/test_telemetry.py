@@ -531,6 +531,49 @@ class TestPendingStack:
 
 
 # ---------------------------------------------------------------------------
+# tool_use_id-keyed pending correlation
+# ---------------------------------------------------------------------------
+
+class TestPendingByToolUseId:
+    def test_pops_by_tool_use_id_regardless_of_order(self, isolated_telemetry):
+        """The case LIFO gets wrong: two Agent calls, first-started finishes first."""
+        telemetry.push_pending("s1", "Agent", "corr-a", tool_use_id="toolu_A", agent_id="ag-a")
+        telemetry.push_pending("s1", "Agent", "corr-b", tool_use_id="toolu_B", agent_id="ag-b")
+
+        first = telemetry.pop_pending("s1", "Agent", tool_use_id="toolu_A")
+        assert first["agent_id"] == "ag-a", "must pop the matching entry, not the LIFO top"
+
+        second = telemetry.pop_pending("s1", "Agent", tool_use_id="toolu_B")
+        assert second["agent_id"] == "ag-b"
+
+    def test_falls_back_to_lifo_when_no_tool_use_id(self, isolated_telemetry):
+        telemetry.push_pending("s1", "Bash", "corr-1")
+        telemetry.push_pending("s1", "Bash", "corr-2")
+        assert telemetry.pop_pending("s1", "Bash")["correlation_id"] == "corr-2"
+
+    def test_unknown_tool_use_id_returns_none_without_consuming(self, isolated_telemetry):
+        telemetry.push_pending("s1", "Agent", "corr-a", tool_use_id="toolu_A")
+        assert telemetry.pop_pending("s1", "Agent", tool_use_id="toolu_ZZZ") is None
+        assert telemetry.pop_pending("s1", "Agent", tool_use_id="toolu_A") is not None
+
+    def test_tool_use_id_is_persisted_on_the_entry(self, isolated_telemetry):
+        telemetry.push_pending("s1", "Agent", "corr-a", tool_use_id="toolu_A")
+        assert telemetry.pop_pending("s1", "Agent", tool_use_id="toolu_A")["tool_use_id"] == "toolu_A"
+
+    def test_concurrent_pushes_lose_no_entries(self, isolated_telemetry):
+        """Unlocked read-modify-write loses updates; flock must not."""
+        import threading
+        def push(i):
+            telemetry.push_pending("s1", "Bash", f"corr-{i}", tool_use_id=f"toolu_{i}")
+        threads = [threading.Thread(target=push, args=(i,)) for i in range(25)]
+        for t in threads: t.start()
+        for t in threads: t.join()
+        found = sum(1 for i in range(25)
+                    if telemetry.pop_pending("s1", "Bash", tool_use_id=f"toolu_{i}") is not None)
+        assert found == 25, f"lost {25 - found} entries to a race"
+
+
+# ---------------------------------------------------------------------------
 # peek_pending_by_tool
 # ---------------------------------------------------------------------------
 

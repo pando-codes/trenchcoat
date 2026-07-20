@@ -364,53 +364,78 @@ def update_session_index(session_id: str, data: dict) -> None:
 
 # --- Pre/Post correlation ---
 
-def push_pending(session_id: str, tool_name: str, correlation_id: str, agent_id: str | None = None, edge_label: str | None = None) -> None:
-    """Push a tool_start to the pending stack for later correlation."""
+def _mutate_pending(session_id: str, mutate):
+    """Read-modify-write the pending file under an exclusive lock.
+
+    mutate(stack) -> (new_stack, result). Matches write_event's flock discipline;
+    the previous unlocked read_text/write_text lost updates under concurrency.
+    """
     PENDING_DIR.mkdir(parents=True, exist_ok=True)
     pending_file = PENDING_DIR / f"{session_id}.json"
-
-    stack = []
-    if pending_file.exists():
+    fd = os.open(str(pending_file), os.O_RDWR | os.O_CREAT, 0o644)
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX)
+        os.lseek(fd, 0, os.SEEK_SET)
+        raw = os.read(fd, 10_000_000).decode() or ""
         try:
-            stack = json.loads(pending_file.read_text())
-        except (json.JSONDecodeError, OSError):
+            stack = json.loads(raw) if raw.strip() else []
+        except json.JSONDecodeError:
             stack = []
+        new_stack, result = mutate(stack)
+        data = (json.dumps(new_stack) + "\n").encode()
+        os.lseek(fd, 0, os.SEEK_SET)
+        os.write(fd, data)
+        os.ftruncate(fd, len(data))
+        return result
+    finally:
+        fcntl.flock(fd, fcntl.LOCK_UN)
+        os.close(fd)
 
+
+def push_pending(session_id: str, tool_name: str, correlation_id: str,
+                 tool_use_id: str | None = None,
+                 agent_id: str | None = None,
+                 edge_label: str | None = None) -> None:
+    """Push a tool_start onto the pending list for later correlation."""
     entry: dict = {
         "tool_name": tool_name,
         "correlation_id": correlation_id,
         "started_at": time.monotonic_ns(),
         "started_ts": _now_iso(),
     }
+    if tool_use_id:
+        entry["tool_use_id"] = tool_use_id
     if agent_id:
         entry["agent_id"] = agent_id
     if edge_label:
         entry["edge_label"] = edge_label
 
-    stack.append(entry)
-    pending_file.write_text(json.dumps(stack) + "\n")
+    def mutate(stack):
+        stack.append(entry)
+        return stack, None
+
+    _mutate_pending(session_id, mutate)
 
 
-def pop_pending(session_id: str, tool_name: str) -> dict | None:
-    """Pop the most recent matching tool_start (LIFO). Returns None if not found."""
-    pending_file = PENDING_DIR / f"{session_id}.json"
+def pop_pending(session_id: str, tool_name: str,
+                tool_use_id: str | None = None) -> dict | None:
+    """Remove and return the pending entry for this call.
 
-    if not pending_file.exists():
-        return None
+    Prefers an exact tool_use_id match (correct under parallelism and nesting);
+    falls back to LIFO-by-tool_name only when no tool_use_id is supplied.
+    """
+    def mutate(stack):
+        if tool_use_id:
+            for i in range(len(stack) - 1, -1, -1):
+                if stack[i].get("tool_use_id") == tool_use_id:
+                    return stack[:i] + stack[i + 1:], stack[i]
+            return stack, None
+        for i in range(len(stack) - 1, -1, -1):
+            if stack[i].get("tool_name") == tool_name:
+                return stack[:i] + stack[i + 1:], stack[i]
+        return stack, None
 
-    try:
-        stack = json.loads(pending_file.read_text())
-    except (json.JSONDecodeError, OSError):
-        return None
-
-    # Find the last entry matching this tool_name (LIFO)
-    for i in range(len(stack) - 1, -1, -1):
-        if stack[i].get("tool_name") == tool_name:
-            entry = stack.pop(i)
-            pending_file.write_text(json.dumps(stack) + "\n")
-            return entry
-
-    return None
+    return _mutate_pending(session_id, mutate)
 
 
 def peek_pending_by_tool(session_id: str, tool_name: str) -> dict | None:
