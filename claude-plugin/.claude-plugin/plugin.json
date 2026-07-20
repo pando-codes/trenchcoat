@@ -1,7 +1,7 @@
 {
   "name": "trenchcoat",
   "description": "Observability layer for Claude Code Agents — captures tool, agent, session, and prompt activity as JSONL for local-first analytics and team analytics",
-  "version": "1.3.1",
+  "version": "1.3.2",
   "author": {
     "name": "Alex Noboa"
   }

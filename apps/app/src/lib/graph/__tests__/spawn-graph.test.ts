@@ -95,6 +95,8 @@ function agent(p: Partial<AgentTreeNode> & { agent_id: string }): AgentTreeNode 
     duration_ms: p.duration_ms ?? 0,
     input_tokens: p.input_tokens ?? 0,
     output_tokens: p.output_tokens ?? 0,
+    cache_creation_tokens: p.cache_creation_tokens ?? 0,
+    cache_read_tokens: p.cache_read_tokens ?? 0,
     estimated_cost_usd: p.estimated_cost_usd ?? 0,
   };
 }
