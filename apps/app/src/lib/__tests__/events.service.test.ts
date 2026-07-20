@@ -254,6 +254,65 @@ describe("ingestEvents: agent lineage promotion", () => {
     expect(payload).not.toHaveProperty("started_at");
     expect(payload).not.toHaveProperty("parent_agent_id");
     expect(payload).not.toHaveProperty("edge_label");
+    expect(payload).not.toHaveProperty("result_input_tokens");
+    expect(payload).not.toHaveProperty("result_output_tokens");
+    expect(payload).not.toHaveProperty("result_cache_creation_tokens");
+    expect(payload).not.toHaveProperty("result_cache_read_tokens");
+  });
+
+  it("an Agent tool_result with usage_* fields promotes all four result_* columns and never touches input_tokens/output_tokens", async () => {
+    const { client, calls } = createSpySupabase();
+
+    const event = makeEvent({
+      event: "tool_result",
+      data: {
+        tool_name: "Agent",
+        agent_result: {
+          agentId: "agent-child",
+          status: "success",
+          usage_input_tokens: 111,
+          usage_output_tokens: 222,
+          usage_cache_creation_tokens: 33,
+          usage_cache_read_tokens: 44,
+        },
+      },
+    });
+
+    await ingestEvents(client, USER_ID, [event]);
+
+    const upserts = calls.filter((c) => c.method === "upsert");
+    expect(upserts.length).toBe(1);
+
+    const payload = upserts[0].args[0] as Record<string, unknown>;
+    expect(payload).toMatchObject({
+      result_input_tokens: 111,
+      result_output_tokens: 222,
+      result_cache_creation_tokens: 33,
+      result_cache_read_tokens: 44,
+    });
+    expect(payload).not.toHaveProperty("input_tokens");
+    expect(payload).not.toHaveProperty("output_tokens");
+  });
+
+  it("an Agent tool_result promotes a zero-valued usage field (0 is meaningful, not absent)", async () => {
+    const { client, calls } = createSpySupabase();
+
+    const event = makeEvent({
+      event: "tool_result",
+      data: {
+        tool_name: "Agent",
+        agent_result: {
+          agentId: "agent-child",
+          usage_input_tokens: 0,
+        },
+      },
+    });
+
+    await ingestEvents(client, USER_ID, [event]);
+
+    const upserts = calls.filter((c) => c.method === "upsert");
+    const payload = upserts[0].args[0] as Record<string, unknown>;
+    expect(payload.result_input_tokens).toBe(0);
   });
 
   it("an Agent tool_result sets parent_agent_id from origin_agent_id, plus edge_label and duration_ms", async () => {

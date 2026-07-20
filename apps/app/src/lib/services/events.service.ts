@@ -219,6 +219,12 @@ export async function ingestEvents(
         if (e.data?.duration_ms != null) row.duration_ms = Math.round(e.data.duration_ms as number);
         if (result.status != null) row.status = result.status;
         if (result.resolvedModel != null) row.model = result.resolvedModel;
+        if (result.usage_input_tokens != null) row.result_input_tokens = result.usage_input_tokens;
+        if (result.usage_output_tokens != null) row.result_output_tokens = result.usage_output_tokens;
+        if (result.usage_cache_creation_tokens != null)
+          row.result_cache_creation_tokens = result.usage_cache_creation_tokens;
+        if (result.usage_cache_read_tokens != null)
+          row.result_cache_read_tokens = result.usage_cache_read_tokens;
       }
     }
 
