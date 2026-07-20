@@ -10,7 +10,7 @@ from telemetry import (
     read_hook_input, is_enabled, load_config, write_event,
     sanitize_tool_input, push_pending, generate_correlation_id,
     write_active_context, read_active_context,
-    write_agent_spawn_context, parse_edge_label,
+    write_agent_spawn_context, parse_edge_label, base_agent_fields,
 )
 
 
@@ -43,6 +43,8 @@ def main():
     if spawner_id:
         tool_data["spawner_id"]   = spawner_id
         tool_data["spawner_type"] = spawner_type
+
+    tool_data.update(base_agent_fields(hook_input))
 
     if tool_name == "Agent":
         edge_label, cleaned_prompt = parse_edge_label(tool_input.get("prompt"))

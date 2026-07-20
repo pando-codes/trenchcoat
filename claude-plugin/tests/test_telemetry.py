@@ -630,6 +630,23 @@ class TestCleanupOldEvents:
 
 
 # ---------------------------------------------------------------------------
+# base_agent_fields
+# ---------------------------------------------------------------------------
+
+class TestBaseAgentFields:
+    def test_extracts_both_when_present(self):
+        got = telemetry.base_agent_fields({"agent_id": "ag-1", "agent_type": "Explore"})
+        assert got == {"origin_agent_id": "ag-1", "origin_agent_type": "Explore"}
+
+    def test_empty_when_main_thread(self):
+        assert telemetry.base_agent_fields({"session_id": "s"}) == {}
+
+    def test_agent_type_alone_is_not_a_subagent_signal(self):
+        """--agent sessions set agent_type on the MAIN thread; agent_id is the real signal."""
+        assert telemetry.base_agent_fields({"agent_type": "general-purpose"}) == {}
+
+
+# ---------------------------------------------------------------------------
 # parse_agent_transcript
 # ---------------------------------------------------------------------------
 
@@ -974,6 +991,24 @@ class TestHookIntegration:
         })
         start = next(e for e in self._read_events(tmp_path) if e["event"] == "tool_start")
         assert "edge_label" not in start["data"]
+
+    def test_tool_events_carry_origin_agent(self, tmp_path):
+        self._run_hook(tmp_path, "pre_tool_use.py", {
+            "session_id": "o-s", "tool_name": "Bash", "tool_use_id": "toolu_O",
+            "tool_input": {"command": "echo hi"},
+            "agent_id": "ag-child", "agent_type": "Explore",
+        })
+        start = next(e for e in self._read_events(tmp_path) if e["event"] == "tool_start")
+        assert start["data"]["origin_agent_id"] == "ag-child"
+        assert start["data"]["origin_agent_type"] == "Explore"
+
+    def test_main_thread_tool_events_have_no_origin_agent(self, tmp_path):
+        self._run_hook(tmp_path, "pre_tool_use.py", {
+            "session_id": "o-s2", "tool_name": "Bash", "tool_use_id": "toolu_P",
+            "tool_input": {"command": "echo hi"},
+        })
+        start = next(e for e in self._read_events(tmp_path) if e["event"] == "tool_start")
+        assert "origin_agent_id" not in start["data"]
 
     def test_marker_ignored_for_non_agent_tool(self, tmp_path):
         self._run_hook(tmp_path, "pre_tool_use.py", {

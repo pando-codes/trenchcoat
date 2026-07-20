@@ -619,6 +619,25 @@ def parse_agent_transcript(transcript_path: str) -> dict:
     }
 
 
+# --- Subagent attribution ---
+
+def base_agent_fields(hook_input: dict) -> dict:
+    """Subagent attribution from the shared hook-input base object.
+
+    Claude Code sets agent_id only when a hook fires from inside a subagent.
+    agent_type alone is NOT a subagent signal — it is also set on the main
+    thread of a session started with --agent.
+    """
+    agent_id = hook_input.get("agent_id")
+    if not agent_id:
+        return {}
+    fields = {"origin_agent_id": agent_id}
+    agent_type = hook_input.get("agent_type")
+    if agent_type:
+        fields["origin_agent_type"] = agent_type
+    return fields
+
+
 # --- Hook input helper ---
 
 def read_hook_input() -> dict:
