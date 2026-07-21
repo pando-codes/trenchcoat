@@ -1,16 +1,34 @@
 ---
 const features = [
   {
-    title: 'Session tracking',
-    description: 'See every session, every agent, every tool call in one place',
+    title: 'Session timeline',
+    description: 'Replay any session turn by turn — every tool call, error, and stop reason, with time spent per phase.',
+    icon: '<path d="M12 19h8"/><path d="m4 17 6-6-6-6"/>',
   },
   {
-    title: 'Cost attribution',
-    description: 'Know exactly what each agent and model is costing your team',
+    title: 'Cache-aware cost',
+    description: 'Real cost per session and per agent, priced from live model rates with cache reads and writes counted.',
+    icon: '<line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>',
+  },
+  {
+    title: 'Agent tracing',
+    description: 'Trace the full spawn tree a session launches — model, tool count, cost, and latency for every subagent.',
+    icon: '<path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/>',
+  },
+  {
+    title: 'Evals',
+    description: 'Tag sessions and record eval scores through the API to track agent quality over time.',
+    icon: '<path d="M14 2v6a2 2 0 0 0 .245.96l5.51 10.08A2 2 0 0 1 18 22H6a2 2 0 0 1-1.755-2.96l5.51-10.08A2 2 0 0 0 10 8V2"/><path d="M6.453 15h11.094"/><path d="M8.5 2h7"/>',
+  },
+  {
+    title: 'Skill analytics',
+    description: 'See which skills your agents reach for, and how often, across every session.',
+    icon: '<path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/><path d="M20 2v4"/><path d="M22 4h-4"/><circle cx="4" cy="20" r="2"/>',
   },
   {
     title: 'Team access',
-    description: 'Share dashboards, manage API keys, control who sees what',
+    description: 'Share dashboards, manage API keys, and control who sees what.',
+    icon: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><path d="M16 3.128a4 4 0 0 1 0 7.744"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><circle cx="9" cy="7" r="4"/>',
   },
 ];
 ---
@@ -23,19 +41,16 @@ const features = [
           <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-accent-tint">
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 64 64"
+              viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
-              stroke-width="3.5"
-              stroke-linecap="square"
-              stroke-linejoin="miter"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
               class="h-5 w-5 text-brand-accent"
               aria-hidden="true"
-            >
-              <path d="M12 12 L32 30"/>
-              <path d="M52 12 L32 30"/>
-              <path d="M32 30 L32 54"/>
-            </svg>
+              set:html={feature.icon}
+            />
           </div>
           <h3 class="text-lg font-semibold text-brand-fg">{feature.title}</h3>
           <p class="leading-relaxed text-brand-fg-muted">{feature.description}</p>
