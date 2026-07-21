@@ -1,0 +1,32 @@
+---
+const integrations = [
+  {
+    name: 'OpenAI Agents SDK',
+    description: 'Instrument agents built on the OpenAI Agents SDK and stream their telemetry into Trenchcoat.',
+  },
+  {
+    name: 'GitHub Copilot',
+    description: 'A Copilot Extension that reports agent activity from your GitHub workflow into Trenchcoat.',
+  },
+];
+---
+<section class="py-20">
+  <div class="mx-auto max-w-4xl px-6">
+    <div class="text-center">
+      <p class="mb-4 text-xs font-medium uppercase tracking-widest text-brand-accent">Coming soon</p>
+      <h2 class="text-3xl font-semibold text-brand-fg" style="letter-spacing: -0.02em">More ways to plug in</h2>
+      <p class="mt-4 text-lg text-brand-fg-muted">Trenchcoat is expanding beyond Claude Code.</p>
+    </div>
+    <div class="mt-12 grid grid-cols-1 gap-8 md:grid-cols-2">
+      {integrations.map(integration => (
+        <div class="flex flex-col gap-4 rounded-xl border border-dashed border-brand-border-strong bg-brand-surface-2 p-8">
+          <span class="inline-flex w-fit items-center rounded-full bg-brand-accent-tint px-3 py-1 text-xs font-medium text-brand-accent">
+            In development
+          </span>
+          <h3 class="text-lg font-semibold text-brand-fg">{integration.name}</h3>
+          <p class="leading-relaxed text-brand-fg-muted">{integration.description}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
