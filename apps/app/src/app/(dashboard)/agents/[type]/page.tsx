@@ -12,7 +12,7 @@ export default async function AgentDetailPage({
   params, searchParams,
 }: {
   params: Promise<{ type: string }>;
-  searchParams: Promise<{ from?: string; to?: string }>;
+  searchParams: Promise<{ from?: string; to?: string; api_key_id?: string }>;
 }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -20,10 +20,10 @@ export default async function AgentDetailPage({
 
   const { type } = await params;
   const agentType = decodeURIComponent(type);
-  const { from, to } = await searchParams;
+  const { from, to, api_key_id } = await searchParams;
   const { p_from, p_to } = parseDateRange(from, to);
 
-  const tsResult = await getAgentTimeseries(supabase, user.id, agentType, p_from, p_to);
+  const tsResult = await getAgentTimeseries(supabase, user.id, agentType, p_from, p_to, api_key_id || undefined);
   const points = tsResult.success ? tsResult.data : [];
   const summary = summariseAgentTimeseries(points);
 

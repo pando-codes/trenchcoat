@@ -18,11 +18,12 @@ import { formatDuration } from "@/lib/format/duration";
 
 interface SessionsPageProps {
   searchParams: Promise<{
-    page?:    string;
-    branch?:  string;
-    from?:    string;
-    to?:      string;
-    user_id?: string;
+    page?:       string;
+    branch?:     string;
+    from?:       string;
+    to?:         string;
+    user_id?:    string;
+    api_key_id?: string;
   }>;
 }
 
@@ -45,11 +46,12 @@ export default async function SessionsPage({ searchParams }: SessionsPageProps) 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const page   = Math.max(1, parseInt(params.page ?? "1", 10));
-  const branch = params.branch   ?? undefined;
-  const from   = params.from     ?? undefined;
-  const to     = params.to       ?? undefined;
-  const offset = (page - 1) * PAGE_SIZE;
+  const page     = Math.max(1, parseInt(params.page ?? "1", 10));
+  const branch   = params.branch     ?? undefined;
+  const from     = params.from       ?? undefined;
+  const to       = params.to         ?? undefined;
+  const apiKeyId = params.api_key_id ?? undefined;
+  const offset   = (page - 1) * PAGE_SIZE;
 
   const { p_from, p_to } = parseDateRange(from, to);
 
@@ -85,6 +87,7 @@ export default async function SessionsPage({ searchParams }: SessionsPageProps) 
         .order("started_at", { ascending: false })
         .range(offset, offset + PAGE_SIZE - 1);
       if (branch) query = query.eq("git_branch", branch);
+      if (apiKeyId) query = query.eq("api_key_id", apiKeyId);
       return query;
     })(),
     supabase

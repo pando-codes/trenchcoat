@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { Topbar } from "@/components/dashboard/topbar";
+import { listApiKeys } from "@/lib/services/api-keys.service";
 
 export default async function DashboardLayout({
   children,
@@ -24,6 +25,12 @@ export default async function DashboardLayout({
     "User";
   const avatarUrl = user.user_metadata?.avatar_url ?? null;
 
+  // Machines = the user's API keys (one key per machine/environment).
+  const keysResult = await listApiKeys(supabase, user.id);
+  const machines = keysResult.success
+    ? keysResult.data.map((k) => ({ id: k.id, name: k.name }))
+    : [];
+
   return (
     <div className="flex min-h-screen">
       <Sidebar
@@ -36,6 +43,7 @@ export default async function DashboardLayout({
           userName={displayName}
           avatarUrl={avatarUrl}
           userEmail={user.email ?? ""}
+          machines={machines}
         />
         <main className="flex-1 bg-background">
           {children}

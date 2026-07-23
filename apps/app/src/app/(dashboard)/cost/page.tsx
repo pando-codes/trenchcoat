@@ -26,7 +26,7 @@ function formatTokens(n: number): string {
 export default async function CostPage({
   searchParams,
 }: {
-  searchParams: Promise<{ from?: string; to?: string }>;
+  searchParams: Promise<{ from?: string; to?: string; api_key_id?: string }>;
 }) {
   const supabase = await createClient();
   const {
@@ -37,13 +37,14 @@ export default async function CostPage({
     redirect("/login");
   }
 
-  const { from, to } = await searchParams;
+  const { from, to, api_key_id } = await searchParams;
   const { p_from, p_to } = parseDateRange(from, to);
+  const apiKeyId = api_key_id || undefined;
 
   const [dailyCostResult, modelCostResult, agentsResult] = await Promise.all([
-    supabase.rpc("get_daily_cost", { p_user_id: user.id, p_from, p_to }),
-    supabase.rpc("get_cost_by_model", { p_user_id: user.id, p_from, p_to }),
-    getTopAgents(supabase, user.id, p_from, p_to, 20),
+    supabase.rpc("get_daily_cost", { p_user_id: user.id, p_from, p_to, p_api_key_id: apiKeyId ?? null }),
+    supabase.rpc("get_cost_by_model", { p_user_id: user.id, p_from, p_to, p_api_key_id: apiKeyId ?? null }),
+    getTopAgents(supabase, user.id, p_from, p_to, 20, apiKeyId),
   ]);
 
   const dailyCost = mapDailyCost((dailyCostResult.data as Record<string, unknown>[]) ?? []);

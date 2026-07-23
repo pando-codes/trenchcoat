@@ -16,13 +16,14 @@ export const GET = createApiHandler(
     const url = new URL(request.url);
     const from = url.searchParams.get("from");
     const to = url.searchParams.get("to");
+    const apiKeyId = url.searchParams.get("api_key_id") ?? undefined;
 
     if (!from || !to) {
       return badRequest("Missing required query parameters: from, to (YYYY-MM-DD)");
     }
 
     const adminClient = getAdminClient();
-    const result = await getTopTools(adminClient, userId, from, to);
+    const result = await getTopTools(adminClient, userId, from, to, apiKeyId);
 
     if (!result.success) {
       return badRequest(result.error.message);

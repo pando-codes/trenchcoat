@@ -42,12 +42,14 @@ export async function getEvalList(
   supabase: SupabaseClient,
   userId: string,
   from: string,
-  to: string
+  to: string,
+  apiKeyId?: string
 ): Promise<ServiceResult<EvalListEntry[]>> {
   const { data, error } = await supabase.rpc("get_eval_list", {
     p_user_id: userId,
     p_from: from,
     p_to: to,
+    p_api_key_id: apiKeyId ?? null,
   });
 
   if (error) {

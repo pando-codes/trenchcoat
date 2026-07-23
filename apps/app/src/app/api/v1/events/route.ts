@@ -39,10 +39,10 @@ export const POST = createApiHandler<IngestPayload>(
     rateLimitTier: "ingestion",
   },
   async (_request, context) => {
-    const { userId, body } = context;
+    const { userId, body, apiKey } = context;
     const adminClient = getAdminClient();
 
-    const result = await ingestEvents(adminClient, userId, body.events);
+    const result = await ingestEvents(adminClient, userId, body.events, apiKey?.id ?? null);
 
     if (!result.success) {
       return badRequest(result.error.details ? `${result.error.message}: ${result.error.details}` : result.error.message);

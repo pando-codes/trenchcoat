@@ -24,7 +24,7 @@ function formatMs(ms: number | null): string {
 export default async function ToolsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ from?: string; to?: string }>;
+  searchParams: Promise<{ from?: string; to?: string; api_key_id?: string }>;
 }) {
   const supabase = await createClient();
   const {
@@ -35,7 +35,7 @@ export default async function ToolsPage({
     redirect("/login");
   }
 
-  const { from, to } = await searchParams;
+  const { from, to, api_key_id } = await searchParams;
   const { p_from, p_to } = parseDateRange(from, to);
 
   const { data } = await supabase.rpc("get_top_tools", {
@@ -43,6 +43,7 @@ export default async function ToolsPage({
     p_from,
     p_to,
     p_limit: 50,
+    p_api_key_id: api_key_id || null,
   });
 
   const tools: ToolUsageStat[] = ((data as Record<string, unknown>[]) ?? []).map((row) => ({
