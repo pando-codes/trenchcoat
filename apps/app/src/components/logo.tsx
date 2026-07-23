@@ -8,19 +8,16 @@ export function TrenchcoatMark({ className }: LogoProps) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 64 64"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={3.5}
-      strokeLinecap="square"
-      strokeLinejoin="miter"
+      viewBox="0 0 100 100"
+      fill="currentColor"
       role="img"
       aria-label="Trenchcoat mark"
       className={cn("size-6", className)}
     >
-      <path d="M12 12 L32 30" />
-      <path d="M52 12 L32 30" />
-      <path d="M32 30 L32 54" />
+      {/* Registered canon mark (br_id7k2a): a two-rect "T" — crossbar + stem, */}
+      {/* centered on x=50. Glyph only (no tile) so it inherits currentColor. */}
+      <rect x="18" y="18" width="64" height="16" rx="4" ry="4" />
+      <rect x="41" y="18" width="18" height="64" rx="3" ry="3" />
     </svg>
   );
 }
