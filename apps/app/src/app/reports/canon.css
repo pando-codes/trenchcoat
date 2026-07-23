@@ -1,77 +1,17 @@
 /*
-  Trenchcoat canon tokens — scoped to the /reports route.
+  /reports route styling.
 
-  Values below are copied VERBATIM from the registered canon source at
-  Marketing/Branding/identity/tokens/tokens.css (br_id7k2a, registered
-  2026-07-23). They are scoped to `.tc-reports` rather than applied at
-  `:root` so this brief (br_db4m9x) cannot alter the rest of the app's
-  existing theme — the two token systems are not reconciled yet, see
-  "The work" in the brief for that note to head-of-creative.
-
-  Do not add, remove, or edit a value here without updating it in the
-  registered source first — this file mirrors canon, it does not define it.
+  Reconciled (br_th5k2c): this file previously held its own verbatim copy
+  of every `--tc-*` custom property, scoped to `.tc-reports`, independent
+  of the app's shared theme (br_db4m9x — see that brief's "The work" for
+  why, and its note to head-of-creative flagging the two-systems gap this
+  brief closes). The tokens now live in exactly one place — the shared
+  `:root` definition at ../../styles/canon.css, imported once by
+  globals.css and in scope everywhere in the app, including here. This
+  file only adds the route-scoping rules below; it defines no token.
 */
 
 .tc-reports {
-  /* Color — surface */
-  --tc-surface-0: #0A0A0B;
-  --tc-surface-1: #141417;
-  --tc-surface-2: #1C1D21;
-  --tc-border: #2A2B30;
-  --tc-border-strong: #3A3B42;
-
-  /* Color — ink */
-  --tc-ink-primary: #F5F3EF;
-  --tc-ink-secondary: #A6A29C;
-  --tc-ink-muted: #726D67;
-  --tc-ink-on-accent: #0A0A0B;
-
-  /* Color — accent (single signature accent, per canon) */
-  --tc-accent: #C8832A;
-  --tc-accent-emphasis: #E0983A;
-  --tc-accent-subtle: #3A2A16;
-
-  /* Type families */
-  --tc-font-display: "Inter", -apple-system, "Segoe UI", sans-serif;
-  --tc-font-text: "Inter", -apple-system, "Segoe UI", sans-serif;
-  --tc-font-mono: "JetBrains Mono", "SF Mono", ui-monospace, monospace;
-
-  /* Type scale — size / line-height / weight */
-  --tc-text-heading-lg-size: 30px;  --tc-text-heading-lg-lh: 1.2;   --tc-text-heading-lg-weight: 700;
-  --tc-text-heading-md-size: 24px;  --tc-text-heading-md-lh: 1.25;  --tc-text-heading-md-weight: 600;
-  --tc-text-heading-sm-size: 20px;  --tc-text-heading-sm-lh: 1.3;   --tc-text-heading-sm-weight: 600;
-  --tc-text-body-lg-size: 16px;     --tc-text-body-lg-lh: 1.5;      --tc-text-body-lg-weight: 400;
-  --tc-text-body-md-size: 14px;     --tc-text-body-md-lh: 1.5;      --tc-text-body-md-weight: 400;
-  --tc-text-label-size: 13px;       --tc-text-label-lh: 1.35;       --tc-text-label-weight: 500;
-  --tc-text-caption-size: 12px;     --tc-text-caption-lh: 1.35;     --tc-text-caption-weight: 500;
-  --tc-text-mono-md-size: 14px;     --tc-text-mono-md-lh: 1.5;      --tc-text-mono-md-weight: 400;
-  --tc-text-mono-sm-size: 13px;     --tc-text-mono-sm-lh: 1.4;      --tc-text-mono-sm-weight: 400;
-
-  /* Spacing — 4px base unit */
-  --tc-space-1: 4px;
-  --tc-space-2: 8px;
-  --tc-space-3: 12px;
-  --tc-space-4: 16px;
-  --tc-space-5: 20px;
-  --tc-space-6: 24px;
-  --tc-space-8: 32px;
-  --tc-space-10: 40px;
-  --tc-space-12: 48px;
-  --tc-space-16: 64px;
-
-  /* Radius */
-  --tc-radius-sm: 6px;
-  --tc-radius-md: 10px;
-  --tc-radius-lg: 16px;
-  --tc-radius-tile: 22px;
-
-  /* Motion — provisional placeholder per canon (not validated); used only
-     for the state-switcher micro-transitions below, and every use here
-     respects prefers-reduced-motion. */
-  --tc-motion-fast: 120ms;
-  --tc-motion-base: 180ms;
-  --tc-motion-easing-standard: cubic-bezier(0.2, 0, 0, 1);
-
   background-color: var(--tc-surface-0);
   color: var(--tc-ink-primary);
   font-family: var(--tc-font-text);
