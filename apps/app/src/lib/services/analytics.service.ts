@@ -20,12 +20,14 @@ export async function getOverviewStats(
   supabase: SupabaseClient,
   userId: string,
   from: string,
-  to: string
+  to: string,
+  apiKeyId?: string
 ): Promise<ServiceResult<OverviewStats>> {
   const { data, error } = await supabase.rpc("get_overview_stats", {
     p_user_id: userId,
     p_from: from,
     p_to: to,
+    p_api_key_id: apiKeyId ?? null,
   });
 
   if (error) {
@@ -50,8 +52,42 @@ export async function getDailyActivity(
   supabase: SupabaseClient,
   userId: string,
   from: string,
-  to: string
+  to: string,
+  apiKeyId?: string
 ): Promise<ServiceResult<DailyActivity[]>> {
+  // Machine filter active: daily_aggregates has no key dimension, so recompute
+  // from raw events via RPC. Unfiltered stays on the fast pre-aggregated table.
+  if (apiKeyId) {
+    const { data, error } = await supabase.rpc("get_daily_activity_for_key", {
+      p_user_id: userId,
+      p_from: from,
+      p_to: to,
+      p_api_key_id: apiKeyId,
+    });
+
+    if (error) {
+      return {
+        success: false,
+        error: {
+          code: "RPC_FAILED",
+          message: "Failed to get daily activity",
+          details: error.message,
+        },
+      };
+    }
+
+    const activity: DailyActivity[] = ((data as Record<string, unknown>[]) ?? []).map(
+      (row) => ({
+        date: row.date as string,
+        sessions: (row.sessions as number) ?? 0,
+        events: (row.events as number) ?? 0,
+        tool_uses: (row.tool_uses as number) ?? 0,
+      })
+    );
+
+    return { success: true, data: activity };
+  }
+
   const { data, error } = await supabase
     .from("daily_aggregates")
     .select("date, sessions, events, tool_uses")
@@ -89,12 +125,14 @@ export async function getTopTools(
   supabase: SupabaseClient,
   userId: string,
   from: string,
-  to: string
+  to: string,
+  apiKeyId?: string
 ): Promise<ServiceResult<ToolUsageStat[]>> {
   const { data, error } = await supabase.rpc("get_top_tools", {
     p_user_id: userId,
     p_from: from,
     p_to: to,
+    p_api_key_id: apiKeyId ?? null,
   });
 
   if (error) {
@@ -131,8 +169,49 @@ export async function getHourlyHeatmap(
   supabase: SupabaseClient,
   userId: string,
   from: string,
-  to: string
+  to: string,
+  apiKeyId?: string
 ): Promise<ServiceResult<HourlyHeatmapEntry[]>> {
+  // Machine filter active: recompute the day-of-week × hour grid from raw events.
+  if (apiKeyId) {
+    const { data, error } = await supabase.rpc("get_hourly_heatmap_for_key", {
+      p_user_id: userId,
+      p_from: from,
+      p_to: to,
+      p_api_key_id: apiKeyId,
+    });
+
+    if (error) {
+      return {
+        success: false,
+        error: {
+          code: "RPC_FAILED",
+          message: "Failed to get heatmap data",
+          details: error.message,
+        },
+      };
+    }
+
+    const counts = new Map<string, number>();
+    for (const row of (data as Record<string, unknown>[]) ?? []) {
+      const dow = row.day_of_week as number;
+      const hour = row.hour as number;
+      counts.set(`${dow}:${hour}`, (row.count as number) ?? 0);
+    }
+
+    const filtered: HourlyHeatmapEntry[] = [];
+    for (let dow = 0; dow < 7; dow++) {
+      for (let hour = 0; hour < 24; hour++) {
+        filtered.push({
+          day_of_week: dow,
+          hour,
+          count: counts.get(`${dow}:${hour}`) ?? 0,
+        });
+      }
+    }
+    return { success: true, data: filtered };
+  }
+
   const { data, error } = await supabase
     .from("daily_aggregates")
     .select("date, hourly_distribution")
@@ -190,13 +269,15 @@ export async function getTopAgents(
   userId: string,
   from: string,
   to: string,
-  limit = 50
+  limit = 50,
+  apiKeyId?: string
 ): Promise<ServiceResult<AgentStat[]>> {
   const { data, error } = await supabase.rpc("get_top_agents", {
     p_user_id: userId,
     p_from: from,
     p_to: to,
     p_limit: limit,
+    p_api_key_id: apiKeyId ?? null,
   });
 
   if (error) {
@@ -232,13 +313,15 @@ export async function getAgentTimeseries(
   userId: string,
   agentType: string,
   from: string,
-  to: string
+  to: string,
+  apiKeyId?: string
 ): Promise<ServiceResult<AgentTimeseriesPoint[]>> {
   const { data, error } = await supabase.rpc("get_agent_timeseries", {
     p_user_id: userId,
     p_agent_type: agentType,
     p_from: from,
     p_to: to,
+    p_api_key_id: apiKeyId ?? null,
   });
 
   if (error) {

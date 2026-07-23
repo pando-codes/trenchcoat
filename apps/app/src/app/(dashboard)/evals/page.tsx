@@ -16,7 +16,7 @@ import { getEvalList } from "@/lib/services/evals.service";
 export default async function EvalsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ from?: string; to?: string }>;
+  searchParams: Promise<{ from?: string; to?: string; api_key_id?: string }>;
 }) {
   const supabase = await createClient();
   const {
@@ -27,10 +27,10 @@ export default async function EvalsPage({
     redirect("/login");
   }
 
-  const { from, to } = await searchParams;
+  const { from, to, api_key_id } = await searchParams;
   const { p_from, p_to } = parseDateRange(from, to);
 
-  const evalsResult = await getEvalList(supabase, user.id, p_from, p_to);
+  const evalsResult = await getEvalList(supabase, user.id, p_from, p_to, api_key_id || undefined);
   const evals = evalsResult.success ? evalsResult.data : [];
 
   return (

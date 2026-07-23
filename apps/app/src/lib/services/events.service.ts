@@ -9,7 +9,8 @@ import type { ServiceResult } from "./types";
 export async function ingestEvents(
   adminClient: SupabaseClient,
   userId: string,
-  events: IngestEvent[]
+  events: IngestEvent[],
+  apiKeyId: string | null = null
 ): Promise<ServiceResult<{ inserted: number }>> {
   if (events.length === 0) {
     return { success: true, data: { inserted: 0 } };
@@ -73,7 +74,7 @@ export async function ingestEvents(
     // Try to fetch existing session
     const { data: existingSession } = await adminClient
       .from("sessions")
-      .select("id, started_at, ended_at, event_count, tool_count")
+      .select("id, started_at, ended_at, event_count, tool_count, api_key_id")
       .eq("session_id", sessionId)
       .eq("user_id", userId)
       .single();
@@ -94,6 +95,11 @@ export async function ingestEvents(
       const durationMs =
         new Date(newEndedAt).getTime() - new Date(newStartedAt).getTime();
 
+      // Back-fill attribution for sessions created before we had a key
+      // (or before this column existed); never overwrite an existing value.
+      const nextApiKeyId =
+        (existingSession.api_key_id as string | null) ?? apiKeyId;
+
       await adminClient
         .from("sessions")
         .update({
@@ -102,6 +108,7 @@ export async function ingestEvents(
           duration_ms: durationMs > 0 ? durationMs : null,
           event_count: newEventCount,
           tool_count: newToolCount,
+          api_key_id: nextApiKeyId,
         })
         .eq("id", existingSession.id);
     } else {
@@ -116,6 +123,7 @@ export async function ingestEvents(
         duration_ms: durationMs > 0 ? durationMs : null,
         event_count: info.eventCount,
         tool_count: info.toolCount,
+        api_key_id: apiKeyId,
       });
     }
   }

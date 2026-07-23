@@ -14,11 +14,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DateRangePicker } from "@/components/dashboard/date-range-picker";
+import { MachineFilter, type MachineOption } from "@/components/dashboard/machine-filter";
 import { MobileSidebar } from "@/components/dashboard/mobile-sidebar";
 interface TopbarProps {
   userName: string;
   avatarUrl: string | null;
   userEmail: string;
+  machines: MachineOption[];
 }
 
 function getInitials(name: string): string {
@@ -35,6 +37,7 @@ export function Topbar({
   userName,
   avatarUrl,
   userEmail,
+  machines,
 }: TopbarProps) {
   const router = useRouter();
 
@@ -55,6 +58,9 @@ export function Topbar({
         />
         <Suspense fallback={<div className="h-9 w-[240px] rounded-md bg-muted animate-pulse" />}>
           <DateRangePicker />
+        </Suspense>
+        <Suspense fallback={null}>
+          <MachineFilter machines={machines} />
         </Suspense>
       </div>
 

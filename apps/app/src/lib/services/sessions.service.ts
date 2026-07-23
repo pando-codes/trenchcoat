@@ -12,6 +12,7 @@ export interface ListSessionsParams {
   offset?: number;
   from?: string; // ISO date string
   to?: string;
+  apiKeyId?: string; // machine filter (api_keys.id)
 }
 
 export async function listSessions(
@@ -33,6 +34,9 @@ export async function listSessions(
   }
   if (params.to) {
     query = query.lte("started_at", params.to);
+  }
+  if (params.apiKeyId) {
+    query = query.eq("api_key_id", params.apiKeyId);
   }
 
   query = query.range(offset, offset + limit - 1);

@@ -169,6 +169,7 @@ export type Database = {
       }
       sessions: {
         Row: {
+          api_key_id: string | null
           created_at: string | null
           duration_ms: number | null
           ended_at: string | null
@@ -190,6 +191,7 @@ export type Database = {
           working_directory: string | null
         }
         Insert: {
+          api_key_id?: string | null
           created_at?: string | null
           duration_ms?: number | null
           ended_at?: string | null
@@ -211,6 +213,7 @@ export type Database = {
           working_directory?: string | null
         }
         Update: {
+          api_key_id?: string | null
           created_at?: string | null
           duration_ms?: number | null
           ended_at?: string | null
@@ -418,15 +421,27 @@ export type Database = {
       }
       create_events_partition: { Args: never; Returns: undefined }
       get_cost_by_model: {
-        Args: { p_from: string; p_to: string; p_user_id: string }
+        Args: { p_from: string; p_to: string; p_user_id: string; p_api_key_id?: string | null }
         Returns: Json
       }
       get_daily_cost: {
-        Args: { p_from: string; p_to: string; p_user_id: string }
+        Args: { p_from: string; p_to: string; p_user_id: string; p_api_key_id?: string | null }
+        Returns: Json
+      }
+      get_daily_activity_for_key: {
+        Args: { p_from: string; p_to: string; p_user_id: string; p_api_key_id: string }
+        Returns: Json
+      }
+      get_hourly_heatmap_for_key: {
+        Args: { p_from: string; p_to: string; p_user_id: string; p_api_key_id: string }
+        Returns: Json
+      }
+      get_stop_reasons_for_key: {
+        Args: { p_from: string; p_to: string; p_user_id: string; p_api_key_id: string }
         Returns: Json
       }
       get_overview_stats: {
-        Args: { p_from: string; p_to: string; p_user_id: string }
+        Args: { p_from: string; p_to: string; p_user_id: string; p_api_key_id?: string | null }
         Returns: Json
       }
       get_team_member_stats: {
@@ -458,6 +473,7 @@ export type Database = {
           p_limit?: number
           p_to: string
           p_user_id: string
+          p_api_key_id?: string | null
         }
         Returns: Json
       }
@@ -466,6 +482,7 @@ export type Database = {
           p_from: string
           p_to: string
           p_user_id: string
+          p_api_key_id?: string | null
         }
         Returns: Json
       }
@@ -475,6 +492,7 @@ export type Database = {
           p_limit?: number
           p_to: string
           p_user_id: string
+          p_api_key_id?: string | null
         }
         Returns: Json
       }

@@ -17,7 +17,7 @@ import type { SkillStat } from "@/types/analytics";
 export default async function SkillsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ from?: string; to?: string }>;
+  searchParams: Promise<{ from?: string; to?: string; api_key_id?: string }>;
 }) {
   const supabase = await createClient();
   const {
@@ -28,13 +28,14 @@ export default async function SkillsPage({
     redirect("/login");
   }
 
-  const { from, to } = await searchParams;
+  const { from, to, api_key_id } = await searchParams;
   const { p_from, p_to } = parseDateRange(from, to);
 
   const { data } = await supabase.rpc("get_skill_stats", {
     p_user_id: user.id,
     p_from,
     p_to,
+    p_api_key_id: api_key_id || null,
   });
 
   const skills: SkillStat[] = ((data as Record<string, unknown>[]) ?? []).map((row) => ({

@@ -17,6 +17,7 @@ export const GET = createApiHandler(
     const url = new URL(request.url);
     const from = url.searchParams.get("from") ?? undefined;
     const to = url.searchParams.get("to") ?? undefined;
+    const apiKeyId = url.searchParams.get("api_key_id") ?? undefined;
 
     const adminClient = getAdminClient();
     const result = await listSessions(adminClient, userId, {
@@ -24,6 +25,7 @@ export const GET = createApiHandler(
       offset: pagination?.offset,
       from,
       to,
+      apiKeyId,
     });
 
     if (!result.success) {

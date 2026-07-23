@@ -1,5 +1,43 @@
 # Changelog
 
+## [2026-07-23] — Per-Machine (Per-API-Key) Filtering
+
+### Added
+- `sessions.api_key_id` column (migration `035_session_api_key.sql`) attributing every
+  session to the API key that ingested it. One key = one machine/environment.
+- Global **Machine** filter in the dashboard topbar (`MachineFilter`), sourced from the
+  user's API keys, applied via an `api_key_id` URL param on every page. Hidden until the
+  user has ≥2 keys.
+- New RPCs for filtered analytics where the pre-aggregated `daily_aggregates` table has no
+  key dimension: `get_daily_activity_for_key`, `get_hourly_heatmap_for_key`,
+  `get_stop_reasons_for_key`.
+
+### Changed
+- Analytics RPCs gained an optional `p_api_key_id` (null = all machines, output unchanged):
+  `get_overview_stats`, `get_top_tools`, `get_top_agents`, `get_agent_timeseries`,
+  `get_skill_stats`, `get_daily_cost`, `get_cost_by_model`, `get_eval_list`.
+- Ingestion (`events.service.ts`) stamps `api_key_id` on session insert and back-fills NULLs
+  on update (never overwrites).
+- Sessions list + overview / activity / tools / agents / cost / skills / evals pages and the
+  `/api/v1/sessions`, `/api/v1/analytics/overview`, `/api/v1/analytics/tools` routes thread
+  the machine filter through.
+
+### Technical Details
+- Attribution grain is `sessions` only; `events`/`agents` inherit it via a session join, so
+  drilling into any session shows one machine's events/agents/skills/tools inherently.
+- `daily_aggregates` reads use **bypass-when-filtered**: unfiltered keeps the fast
+  pre-aggregated path byte-for-byte; a machine filter recomputes from raw events/sessions.
+- Historical sessions have `api_key_id = NULL` until a keyed batch re-touches them. UI filters
+  by immutable `api_key_id` but labels by the key's current `name`, so key rotation with a
+  reused name keeps a machine coherent.
+- **Applied to production** (`mqdkmtkgbkbbfbiykwxx`, 2026-07-23) after validating on a throwaway
+  dev branch: all 13 functions smoke-tested against a two-machine seed, filtering confirmed
+  correct. Fixed one bug found in validation — adding `p_api_key_id` overloaded rather than
+  replaced the old signatures, so the migration `drop function`s the 8 prior signatures first.
+  Post-apply verification: column + index present, each RPC resolves to a single signature.
+- **Still to do:** deploy the app so the dashboard machine filter goes live.
+- Plan and design rationale in `docs/features/per-machine-filtering/`.
+
 ## [2026-07-20] — Cache-Aware Session Cost
 
 ### Changed

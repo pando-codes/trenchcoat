@@ -51,9 +51,10 @@ interface SectionProps {
   userId: string;
   p_from: string;
   p_to: string;
+  apiKeyId?: string;
 }
 
-async function StatsSection({ userId, p_from, p_to }: SectionProps) {
+async function StatsSection({ userId, p_from, p_to, apiKeyId }: SectionProps) {
   const supabase = await createClient();
 
   const fromMs = new Date(p_from).getTime();
@@ -62,9 +63,10 @@ async function StatsSection({ userId, p_from, p_to }: SectionProps) {
   const prevTo = new Date(fromMs - 24 * 60 * 60 * 1000).toISOString().substring(0, 10);
   const prevFrom = new Date(fromMs - 24 * 60 * 60 * 1000 - periodMs).toISOString().substring(0, 10);
 
+  const p_api_key_id = apiKeyId ?? null;
   const [statsResult, prevStatsResult] = await Promise.all([
-    supabase.rpc("get_overview_stats", { p_user_id: userId, p_from, p_to }),
-    supabase.rpc("get_overview_stats", { p_user_id: userId, p_from: prevFrom, p_to: prevTo }),
+    supabase.rpc("get_overview_stats", { p_user_id: userId, p_from, p_to, p_api_key_id }),
+    supabase.rpc("get_overview_stats", { p_user_id: userId, p_from: prevFrom, p_to: prevTo, p_api_key_id }),
   ]);
 
   return (
@@ -75,16 +77,31 @@ async function StatsSection({ userId, p_from, p_to }: SectionProps) {
   );
 }
 
-async function ActivitySection({ userId, p_from, p_to }: SectionProps) {
+async function ActivitySection({ userId, p_from, p_to, apiKeyId }: SectionProps) {
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("daily_aggregates")
-    .select("date, sessions, events, tool_uses")
-    .eq("user_id", userId)
-    .gte("date", p_from)
-    .lte("date", p_to)
-    .order("date", { ascending: true })
-    .limit(30);
+  // Machine filter active → daily_aggregates has no key dimension, recompute
+  // from raw events; otherwise read the fast pre-aggregated table.
+  type ActivityRows = Parameters<typeof mapDailyActivity>[0];
+  let data: ActivityRows | null;
+  if (apiKeyId) {
+    const res = await supabase.rpc("get_daily_activity_for_key", {
+      p_user_id: userId,
+      p_from,
+      p_to,
+      p_api_key_id: apiKeyId,
+    });
+    data = (res.data as unknown as ActivityRows) ?? [];
+  } else {
+    const res = await supabase
+      .from("daily_aggregates")
+      .select("date, sessions, events, tool_uses")
+      .eq("user_id", userId)
+      .gte("date", p_from)
+      .lte("date", p_to)
+      .order("date", { ascending: true })
+      .limit(30);
+    data = res.data;
+  }
 
   return (
     <Card>
@@ -98,13 +115,14 @@ async function ActivitySection({ userId, p_from, p_to }: SectionProps) {
   );
 }
 
-async function TopToolsSection({ userId, p_from, p_to }: SectionProps) {
+async function TopToolsSection({ userId, p_from, p_to, apiKeyId }: SectionProps) {
   const supabase = await createClient();
   const { data } = await supabase.rpc("get_top_tools", {
     p_user_id: userId,
     p_from,
     p_to,
     p_limit: 10,
+    p_api_key_id: apiKeyId ?? null,
   });
   const topTools: ToolUsageStat[] = (data as unknown as ToolUsageStat[]) ?? [];
 
@@ -126,9 +144,14 @@ async function TopToolsSection({ userId, p_from, p_to }: SectionProps) {
   );
 }
 
-async function CostSection({ userId, p_from, p_to }: SectionProps) {
+async function CostSection({ userId, p_from, p_to, apiKeyId }: SectionProps) {
   const supabase = await createClient();
-  const { data } = await supabase.rpc("get_daily_cost", { p_user_id: userId, p_from, p_to });
+  const { data } = await supabase.rpc("get_daily_cost", {
+    p_user_id: userId,
+    p_from,
+    p_to,
+    p_api_key_id: apiKeyId ?? null,
+  });
 
   return (
     <Card>
@@ -147,7 +170,7 @@ async function CostSection({ userId, p_from, p_to }: SectionProps) {
 export default async function OverviewPage({
   searchParams,
 }: {
-  searchParams: Promise<{ from?: string; to?: string }>;
+  searchParams: Promise<{ from?: string; to?: string; api_key_id?: string }>;
 }) {
   const supabase = await createClient();
   const {
@@ -158,8 +181,9 @@ export default async function OverviewPage({
     redirect("/login");
   }
 
-  const { from, to } = await searchParams;
+  const { from, to, api_key_id } = await searchParams;
   const { p_from, p_to } = parseDateRange(from, to);
+  const apiKeyId = api_key_id || undefined;
 
   return (
     <div className="flex flex-col gap-6 p-6">
@@ -171,20 +195,20 @@ export default async function OverviewPage({
       </div>
 
       <Suspense fallback={<StatCardsSkeleton />}>
-        <StatsSection userId={user.id} p_from={p_from} p_to={p_to} />
+        <StatsSection userId={user.id} p_from={p_from} p_to={p_to} apiKeyId={apiKeyId} />
       </Suspense>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Suspense fallback={<ChartCardSkeleton title="Daily Activity" />}>
-          <ActivitySection userId={user.id} p_from={p_from} p_to={p_to} />
+          <ActivitySection userId={user.id} p_from={p_from} p_to={p_to} apiKeyId={apiKeyId} />
         </Suspense>
         <Suspense fallback={<ChartCardSkeleton title="Top Tools" />}>
-          <TopToolsSection userId={user.id} p_from={p_from} p_to={p_to} />
+          <TopToolsSection userId={user.id} p_from={p_from} p_to={p_to} apiKeyId={apiKeyId} />
         </Suspense>
       </div>
 
       <Suspense fallback={<ChartCardSkeleton title="Daily Cost" />}>
-        <CostSection userId={user.id} p_from={p_from} p_to={p_to} />
+        <CostSection userId={user.id} p_from={p_from} p_to={p_to} apiKeyId={apiKeyId} />
       </Suspense>
     </div>
   );

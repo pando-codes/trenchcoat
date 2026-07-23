@@ -18,7 +18,7 @@ import { formatUsd, formatTokens, avgCostPerCall, formatLatency } from "@/lib/fo
 export default async function AgentsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ from?: string; to?: string }>;
+  searchParams: Promise<{ from?: string; to?: string; api_key_id?: string }>;
 }) {
   const supabase = await createClient();
   const {
@@ -29,18 +29,27 @@ export default async function AgentsPage({
     redirect("/login");
   }
 
-  const { from, to } = await searchParams;
+  const { from, to, api_key_id } = await searchParams;
   const { p_from, p_to } = parseDateRange(from, to);
+  const apiKeyId = api_key_id || undefined;
 
   const [agentsResult, dailyResult] = await Promise.all([
-    getTopAgents(supabase, user.id, p_from, p_to, 50),
-    supabase
-      .from("daily_aggregates")
-      .select("date, agent_calls")
-      .eq("user_id", user.id)
-      .gte("date", p_from)
-      .lte("date", p_to)
-      .order("date", { ascending: true }),
+    getTopAgents(supabase, user.id, p_from, p_to, 50, apiKeyId),
+    // Machine filter active → recompute agent_calls per day from raw events.
+    apiKeyId
+      ? supabase.rpc("get_daily_activity_for_key", {
+          p_user_id: user.id,
+          p_from,
+          p_to,
+          p_api_key_id: apiKeyId,
+        })
+      : supabase
+          .from("daily_aggregates")
+          .select("date, agent_calls")
+          .eq("user_id", user.id)
+          .gte("date", p_from)
+          .lte("date", p_to)
+          .order("date", { ascending: true }),
   ]);
 
   const agents = agentsResult.success ? agentsResult.data : [];
