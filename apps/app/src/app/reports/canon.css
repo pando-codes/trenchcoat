@@ -1,0 +1,40 @@
+/*
+  /reports route styling.
+
+  Reconciled (br_th5k2c): this file previously held its own verbatim copy
+  of every `--tc-*` custom property, scoped to `.tc-reports`, independent
+  of the app's shared theme (br_db4m9x — see that brief's "The work" for
+  why, and its note to head-of-creative flagging the two-systems gap this
+  brief closes). The tokens now live in exactly one place — the shared
+  `:root` definition at ../../styles/canon.css, imported once by
+  globals.css and in scope everywhere in the app, including here. This
+  file only adds the route-scoping rules below; it defines no token.
+*/
+
+.tc-reports {
+  background-color: var(--tc-surface-0);
+  color: var(--tc-ink-primary);
+  font-family: var(--tc-font-text);
+  min-height: 100vh;
+}
+
+.tc-reports .tc-font-display {
+  font-family: var(--tc-font-display);
+}
+
+.tc-reports .tc-font-mono {
+  font-family: var(--tc-font-mono);
+}
+
+.tc-reports *:focus-visible {
+  outline: 2px solid var(--tc-accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tc-reports * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

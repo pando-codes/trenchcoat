@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@import "../styles/canon.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -47,7 +48,19 @@
   --radius-4xl: calc(var(--radius) + 20px);
 }
 
-/* Light mode — warm paper palette with amber accent */
+/*
+  Light mode — pre-existing, non-canon "warm paper" approximation. Out of
+  scope for br_th5k2c (Fails-if #1 targets "the dark theme" specifically,
+  and Trenchcoat's registered canon is dark-first with no supported light
+  UI mode — see brand-canon: "light-surface tokens exist only for
+  print/light-context exceptions, not the default UI mode"). Kept as-is
+  per this brief's non-goals ("not fixing unrelated pre-existing issues in
+  globals.css"); it is also now unreachable in the running app, since
+  `<html>` carries `className="dark"` unconditionally (see layout.tsx) —
+  there is no light/dark toggle, so `.dark` below always wins the cascade.
+  Flagged to head-of-creative as a standing question (remove this block,
+  or wire it to the registered light-exception values) — not decided here.
+*/
 :root {
   --radius: 0.5rem;
   --background: oklch(0.99 0.004 84);
@@ -83,39 +96,54 @@
   --sidebar-ring: oklch(0.615 0.145 62);
 }
 
-/* Dark mode — full Trenchcoat brand: near-black + amber */
+/*
+  Dark mode — the full Trenchcoat brand, canon-exact (br_th5k2c). Every
+  brand-role value below is a `var(--tc-*)` reference into the single
+  shared source at ../styles/canon.css — never a hex/oklch literal — so
+  there is exactly one place a canon value can drift from. Mapping from
+  shadcn role to canon role follows the role descriptions registered in
+  tokens.json (e.g. popover -> surface-2 "Overlay, modal, popover...";
+  input -> border-strong "...active input borders"; chart-1, described in
+  canon as covering "key data highlights", tracks the signature accent —
+  it was already pinned 1:1 to --primary before this change).
+  `--destructive` has no registered canon counterpart (canon defines no
+  error/danger role) and is left as the pre-existing value per this
+  brief's non-goals. `--chart-2..5` are likewise outside canon (a
+  multi-hue chart palette isn't part of the one-accent brand system) and
+  are left unchanged.
+*/
 .dark {
-  --background: oklch(0.063 0.003 265);
-  --foreground: oklch(0.966 0.007 96);
-  --card: oklch(0.09 0.004 265);
-  --card-foreground: oklch(0.966 0.007 96);
-  --popover: oklch(0.124 0.005 265);
-  --popover-foreground: oklch(0.966 0.007 96);
-  --primary: oklch(0.615 0.145 62);
-  --primary-foreground: oklch(0.085 0.015 70);
-  --secondary: oklch(0.124 0.005 265);
-  --secondary-foreground: oklch(0.966 0.007 96);
-  --muted: oklch(0.09 0.004 265);
-  --muted-foreground: oklch(0.966 0.007 96 / 62%);
-  --accent: oklch(0.16 0.006 265);
-  --accent-foreground: oklch(0.966 0.007 96);
+  --background: var(--tc-surface-0);
+  --foreground: var(--tc-ink-primary);
+  --card: var(--tc-surface-1);
+  --card-foreground: var(--tc-ink-primary);
+  --popover: var(--tc-surface-2);
+  --popover-foreground: var(--tc-ink-primary);
+  --primary: var(--tc-accent);
+  --primary-foreground: var(--tc-ink-on-accent);
+  --secondary: var(--tc-surface-2);
+  --secondary-foreground: var(--tc-ink-primary);
+  --muted: var(--tc-surface-2);
+  --muted-foreground: var(--tc-ink-secondary);
+  --accent: var(--tc-surface-2);
+  --accent-foreground: var(--tc-ink-primary);
   --destructive: oklch(0.577 0.245 27);
-  --border: oklch(1 0 0 / 8%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.615 0.145 62);
-  --chart-1: oklch(0.615 0.145 62);
+  --border: var(--tc-border);
+  --input: var(--tc-border-strong);
+  --ring: var(--tc-accent);
+  --chart-1: var(--tc-accent);
   --chart-2: oklch(0.565 0.063 192);
   --chart-3: oklch(0.557 0.024 66);
   --chart-4: oklch(0.539 0.12 35);
   --chart-5: oklch(0.519 0.05 264);
-  --sidebar: oklch(0.09 0.004 265);
-  --sidebar-foreground: oklch(0.966 0.007 96);
-  --sidebar-primary: oklch(0.615 0.145 62);
-  --sidebar-primary-foreground: oklch(0.085 0.015 70);
-  --sidebar-accent: oklch(0.124 0.005 265);
-  --sidebar-accent-foreground: oklch(0.966 0.007 96);
-  --sidebar-border: oklch(1 0 0 / 8%);
-  --sidebar-ring: oklch(0.615 0.145 62);
+  --sidebar: var(--tc-surface-1);
+  --sidebar-foreground: var(--tc-ink-primary);
+  --sidebar-primary: var(--tc-accent);
+  --sidebar-primary-foreground: var(--tc-ink-on-accent);
+  --sidebar-accent: var(--tc-surface-2);
+  --sidebar-accent-foreground: var(--tc-ink-primary);
+  --sidebar-border: var(--tc-border);
+  --sidebar-ring: var(--tc-accent);
 }
 
 @layer base {
