@@ -642,6 +642,79 @@ def base_agent_fields(hook_input: dict) -> dict:
     return fields
 
 
+# --- Agent kind classification ---
+
+# Claude Code's built-in agent types (compared lowercased). These ship with the
+# CLI and are neither user- nor plugin-defined. 'general-purpose' doubles as the
+# fallback for a spawn made without an explicit subagent_type.
+BUILTIN_AGENT_TYPES = frozenset({
+    "general-purpose",
+    "general",
+    "explore",
+    "plan",
+    "fork",
+    "claude",
+    "output-style-setup",
+    "statusline-setup",
+})
+
+
+def _discover_local_agents(cwd: str | None) -> tuple[set, set]:
+    """Return (project_agent_names, user_agent_names) defined as markdown files.
+
+    Project agents live in ``<cwd>/.claude/agents/**/*.md``; user agents in
+    ``~/.claude/agents/**/*.md``. An agent's name is its file stem. Any error
+    (missing dir, unreadable) yields an empty set for that source — this must
+    never raise inside a hook.
+    """
+    def _names(base: Path) -> set:
+        try:
+            if not base.is_dir():
+                return set()
+            return {p.stem for p in base.glob("**/*.md") if p.is_file()}
+        except OSError:
+            return set()
+
+    project: set = set()
+    if cwd:
+        try:
+            project = _names(Path(cwd) / ".claude" / "agents")
+        except (OSError, ValueError):
+            project = set()
+    user = _names(Path.home() / ".claude" / "agents")
+    return project, user
+
+
+def classify_agent_kind(agent_type, cwd: str | None = None) -> str:
+    """Classify a subagent's origin into one of five kinds.
+
+    - ``plugin``  — a plugin-defined agent; always namespaced ``plugin:name``.
+    - ``builtin`` — a Claude Code built-in (also the no-subagent_type fallback).
+    - ``project`` — defined in ``<cwd>/.claude/agents/``.
+    - ``user``    — defined in ``~/.claude/agents/``.
+    - ``ad_hoc``  — an arbitrary label with no matching definition (e.g. a
+      workflow step label, or a named background agent spawned as general-purpose).
+
+    Resolution is best-effort and never raises: an unreadable agents directory
+    simply means those names won't match, falling through to ``ad_hoc``. The
+    order matters — the namespaced-plugin and built-in checks are pure string
+    tests and run before any filesystem lookup.
+    """
+    name = (agent_type or "").strip() if isinstance(agent_type, str) else ""
+    if not name:
+        return "builtin"  # empty / None == general-purpose fallback
+    if ":" in name:
+        return "plugin"
+    if name.lower() in BUILTIN_AGENT_TYPES:
+        return "builtin"
+    project, user = _discover_local_agents(cwd)
+    if name in project:
+        return "project"
+    if name in user:
+        return "user"
+    return "ad_hoc"
+
+
 # --- Hook input helper ---
 
 def read_hook_input() -> dict:

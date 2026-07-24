@@ -768,6 +768,80 @@ class TestBaseAgentFields:
 
 
 # ---------------------------------------------------------------------------
+# classify_agent_kind
+# ---------------------------------------------------------------------------
+
+class TestClassifyAgentKind:
+    @pytest.fixture(autouse=True)
+    def _isolate_home(self, tmp_path, monkeypatch):
+        """Point Path.home() at an empty dir so the real ~/.claude/agents can't
+        perturb 'ad_hoc'/'user' assertions."""
+        home = tmp_path / "home"
+        home.mkdir()
+        monkeypatch.setattr(telemetry.Path, "home", classmethod(lambda cls: home))
+        return home
+
+    def test_namespaced_is_plugin(self):
+        assert telemetry.classify_agent_kind("engineering:software-engineer") == "plugin"
+        assert telemetry.classify_agent_kind("growth:content") == "plugin"
+
+    def test_known_builtins(self):
+        for name in ("general-purpose", "Explore", "Plan", "fork", "claude"):
+            assert telemetry.classify_agent_kind(name) == "builtin", name
+
+    def test_empty_and_none_fall_back_to_builtin(self):
+        # A spawn with no explicit subagent_type is the general-purpose builtin.
+        assert telemetry.classify_agent_kind("") == "builtin"
+        assert telemetry.classify_agent_kind(None) == "builtin"
+        assert telemetry.classify_agent_kind("   ") == "builtin"
+
+    def test_unknown_bare_name_is_ad_hoc(self):
+        # Workflow step labels / named background agents with no definition.
+        assert telemetry.classify_agent_kind("impl-task13") == "ad_hoc"
+        assert telemetry.classify_agent_kind("gfx-identity") == "ad_hoc"
+
+    def test_project_agent_resolved_from_cwd(self, tmp_path):
+        agents = tmp_path / ".claude" / "agents"
+        agents.mkdir(parents=True)
+        (agents / "gfx-identity.md").write_text("---\nname: gfx-identity\n---\n")
+        assert telemetry.classify_agent_kind("gfx-identity", str(tmp_path)) == "project"
+        # A name without a matching file is still ad-hoc even with cwd set.
+        assert telemetry.classify_agent_kind("impl-task13", str(tmp_path)) == "ad_hoc"
+
+    def test_user_agent_resolved_from_home(self, _isolate_home):
+        agents = _isolate_home / ".claude" / "agents"
+        agents.mkdir(parents=True)
+        (agents / "my-helper.md").write_text("x")
+        # No cwd match, but a user-level definition exists.
+        assert telemetry.classify_agent_kind("my-helper") == "user"
+
+    def test_project_takes_precedence_over_user(self, tmp_path, _isolate_home):
+        (_isolate_home / ".claude" / "agents").mkdir(parents=True)
+        (_isolate_home / ".claude" / "agents" / "dup.md").write_text("x")
+        proj = tmp_path / ".claude" / "agents"
+        proj.mkdir(parents=True)
+        (proj / "dup.md").write_text("x")
+        assert telemetry.classify_agent_kind("dup", str(tmp_path)) == "project"
+
+    def test_project_agents_discovered_in_subdirs(self, tmp_path):
+        nested = tmp_path / ".claude" / "agents" / "creative"
+        nested.mkdir(parents=True)
+        (nested / "graphics-artist.md").write_text("x")
+        assert telemetry.classify_agent_kind("graphics-artist", str(tmp_path)) == "project"
+
+    def test_plugin_and_builtin_checks_ignore_cwd(self, tmp_path):
+        # Pure string checks must win before any filesystem lookup — even if a
+        # file happens to share the name.
+        agents = tmp_path / ".claude" / "agents"
+        agents.mkdir(parents=True)
+        (agents / "fork.md").write_text("x")
+        assert telemetry.classify_agent_kind("fork", str(tmp_path)) == "builtin"
+
+    def test_missing_cwd_directory_never_raises(self):
+        assert telemetry.classify_agent_kind("whatever", "/nonexistent/path/xyz") == "ad_hoc"
+
+
+# ---------------------------------------------------------------------------
 # parse_agent_transcript
 # ---------------------------------------------------------------------------
 

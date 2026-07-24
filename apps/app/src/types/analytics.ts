@@ -50,8 +50,16 @@ export interface SessionSummary {
   spawner_type: "skill" | "agent" | null;
 }
 
+/**
+ * Where a subagent came from. Resolved at hook time when possible (which is the
+ * only way to tell `project`/`user` apart from `ad_hoc`); historical rows fall
+ * back to a string heuristic that yields only `plugin` / `builtin` / `ad_hoc`.
+ */
+export type AgentKind = "plugin" | "builtin" | "project" | "user" | "ad_hoc";
+
 export interface AgentStat {
   agent_type: string;
+  agent_kind: AgentKind;
   count: number;
   avg_tool_count: number | null;
   avg_turns: number | null;
