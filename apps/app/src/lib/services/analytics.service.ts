@@ -289,6 +289,7 @@ export async function getTopAgents(
 
   const agents: AgentStat[] = ((data as Record<string, unknown>[]) ?? []).map((row) => ({
     agent_type: row.agent_type as string,
+    agent_kind: ((row.agent_kind as AgentStat["agent_kind"]) ?? "ad_hoc"),
     count: row.count as number,
     avg_tool_count: (row.avg_tool_count as number | null) ?? null,
     avg_turns: (row.avg_turns as number | null) ?? null,

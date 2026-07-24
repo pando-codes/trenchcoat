@@ -56,6 +56,10 @@ next-env.d.ts
 # supabase cli temp
 supabase/.temp/
 
+# app
+apps/app/node_modules/
+apps/app/.next/
+
 # marketing
 apps/marketing/dist/
 apps/marketing/.astro/

@@ -199,19 +199,32 @@ describe("getHourlyHeatmap", () => {
 // --- getTopAgents ---
 
 describe("getTopAgents", () => {
-  it("maps agent rows including cost and tokens", async () => {
+  it("maps agent rows including cost, tokens, and kind", async () => {
     const rows = [
-      { agent_type: "searcher", count: 12, avg_tool_count: 6, avg_turns: 4,
-        trend: 45.0, total_input_tokens: 90000, total_output_tokens: 12000, total_cost_usd: 0.42 },
+      { agent_type: "engineering:software-engineer", agent_kind: "plugin", count: 12,
+        avg_tool_count: 6, avg_turns: 4, trend: 45.0,
+        total_input_tokens: 90000, total_output_tokens: 12000, total_cost_usd: 0.42 },
     ];
     const supabase = createMockSupabase({}, { get_top_agents: { data: rows } });
     const result = await getTopAgents(supabase, USER_ID, FROM, TO, 50);
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data[0].agent_type).toBe("searcher");
+      expect(result.data[0].agent_type).toBe("engineering:software-engineer");
+      expect(result.data[0].agent_kind).toBe("plugin");
       expect(result.data[0].total_cost_usd).toBe(0.42);
       expect(result.data[0].total_input_tokens).toBe(90000);
     }
+  });
+
+  it("defaults missing agent_kind to ad_hoc (old plugin/backfill data)", async () => {
+    const rows = [
+      { agent_type: "impl-task13", count: 1, avg_tool_count: 17, avg_turns: 27,
+        trend: null, total_input_tokens: 54, total_output_tokens: 1800, total_cost_usd: 0.018 },
+    ];
+    const supabase = createMockSupabase({}, { get_top_agents: { data: rows } });
+    const result = await getTopAgents(supabase, USER_ID, FROM, TO, 50);
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data[0].agent_kind).toBe("ad_hoc");
   });
 
   it("returns RPC_FAILED on error", async () => {

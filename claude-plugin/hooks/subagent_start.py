@@ -6,7 +6,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "lib"))
 
-from telemetry import read_hook_input, is_enabled, write_event
+from telemetry import (
+    read_hook_input, is_enabled, write_event, classify_agent_kind,
+)
 
 
 def main():
@@ -15,6 +17,7 @@ def main():
         return
 
     session_id = hook_input.get("session_id", "unknown")
+    cwd = hook_input.get("cwd") or None
 
     event_data: dict = {}
     agent_id = hook_input.get("agent_id")
@@ -23,6 +26,7 @@ def main():
     agent_type = hook_input.get("agent_type")
     if agent_type:
         event_data["agent_type"] = agent_type
+        event_data["agent_kind"] = classify_agent_kind(agent_type, cwd)
 
     write_event("subagent_start", session_id, event_data)
 

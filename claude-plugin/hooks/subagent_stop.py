@@ -8,6 +8,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "lib"))
 
 from telemetry import (
     read_hook_input, is_enabled, write_event, parse_agent_transcript,
+    classify_agent_kind,
 )
 
 
@@ -21,6 +22,7 @@ def main():
     agent_id         = hook_input.get("agent_id")
     stop_hook_active = bool(hook_input.get("stop_hook_active", False))
     transcript_path  = hook_input.get("agent_transcript_path")
+    cwd              = hook_input.get("cwd") or None
 
     tool_summary = {}
     if transcript_path:
@@ -28,6 +30,7 @@ def main():
 
     event_data: dict = {
         "agent_type":       agent_type,
+        "agent_kind":       classify_agent_kind(agent_type, cwd),
         "stop_hook_active": stop_hook_active,
         "tool_counts":      tool_summary.get("tool_counts", {}),
         "tool_count_total": tool_summary.get("total_tools", 0),

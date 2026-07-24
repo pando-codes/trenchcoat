@@ -1,19 +1,10 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { parseDateRange } from "@/lib/date-range";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { AgentCallsChart } from "@/components/charts/agent-calls-chart";
+import { TopAgentsTable } from "@/components/agents/top-agents-table";
 import { getTopAgents } from "@/lib/services/analytics.service";
-import { formatUsd, formatTokens, avgCostPerCall, formatLatency } from "@/lib/format/agents";
 
 export default async function AgentsPage({
   searchParams,
@@ -92,74 +83,7 @@ export default async function AgentsPage({
           <CardTitle>Top Agents</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Agent Type</TableHead>
-                <TableHead className="text-right">Calls</TableHead>
-                <TableHead className="text-right">Avg Cost</TableHead>
-                <TableHead className="text-right">Tokens (in/out)</TableHead>
-                <TableHead className="text-right">Latency p50 / p99</TableHead>
-                <TableHead className="text-right">Avg Tools/Call</TableHead>
-                <TableHead className="text-right">Avg Turns</TableHead>
-                <TableHead className="text-right">Trend</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {agents.length === 0 ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={8}
-                    className="text-center text-muted-foreground"
-                  >
-                    No agent data found.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                agents.map((stat) => (
-                  <TableRow key={stat.agent_type}>
-                    <TableCell className="font-medium">
-                      <Link href={`/agents/${encodeURIComponent(stat.agent_type || "general-purpose")}`}
-                            className="hover:underline">
-                        {stat.agent_type || "general-purpose"}
-                      </Link>
-                    </TableCell>
-                    <TableCell className="text-right">{stat.count}</TableCell>
-                    <TableCell className="text-right">
-                      {formatUsd(avgCostPerCall(stat.total_cost_usd, stat.count))}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {formatTokens(stat.total_input_tokens)} / {formatTokens(stat.total_output_tokens)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {formatLatency(stat.p50_latency_ms, stat.latency_sample_count)}
-                      {" / "}
-                      {formatLatency(stat.p99_latency_ms, stat.latency_sample_count)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {stat.avg_tool_count?.toFixed(1) ?? "--"}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {stat.avg_turns?.toFixed(1) ?? "--"}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {stat.trend === null ? (
-                        <span className="text-muted-foreground">--</span>
-                      ) : stat.trend > 0 ? (
-                        <span className="text-emerald-600">
-                          +{stat.trend.toFixed(1)}%
-                        </span>
-                      ) : (
-                        <span className="text-red-500">
-                          {stat.trend.toFixed(1)}%
-                        </span>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+          <TopAgentsTable agents={agents} />
         </CardContent>
       </Card>
     </div>

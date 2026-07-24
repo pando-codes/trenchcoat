@@ -1,5 +1,34 @@
 # Changelog
 
+## [2026-07-23] — Agent Kind Classification
+
+### Added
+- Every subagent spawn is classified into one of five origins — `plugin`, `builtin`,
+  `project`, `user`, `ad_hoc` — resolved at hook time by `classify_agent_kind()` in the plugin
+  and stored on the event (`data.agent_kind`).
+- **Origin** badge column and per-kind filter chips on the **Top Agents** table
+  (`TopAgentsTable`), letting defined plugin/project/user agents be evaluated apart from
+  built-ins and ad-hoc labels (workflow step labels, named background agents).
+- `classify_agent_kind(text)` SQL fallback (migration `036_agent_kind.sql`) for historical
+  events with no stored kind (string heuristic: `plugin`/`builtin`/`ad_hoc` only).
+
+### Changed
+- `get_top_agents` now returns `agent_kind = coalesce(<stored>, classify_agent_kind(type))` —
+  the hook-resolved kind is authoritative; the heuristic only fills gaps.
+- `subagent_start.py` / `subagent_stop.py` read `cwd` from hook input and stamp `agent_kind`.
+
+### Technical Details
+- Only the hook can tell `project`/`user`-defined agents apart from `ad_hoc` labels — it reads
+  `<cwd>/.claude/agents/**/*.md` and `~/.claude/agents/**/*.md` at spawn time. The dashboard
+  string heuristic cannot, so historical rows never resolve to `project`/`user`.
+- `agent_kind` flows through ingest unchanged (`events.data` is stored wholesale).
+- Files: `claude-plugin/lib/telemetry.py`, `claude-plugin/hooks/subagent_{start,stop}.py`,
+  `supabase/migrations/036_agent_kind.sql`, `apps/app/src/types/analytics.ts`,
+  `apps/app/src/lib/services/analytics.service.ts`,
+  `apps/app/src/components/agents/top-agents-table.tsx`,
+  `apps/app/src/app/(dashboard)/agents/page.tsx`.
+- Migration `036` is **not yet applied** to the live project.
+
 ## [2026-07-23] — Per-Machine (Per-API-Key) Filtering
 
 ### Added
